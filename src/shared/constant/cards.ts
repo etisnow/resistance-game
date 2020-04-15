@@ -13,7 +13,6 @@ const events: {[key: string]: ICard} = {
     description:
       "Возьмите три карты событий, оставьте на руке одну и сбросьте остальные две. Затем сыграйте или сбросьте одну карту",
     playersCount: [4,4,6,9,10],
-
   },
   [EEventID.fear]: {
     type: ECardType.event,

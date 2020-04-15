@@ -31,10 +31,9 @@ export const getCardMenuItems = (cardId: EEventID, currentPlayer: Player, target
 
 	switch (currentPlayer.turnState) {
 		case ETurnState.idle:
-		//case ETurnState.inPickingCard:
-		//	return actions;
+			return actions;
+		// eslint-disable-next-line no-fallthrough
 		case ETurnState.inCardAction:
-			console.log('card evetn tyoe', card.eventType)
 			if (currentPlayer.quarantine > 0 && card.eventType !== EEventType.axe) {
 				actions.push({ menuType: EPlayerActionType.cardDiscard});
 				return actions;
