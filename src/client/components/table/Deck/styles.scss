@@ -1,0 +1,11 @@
+.deckWrapper {
+    position: absolute;
+    .deckCardWrapper {
+        box-shadow: 1px 1px 0 black;
+    }
+    z-index: 11;
+}
+
+.deckCardWrapperMap {
+    position: absolute;
+}

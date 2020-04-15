@@ -1,0 +1,24 @@
+.gameLogWrapper {
+    width: 100%;
+    max-width: 500px;
+    background: #00000026;
+    height: 20%;
+    top: 0px;
+    position: absolute;
+    color: white;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 10px;
+    font-size: 14px;
+    flex-direction: column;
+    overflow: auto;
+	&>div {
+		text-align: left;
+	}
+	&>div{
+		&:last-child {
+    color: #00ff72;
+		}
+	}
+}

@@ -1,0 +1,73 @@
+{
+  "name": "@nechto/client",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@testing-library/jest-dom": "^4.2.4",
+    "@testing-library/react": "^9.3.2",
+    "@testing-library/user-event": "^7.1.2",
+    "@types/jest": "^24.0.0",
+    "@types/node": "^12.0.0",
+    "@types/react": "^16.9.0",
+    "@types/react-dom": "^16.9.0",
+    "chroma-js": "^2.1.0",
+    "classnames": "^2.2.6",
+    "express": "^4.17.1",
+    "lodash-move": "^1.1.1",
+    "mobx": "^5.15.4",
+    "mobx-react": "^6.1.8",
+    "mobx-react-lite": "^1.5.2",
+    "node-sass": "^4.13.1",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "react-scripts": "3.4.1",
+    "react-scroll": "^1.7.16",
+    "react-spring": "^8.0.27",
+    "socket.io": "^2.3.0",
+    "socket.io-client": "^2.3.0",
+    "tsconfig-paths": "^3.9.0",
+    "typescript": "~3.7.2"
+  },
+  "scripts": {
+    "client-watch": "react-scripts start",
+    "server-watch": "nodemon",
+    "server": "ts-node --project server.tsconfig.json -r tsconfig-paths/register ./src/server/index.ts",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.3",
+    "prettier": "^2.0.2",
+    "ts-node": "^8.8.2"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "**/*.test.ts",
+      "**/*.spec.ts",
+      ".git",
+      "node_modules"
+    ],
+    "watch": [
+      "src/server",
+      "src/shared"
+    ],
+    "exec": "yarn server",
+    "ext": "ts"
+  }
+}
