@@ -1,18 +1,18 @@
 import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
-import {yporstvoAct, yporstvoSelect} from 'server/helpers/cardActions/yporstvo';
+import {tenacityAct, tenacitySelect} from 'server/helpers/cardActions/tenacity';
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import {podozrenieAct, podozrenieSelect} from 'server/helpers/cardActions/podozrenie';
-import {menyaemsyaMestamiAct, menyaemsyaMestamiSelect} from 'server/helpers/cardActions/menyaemsyaMestami';
-import {ognemetAct, ognemetSelect} from 'server/helpers/cardActions/ognemet';
+import {suspicionAct, suspicionSelect} from 'server/helpers/cardActions/suspicion';
+import {positionswapAct, positionswapSelect} from 'server/helpers/cardActions/positionswap';
+import {flamethrowerAct, flamethrowerSelect} from 'server/helpers/cardActions/flamethrower';
 import {smatyvayUdochkiAct, smatyvayUdochkiSelect} from 'server/helpers/cardActions/smatyvayUdochki';
 import {zakolochennayaDverAct, zakolochennayaDverSelect} from 'server/helpers/cardActions/zakolochennayaDver';
-import {soblaznAct, soblaznSelect} from 'server/helpers/cardActions/soblazn';
-import {viskyAct} from 'server/helpers/cardActions/visky';
-import {karantinAct, karantinSelect} from 'server/helpers/cardActions/karantin';
-import {toporAct, toporSelect} from 'server/helpers/cardActions/topor';
+import {seductionAct, seductionSelect} from 'server/helpers/cardActions/seduction';
+import {whiskeyAct} from 'server/helpers/cardActions/whiskey';
+import {quarantineAct, quarantineSelect} from 'server/helpers/cardActions/quarantine';
+import {axeAct, axeSelect} from 'server/helpers/cardActions/axe';
 import {lookAroundAct} from 'server/helpers/cardActions/lookAround';
-import {analizAct, analizSelect} from 'server/helpers/cardActions/analiz';
+import {analysisAct, analysisSelect} from 'server/helpers/cardActions/analysis';
 import {EEventID} from 'shared/enum/cards';
 
 export const actCard = ({game, cardUniqueId, player, actionContext} : {game: Game, player: Player, cardUniqueId: string, actionContext?:any}) => {
@@ -21,38 +21,38 @@ export const actCard = ({game, cardUniqueId, player, actionContext} : {game: Gam
 		throw new Error('Похоже карта не была найдена у игрока ' + player.nickname + ' c ID ' + card.uniqueId);
 	}
 	switch (card.id) {
-		case EEventID.yporstvo:
-			yporstvoAct({card, player, game}); break;
-		case EEventID.podozrenie:
-			podozrenieAct({player, game, card}); break;
-		case EEventID.menyaemsya_mestami:
-			menyaemsyaMestamiAct({player, game, card}); break;
-		case EEventID.ognemet:
-			ognemetAct({player, game, card}); break;
-		case EEventID.smatyvay_udochki:
+		case EEventID.tenacity:
+			tenacityAct({card, player, game}); break;
+		case EEventID.suspicion:
+			suspicionAct({player, game, card}); break;
+		case EEventID.positionswap:
+			positionswapAct({player, game, card}); break;
+		case EEventID.flamethrower:
+			flamethrowerAct({player, game, card}); break;
+		case EEventID.reelFishingRods:
 			smatyvayUdochkiAct({player, game, card}); break;
-		case EEventID.zakolochennaya_dver:
+		case EEventID.barricade:
 			zakolochennayaDverAct({player, game, card}); break;
-		case EEventID.soblazn:
-			soblaznAct({player, game, card}); break;
-		case EEventID.visky:
-			viskyAct({player, game, card}); break;
-		case EEventID.karantin:
-			karantinAct({player, game, card}); break;
-		case EEventID.topor:
-			toporAct({player, game, card}); break;
-		case EEventID.look_around:
+		case EEventID.seduction:
+			seductionAct({player, game, card}); break;
+		case EEventID.whiskey:
+			whiskeyAct({player, game, card}); break;
+		case EEventID.quarantine:
+			quarantineAct({player, game, card}); break;
+		case EEventID.axe:
+			axeAct({player, game, card}); break;
+		case EEventID.lookaround:
 			lookAroundAct({player, game, card}); break;
-		case EEventID.analiz:
-			analizAct({player, game, card}); break;
+		case EEventID.analysis:
+			analysisAct({player, game, card}); break;
 	}
 }
 
 export const selectCard = ({game, cardUniqueId, player, actionContext} : {game: Game, player: Player, cardUniqueId: string, actionContext?:any}) => {
 	let cardFunction: ({game: Game, player: Player, actionContext: any}) => void | null = null;
 	const {turnContext} = game;
-	if (turnContext.type === ETurnContextType.yporstvoCardSelect) {
-		return yporstvoSelect({game, cardUniqueId, player})
+	if (turnContext.type === ETurnContextType.tenacityCardSelect) {
+		return tenacitySelect({game, cardUniqueId, player})
 	}
 }
 
@@ -60,24 +60,24 @@ export const selectPlayer = ({game, selectedPlayerId, player, actionContext} : {
 	let cardFunction: ({game: Game, player: Player, actionContext: any}) => void | null = null;
 	const {turnContext} = game;
 	switch (turnContext.type) {
-		case ETurnContextType.podozreniePersonSelect:
-			return podozrenieSelect({game, selectedPlayerId, player});
-		case ETurnContextType.menyaemsyaMestamiPersonSelect:
-			return menyaemsyaMestamiSelect({game, selectedPlayerId, player});
-		case ETurnContextType.ognemetSelect:
-			return ognemetSelect({game, selectedPlayerId, player});
+		case ETurnContextType.suspicionPersonSelect:
+			return suspicionSelect({game, selectedPlayerId, player});
+		case ETurnContextType.positionswapPersonSelect:
+			return positionswapSelect({game, selectedPlayerId, player});
+		case ETurnContextType.flamethrowerSelect:
+			return flamethrowerSelect({game, selectedPlayerId, player});
 		case ETurnContextType.smatyvayUdochkiPersonSelect:
 			return smatyvayUdochkiSelect({game, selectedPlayerId, player})
 		case ETurnContextType.zakolochennayaDverPersonSelect:
 			return zakolochennayaDverSelect({game, selectedPlayerId, player})
-		case ETurnContextType.soblazn:
-			return soblaznSelect({game, selectedPlayerId, player})
-		case ETurnContextType.karantinPersonSelect:
-			return karantinSelect({game, selectedPlayerId, player})
-		case ETurnContextType.toporPersonSelect:
-			return toporSelect({game, selectedPlayerId, player})
-		case ETurnContextType.analizPersonSelect:
-			return analizSelect({game, selectedPlayerId, player})
+		case ETurnContextType.seduction:
+			return seductionSelect({game, selectedPlayerId, player})
+		case ETurnContextType.quarantinePersonSelect:
+			return quarantineSelect({game, selectedPlayerId, player})
+		case ETurnContextType.axePersonSelect:
+			return axeSelect({game, selectedPlayerId, player})
+		case ETurnContextType.analysisPersonSelect:
+			return analysisSelect({game, selectedPlayerId, player})
 	}
 
 }

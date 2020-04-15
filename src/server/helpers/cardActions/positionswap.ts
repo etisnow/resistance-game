@@ -9,9 +9,9 @@ import {ETurnState} from 'shared/enum/player';
 import {ITurnContextYporstvoCardSelect} from 'shared/interfaces/turnContext';
 import {discardCard} from 'server/helpers/discardCard';
 
-export const menyaemsyaMestamiAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
+export const positionswapAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
 	game.turnContext = {
-		type: ETurnContextType.menyaemsyaMestamiPersonSelect,
+		type: ETurnContextType.positionswapPersonSelect,
 		playerId: player.id,
 	};
 	discardCard({game, player, cardUniqueId: card.uniqueId});
@@ -26,9 +26,9 @@ export const menyaemsyaMestamiAct = ({card, game, player} : {card:ICard, game: G
     }));
 };
 
-export const menyaemsyaMestamiSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
-	if (game.turnContext.type !== ETurnContextType.menyaemsyaMestamiPersonSelect) {
-		throw new Error('Смена места произошла без контекста menyaemsyaMestamiPersonSelect');
+export const positionswapSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
+	if (game.turnContext.type !== ETurnContextType.positionswapPersonSelect) {
+		throw new Error('Смена места произошла без контекста positionswapPersonSelect');
 	}
 	game.turnContext = null;
 	const playerToSwap = game.players[selectedPlayerId];

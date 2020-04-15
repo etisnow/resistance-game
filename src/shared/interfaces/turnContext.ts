@@ -4,23 +4,23 @@ import {Player} from 'server/models/Player';
 
 
 export interface ITurnContextYporstvoCardSelect {
-	type: ETurnContextType.yporstvoCardSelect,
+	type: ETurnContextType.tenacityCardSelect,
 	playerId: Player['id'],
 	cards: [ICard, ICard, ICard],
 }
 
 export interface ITurnContextPodozreniePersonSelect {
-	type: ETurnContextType.podozreniePersonSelect,
+	type: ETurnContextType.suspicionPersonSelect,
 	playerId: Player['id']
 }
 
 export interface ITurnContextMenuaemsyaMestamiPersonSelect {
-	type: ETurnContextType.menyaemsyaMestamiPersonSelect,
+	type: ETurnContextType.positionswapPersonSelect,
 	playerId: Player['id']
 }
 
 export interface ITurnContextOgnemetSelect {
-	type: ETurnContextType.ognemetSelect,
+	type: ETurnContextType.flamethrowerSelect,
 	playerId: Player['id']
 }
 
@@ -35,22 +35,22 @@ export interface ITurnContextZakolochennayaDverSelect {
 }
 
 export interface ITurnContextZakolochennayaSoblaznSelect {
-	type: ETurnContextType.soblazn,
+	type: ETurnContextType.seduction,
 	playerId: Player['id'],
 	playerIdToTrade: Player['id'] | null,
 }
 
 export interface ITurnContextKarantinSelect {
-	type: ETurnContextType.karantinPersonSelect,
+	type: ETurnContextType.quarantinePersonSelect,
 	playerId: Player['id'],
 }
 export interface ITurnContextToporSelect {
-	type: ETurnContextType.toporPersonSelect,
+	type: ETurnContextType.axePersonSelect,
 	playerId: Player['id'],
 }
 
 export interface ITurnContextAnalizSelect {
-	type: ETurnContextType.analizPersonSelect,
+	type: ETurnContextType.analysisPersonSelect,
 	playerId: Player['id'],
 }
 export type ITurnContext =

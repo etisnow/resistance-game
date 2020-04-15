@@ -27,7 +27,7 @@ export const gameStarter = (game: Game) => {
 	const shuffledDeck = shuffle(filteredDeck);
 
 	const [playableCards, otherCards] = reduce(shuffledDeck, ([events, other], card: ICard) => {
-		if (card.type === ECardType.event && card.id !== 'zarazhenie' && card.id !== 'thing') {
+		if (card.type === ECardType.event && card.id !== 'injure' && card.id !== 'thing') {
 			events.push(card);
 		} else {
 			//REMOVE TEST PANICS
@@ -97,10 +97,10 @@ export const gameStarter = (game: Game) => {
 		neerone.hand.splice(0,1);
 		neerone.hand.splice(0,1);
 		neerone.hand.splice(0,1);
-		neerone.hand.push(getCard(EEventID.karantin));
-		neerone.hand.push(getCard(EEventID.topor));
-		neerone.hand.push(getCard(EEventID.look_around));
-		neerone.hand.push(getCard(EEventID.analiz));
+		neerone.hand.push(getCard(EEventID.quarantine));
+		neerone.hand.push(getCard(EEventID.axe));
+		neerone.hand.push(getCard(EEventID.lookaround));
+		neerone.hand.push(getCard(EEventID.analysis));
 		//console.log(neerone);
 		game.changeTurn(neerone.id);
 		//game.turnPlayerId = neerone.id;

@@ -9,9 +9,9 @@ import {discardCard} from 'server/helpers/discardCard';
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
 
-export const karantinAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
+export const quarantineAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
 	game.turnContext = {
-		type: ETurnContextType.karantinPersonSelect,
+		type: ETurnContextType.quarantinePersonSelect,
 		playerId: player.id,
 	};
 
@@ -27,9 +27,9 @@ export const karantinAct = ({card, game, player} : {card:ICard, game: Game, play
     }));
 };
 
-export const karantinSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
-	if (game.turnContext.type !== ETurnContextType.karantinPersonSelect) {
-		throw new Error('Выбор karantin произошел без контекста karantinPersonSelect');
+export const quarantineSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
+	if (game.turnContext.type !== ETurnContextType.quarantinePersonSelect) {
+		throw new Error('Выбор quarantine произошел без контекста quarantinePersonSelect');
 	}
 	const selectedPlayer = game.players[selectedPlayerId];
 	selectedPlayer.quarantine = 3;
@@ -39,7 +39,7 @@ export const karantinSelect = ({game, player, selectedPlayerId} : {game: Game, p
       notification: {
 		type: ENotification.okayCard,
 		text: `Игрок ${selectedPlayer.nickname} теперь на карантине`,
-		cards: [getCard(EEventID.karantin)]
+		cards: [getCard(EEventID.quarantine)]
       },
     }));
 	game.addLog(`Игрок ${selectedPlayer.nickname} теперь на карантине`);

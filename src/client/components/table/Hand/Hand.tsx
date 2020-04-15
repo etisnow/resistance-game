@@ -98,8 +98,8 @@ const Hand = observer(({controller} : IHandProps) => {
 		enter: card => {
 			const isSelected = card.uniqueId === selectedCardIndex;
 			const rot = isSelected ? 0 : cardNumberInRow(card) * (180 / cardsCount) - 90 + (90/cardsCount);
-			const scale = isSelected ? 2 : 1;
-			const y = isSelected ? -120 : 0;
+			const scale = isSelected ? 2.5 : 1;
+			const y = isSelected ? -90 : 0;
 			return {
 				rot,
 				y,
@@ -109,8 +109,8 @@ const Hand = observer(({controller} : IHandProps) => {
 		update: card => {
 			const isSelected = card.uniqueId === selectedCardIndex;
 			const rot = isSelected ? 0 : cardNumberInRow(card) * (180 / cardsCount) - 90 + (90/cardsCount);
-			const scale = isSelected ? 2 : 1;
-			const y = isSelected ? -120 : 0;
+			const scale = isSelected ? 2.5 : 1;
+			const y = isSelected ? -90 : 0;
 			return {
 				rot,
 				y,

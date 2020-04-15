@@ -9,13 +9,13 @@ import {ETurnState} from 'shared/enum/player';
 import {discardCard} from 'server/helpers/discardCard';
 import {ITurnContext} from 'shared/interfaces/turnContext';
 
-export const yporstvoAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
+export const tenacityAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
 	const first = game.pickCardWithoutPanics();
 	const second = game.pickCardWithoutPanics();
 	const third = game.pickCardWithoutPanics();
 
 	game.turnContext = {
-		type: ETurnContextType.yporstvoCardSelect,
+		type: ETurnContextType.tenacityCardSelect,
 		cards: [first, second, third],
 		playerId: player.id,
 	};
@@ -31,9 +31,9 @@ export const yporstvoAct = ({card, game, player} : {card:ICard, game: Game, play
     }));
 };
 
-export const yporstvoSelect = ({game, player, cardUniqueId} : {game: Game, player: Player, cardUniqueId: string}) => {
-	if (game.turnContext.type !== ETurnContextType.yporstvoCardSelect) {
-		throw new Error('Выбор упорства произошел без контекста yporstvoCardSelect');
+export const tenacitySelect = ({game, player, cardUniqueId} : {game: Game, player: Player, cardUniqueId: string}) => {
+	if (game.turnContext.type !== ETurnContextType.tenacityCardSelect) {
+		throw new Error('Выбор упорства произошел без контекста tenacityCardSelect');
 	}
 	each(game.turnContext.cards, (card) => {
 		if (card.uniqueId === cardUniqueId) {

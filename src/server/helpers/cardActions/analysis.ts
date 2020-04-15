@@ -3,18 +3,15 @@ import {Player} from 'server/models/Player';
 import {ENotification} from 'shared/enum/notifications';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import {each} from 'lodash';
 import {ICard} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
-import {ITurnContextYporstvoCardSelect} from 'shared/interfaces/turnContext';
 import {discardCard} from 'server/helpers/discardCard';
 
-export const podozrenieAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
+export const analysisAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
 	game.turnContext = {
-		type: ETurnContextType.podozreniePersonSelect,
+		type: ETurnContextType.analysisPersonSelect,
 		playerId: player.id,
 	};
-
 	discardCard({game, player, cardUniqueId: card.uniqueId});
 	player.changeTurnState(ETurnState.inCardActionProgress);
     player.notify(formatPlayerNotification({
@@ -22,26 +19,27 @@ export const podozrenieAct = ({card, game, player} : {card:ICard, game: Game, pl
       notification: {
 		type: ENotification.playerSelect,
 		playersToSelect: player.getPlayabeNeighbours(),
-		text: 'Выбри на кого хочешь применить подозрение'
+		text: 'Выбери кого хочешь проанализировать'
       },
     }));
 };
 
-export const podozrenieSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
-	if (game.turnContext.type !== ETurnContextType.podozreniePersonSelect) {
-		throw new Error('Выбор подозрения произошел без контекста podozreniePersonSelect');
+export const analysisSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
+	if (game.turnContext.type !== ETurnContextType.analysisPersonSelect) {
+		throw new Error('Карта сыграна без контекста analysisPersonSelect');
 	}
-	const playerToView= game.players[selectedPlayerId];
-	const cardToView = playerToView.getRandomCard();
 	game.turnContext = null;
+	const selectedPlayer = game.players[selectedPlayerId];
+
+
+	game.addLog(`Игрок ${player.nickname} анализирует ${selectedPlayer.nickname}`);
     player.notify(formatPlayerNotification({
       player: player,
       notification: {
 		type: ENotification.okayCard,
-		text: `Ты подсмотрел у игрока ${playerToView.nickname} эту карту`,
-		cards: [cardToView]
+        cards: selectedPlayer.hand as ICard[],
+		text: `${selectedPlayer.nickname}: На, смотри!`,
       },
     }));
-	game.addLog(`Игрок ${player.nickname} играет карту "Подозрение"`);
 	player.changeTurnState(ETurnState.inOffenseTrade)
 };

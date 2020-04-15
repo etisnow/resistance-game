@@ -8,9 +8,9 @@ import {ETurnState} from 'shared/enum/player';
 import {discardCard} from 'server/helpers/discardCard';
 import {each} from 'lodash';
 
-export const soblaznAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
+export const seductionAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
 	game.turnContext = {
-		type: ETurnContextType.soblazn,
+		type: ETurnContextType.seduction,
 		playerId: player.id,
 		playerIdToTrade: null
 	};
@@ -27,9 +27,9 @@ export const soblaznAct = ({card, game, player} : {card:ICard, game: Game, playe
     }));
 };
 
-export const soblaznSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
-	if (game.turnContext.type !== ETurnContextType.soblazn) {
-		throw new Error('Смена места произошла без контекста soblaznSelect');
+export const seductionSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
+	if (game.turnContext.type !== ETurnContextType.seduction) {
+		throw new Error('Смена места произошла без контекста seductionSelect');
 	}
 	game.turnContext.playerIdToTrade = selectedPlayerId;
 	const playerToTrade = game.players[selectedPlayerId];
@@ -38,9 +38,9 @@ export const soblaznSelect = ({game, player, selectedPlayerId} : {game: Game, pl
 	player.changeTurnState(ETurnState.inOffenseTrade)
 };
 
-export const soblaznTradeFinish = ({game} : {game: Game}) => {
-	if (game.turnContext.type !== ETurnContextType.soblazn) {
-		throw new Error('Завершение обмена soblazn');
+export const seductionTradeFinish = ({game} : {game: Game}) => {
+	if (game.turnContext.type !== ETurnContextType.seduction) {
+		throw new Error('Завершение обмена seduction');
 	}
 	each(game.players, (player: Player) => {
 		player.changeTurnState(ETurnState.idle);

@@ -7,7 +7,7 @@ import {ETurnState} from 'shared/enum/player';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 
 const injuresCount = (player: Player) => {
-	const injures = filter(player.hand, card => { return card.id === EEventID.zarazhenie});
+	const injures = filter(player.hand, card => { return card.id === EEventID.injure});
 	return injures.length;
 };
 

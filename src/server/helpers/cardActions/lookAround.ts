@@ -19,7 +19,7 @@ export const lookAroundAct = ({card, game, player} : {card:ICard, game: Game, pl
       player: player,
       notification: {
 		type: ENotification.okayCard,
-		cards: [getCard(EEventID.look_around)],
+		cards: [getCard(EEventID.lookaround)],
 		text: `${player.nickname} изменил направление хода`
       },
     }));

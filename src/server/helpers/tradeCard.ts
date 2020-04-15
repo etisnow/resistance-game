@@ -8,7 +8,7 @@ import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {EEventID} from 'shared/enum/cards';
 import {Game} from 'server/models/Game';
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import {soblaznTradeFinish} from 'server/helpers/cardActions/soblazn';
+import {seductionTradeFinish} from 'server/helpers/cardActions/seduction';
 import {discardCard} from 'server/helpers/discardCard';
 
 export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Player, cardUniqueId: string}) => {
@@ -17,7 +17,7 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
   const isOffenseTrade = player.turnState === ETurnState.inOffenseTrade;
   const context = game.turnContext;
   let nextPlayer =  null;
-  if (context && context.type === ETurnContextType.soblazn) {
+  if (context && context.type === ETurnContextType.seduction) {
     nextPlayer = game.players[context.playerIdToTrade]
   } else {
     nextPlayer = game.getPlayerByPosition({playerId: player.id, isNext: isOffenseTrade});
@@ -36,7 +36,7 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
     return;
   }
   let prevPlayer = null;
-  if (context && context.type === ETurnContextType.soblazn) {
+  if (context && context.type === ETurnContextType.seduction) {
     prevPlayer = game.players[context.playerId]
   } else {
     prevPlayer = game.getPlayerByPosition({playerId: player.id, isNext: isOffenseTrade});
@@ -67,12 +67,12 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
     },
   }));
 
-  if (game.cardChangeId === EEventID.zarazhenie) {
+  if (game.cardChangeId === EEventID.injure) {
     game.injurePlayer(player.id);
   }
   game.cardChangeId = null;
-  if (game.turnContext && game.turnContext.type === ETurnContextType.soblazn) {
-    return soblaznTradeFinish({game})
+  if (game.turnContext && game.turnContext.type === ETurnContextType.seduction) {
+    return seductionTradeFinish({game})
   }
   game.changeTurn(player.id)
 

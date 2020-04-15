@@ -9,7 +9,7 @@ import {ETurnState} from 'shared/enum/player';
 import {ITurnContextYporstvoCardSelect} from 'shared/interfaces/turnContext';
 import {discardCard} from 'server/helpers/discardCard';
 
-export const viskyAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
+export const whiskeyAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
 	discardCard({game, player, cardUniqueId: card.uniqueId});
 	player.changeTurnState(ETurnState.inOffenseTrade);
     game.notifyAllPlayers(formatPlayerNotification({

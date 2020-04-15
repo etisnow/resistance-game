@@ -7,9 +7,9 @@ import {ICard} from 'shared/interfaces/cards';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {discardCard} from 'server/helpers/discardCard';
 
-export const toporAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
+export const axeAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
 	game.turnContext = {
-		type: ETurnContextType.toporPersonSelect,
+		type: ETurnContextType.axePersonSelect,
 		playerId: player.id,
 	};
 
@@ -23,24 +23,24 @@ export const toporAct = ({card, game, player} : {card:ICard, game: Game, player:
 
 
 
-	const toporTargets = [...neighbours];
+	const axeTargets = [...neighbours];
 	if (player.quarantine > 0) {
-		toporTargets.push(player.id)
+		axeTargets.push(player.id)
 	}
 
     player.notify(formatPlayerNotification({
       player: player,
       notification: {
 		type: ENotification.playerSelect,
-		playersToSelect: toporTargets,
+		playersToSelect: axeTargets,
 		text: 'Выбри на что хочешь применить топор'
       },
     }));
 };
 
-export const toporSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
-	if (game.turnContext.type !== ETurnContextType.toporPersonSelect) {
-		throw new Error('Выбор подозрения произошел без контекста toporPersonSelect');
+export const axeSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
+	if (game.turnContext.type !== ETurnContextType.axePersonSelect) {
+		throw new Error('Выбор подозрения произошел без контекста axePersonSelect');
 	}
 	const selectedPlayer = game.players[selectedPlayerId];
 	game.turnContext = null;

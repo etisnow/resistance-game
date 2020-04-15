@@ -11,9 +11,9 @@ import {discardCard} from 'server/helpers/discardCard';
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
 
-export const ognemetAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
+export const flamethrowerAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
 	game.turnContext = {
-		type: ETurnContextType.ognemetSelect,
+		type: ETurnContextType.flamethrowerSelect,
 		playerId: player.id,
 	};
 
@@ -29,9 +29,9 @@ export const ognemetAct = ({card, game, player} : {card:ICard, game: Game, playe
     }));
 };
 
-export const ognemetSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
-	if (game.turnContext.type !== ETurnContextType.ognemetSelect) {
-		throw new Error('Выбор огнемета произошел без контекста ognemetSelect');
+export const flamethrowerSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
+	if (game.turnContext.type !== ETurnContextType.flamethrowerSelect) {
+		throw new Error('Выбор огнемета произошел без контекста flamethrowerSelect');
 	}
 	const selectedPlayer = game.players[selectedPlayerId];
 	game.turnContext = null;
@@ -39,7 +39,7 @@ export const ognemetSelect = ({game, player, selectedPlayerId} : {game: Game, pl
       player: player,
       notification: {
 		type: ENotification.okayCard,
-		cards: [getCard(EEventID.ognemet)],
+		cards: [getCard(EEventID.flamethrower)],
 		text: `Игрок ${selectedPlayer.nickname} был заживо сожжен игроком ${player.nickname} и выбывает из игры`,
       },
     }));

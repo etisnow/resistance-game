@@ -2,11 +2,13 @@
 	display: flex;
 	cursor: pointer;
     flex-direction: column;
+	border-radius: 4px;
 	img {
 		width: 100%;
 		border-radius: 3px;
 	}
 	&.cardCanBeUsed {
 		box-shadow: 0px 0px 4px #3dff00;
+
 	}
 }
