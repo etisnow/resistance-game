@@ -49,7 +49,6 @@ export const actCard = ({game, cardUniqueId, player, actionContext} : {game: Gam
 }
 
 export const selectCard = ({game, cardUniqueId, player, actionContext} : {game: Game, player: Player, cardUniqueId: string, actionContext?:any}) => {
-	let cardFunction: ({game: Game, player: Player, actionContext: any}) => void | null = null;
 	const {turnContext} = game;
 	if (turnContext.type === ETurnContextType.tenacityCardSelect) {
 		return tenacitySelect({game, cardUniqueId, player})
@@ -57,7 +56,6 @@ export const selectCard = ({game, cardUniqueId, player, actionContext} : {game: 
 }
 
 export const selectPlayer = ({game, selectedPlayerId, player, actionContext} : {game: Game, player: Player, selectedPlayerId: string, actionContext?:any}) => {
-	let cardFunction: ({game: Game, player: Player, actionContext: any}) => void | null = null;
 	const {turnContext} = game;
 	switch (turnContext.type) {
 		case ETurnContextType.suspicionPersonSelect:

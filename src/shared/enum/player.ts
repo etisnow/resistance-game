@@ -7,9 +7,14 @@ export enum EPlayerState {
 export enum ETurnState {
 	idle = 'idle',
 	inCardAction = 'inCardAction',
+	inCardActionProgress = 'inCardActionProgress',
+
 	inOffenseTrade = 'inOffenseTrade',
 	inDefenseTrade = 'inDefenseTrade',
+
 	inOffenseSwap = 'inOffenseSwap',
-	inDefenceSwap = 'inDefenceSwap',
-	inCardActionProgress = 'inCardActionProgress',
+	inDefenseSwap = 'inDefenseSwap',
+
+	inOffenseFiring = 'inOffenseFiring',
+	inDefenseFiring = 'inDefenseFiring',
 }

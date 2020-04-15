@@ -6,7 +6,6 @@ import {animated, interpolate, useTransition} from 'react-spring';
 import GameController from 'client/controllers/gameController';
 import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
 import {cardAspectRatio} from 'shared/constant/cards';
-import {getCardMenuItems} from 'client/helpers/cardHelpers';
 import Card from 'client/components/table/Card/Card';
 import {ETurnState} from 'shared/enum/player';
 import {EPlayerActionType} from 'shared/enum/playerActions';
@@ -24,10 +23,10 @@ const handleCardAction = (gameController: GameController, onSelectCard, actionTy
 	onSelectCard(actionType, cardUniqueId);
 };
 
-const generateCardMenu = (id, cardUniqueId, gameController: GameController, onSelectCard) => {
+const generateCardMenu = (id, cardUniqueId, gameController: GameController, onSelectCard, card) => {
 	const player = gameController.currentPlayer;
 	if (!player || player.turnState === ETurnState.idle) return null;
-	const menuItems = getCardMenuItems(id, player, null);
+	const menuItems = card.actions;
 	if (menuItems.length === 0) return null;
 	const menu = menuItems.map((menuIitem) => {
 		switch (menuIitem.menuType) {
@@ -131,7 +130,7 @@ const Hand = observer(({controller} : IHandProps) => {
 			{map(transitions, ({item: card, key, props: {rot, scale, y}}) => {
 				const {id} = card;
 				const isSelected = selectedCardIndex === card.uniqueId;
-				const cardMenu = generateCardMenu(id, card.uniqueId, controller, onSelectCard);
+				const cardMenu = generateCardMenu(id, card.uniqueId, controller, onSelectCard, card);
 				return <animated.div
 					key={key}
 				    style={{

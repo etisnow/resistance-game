@@ -4,6 +4,7 @@ import {Game} from 'server/models/Game';
 import {mapValues, map, find} from 'lodash';
 import {GameServer} from 'server/server/GameServer';
 import INotification from 'shared/interfaces/notification';
+import {formatHand} from 'server/formatters/formatHand';
 
 function formatEvent(type, payload) {
 	return {
@@ -23,19 +24,16 @@ const formatDeck = (game:Game) => {
 }
 
 export const formatUpdateGameEvent = ({ game, viewer }: {game: Game, viewer: Player}) => {
-	const players = game.players;
 	return formatEvent(EServerEventType.updateGame, formatUpdatePlayerPayload({ game, viewer }))
 };
 
 export const formatPlayerConnectedEvent = ({ game, viewer }: {game: Game, viewer: Player}) => {
-	const players = game.players;
 	return formatEvent(EServerEventType.playerConnected, formatUpdatePlayerPayload({ game, viewer }))
 };
 
 const formatUpdatePlayerPayload = ({ game, viewer }: {game: Game, viewer: Player}) => {
-	const players = game.players;
 	return {
-		players: formatPlayers(players, viewer),
+		players: formatPlayers(game, viewer),
 		turnPlayerId:  game.turnPlayerId,
 		playersList:  game.playersList,
 		isClockwise:  game.isClockwise,
@@ -44,7 +42,9 @@ const formatUpdatePlayerPayload = ({ game, viewer }: {game: Game, viewer: Player
 	}
 };
 
-const formatPlayer = (viewer: Player) => (player: Player) => {
+
+
+const formatPlayer = (game: Game, viewer: Player) => (player: Player) => {
 	if (!player) return null;
 	const isViewer = viewer.id === player.id;
 	const isViewerThing = viewer.isThing;
@@ -54,7 +54,7 @@ const formatPlayer = (viewer: Player) => (player: Player) => {
 		nickname: player.nickname,
 		state: player.state,
 		isHost: player.isHost,
-		hand: isViewer ? player.hand : null,
+		hand: isViewer ? formatHand(game, player) : null,
 		color: player.color,
 		turnState: player.turnState,
 		isInjured: isViewerThing || isViewer ? player.isInjured : null,
@@ -63,8 +63,8 @@ const formatPlayer = (viewer: Player) => (player: Player) => {
 	}
 };
 
-const formatPlayers = (players: { [key:string]: Player }, viewer: Player) => {
-	return mapValues(players, formatPlayer(viewer))
+const formatPlayers = (game: Game, viewer: Player) => {
+	return mapValues(game.players, formatPlayer(game, viewer))
 };
 
 export const formatPlayerConnectionSuccessEvent = ({player, game, players}: {player: Player, game: Game, players: { [key:string]: Player } }) => {
@@ -72,8 +72,8 @@ export const formatPlayerConnectionSuccessEvent = ({player, game, players}: {pla
 		game: {
 			id: game.id
 		},
-		player: formatPlayer(player)(player),
-		players: formatPlayers(players, player),
+		player: formatPlayer(game, player)(player),
+		players: formatPlayers(game, player),
 	})
 }
 
