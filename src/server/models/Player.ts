@@ -26,7 +26,7 @@ export class Player {
 		if (playerState === EPlayerState.door) {
 			return;
 		}
-		console.log("A user connected : " + socket.id);
+		//console.log("A user connected : " + socket.id);
 		this.id = _.uniqueId('player_');
 		this.socket = socket;
 	}
@@ -37,7 +37,7 @@ export class Player {
 	register = ({nickname, game}: {nickname:string, game: Game}) => {
 		this.nickname = nickname;
 		this.game = game;
-		console.log('connect player to the game')
+		//console.log('connect player to the game')
 		game.connectPlayer({player: this});
 	};
 	getCardById = (id) => {

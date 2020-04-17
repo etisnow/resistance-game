@@ -53,8 +53,11 @@ export const gameStarter = (game: Game) => {
 
 	game.deck = otherDeck;
 	const playerList = Object.keys(game.players);
-	//game.playersList = shuffle(playerList);
-	game.playersList = playerList;
+	if (gameServer.isMock) {
+		game.playersList = playerList;
+	} else {
+		game.playersList = shuffle(playerList);
+	}
 
 
 

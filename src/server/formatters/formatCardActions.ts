@@ -48,7 +48,6 @@ export const formatCardActions = (game: Game, player: Player, card: ICard): ICar
 	const isCurrentPlayerThing = player.isThing;
 
 	const targetPlayer = getTargetPlayer(game, player);
-	console.log('target player', targetPlayer)
 
 	const isTargetPlayerThing = targetPlayer && targetPlayer.isThing;
 

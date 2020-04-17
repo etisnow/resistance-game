@@ -71,10 +71,9 @@ class GameServer {
     player:Player,
     actionType: EPlayerActionType,
     cardUniqueId: string,
-    selectedPlayerId:string,
+    selectedPlayerId?:string,
     actionContext?: any
   }) {
-    console.log('card action', actionType)
     player.game.cardAction({player, actionType, cardUniqueId, selectedPlayerId, actionContext})
   }
 

@@ -70,7 +70,6 @@ export class Game {
   updateGame = () => {
     const players = this.players;
     each(players, (player: Player) => {
-      console.log('player updated', player.id)
       player.notify(formatUpdateGameEvent({game: this, viewer: player}))
     })
   };
@@ -112,7 +111,7 @@ export class Game {
 
   grabCardFromDeck = ({player}: {player: Player}) => {
     //if (player.id !== this.turnPlayerId) { console.error('Попытка взять карту не в свой ход'); return; }
-    if (player.hand.length > handCardsCount) { console.error('Попытка взять карту если карт больше ' + handCardsCount); return; }
+    if (player.hand.length > handCardsCount + 1) { console.error('Попытка взять карту если карт больше ' + handCardsCount); return; }
 
     //Удаляем карту из колоды сверху и даем её игроку
 	let grabbedCard = this.getFirstCard();

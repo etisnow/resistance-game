@@ -5,10 +5,8 @@ class MockSocket {
 		console.log('')
 	}
 	emit(eventType, payload) {
-		//console.log('EMITED EVENT', eventType);
 	}
 	join(socketRoom) {
-		console.log('MOCKSOCKED JOINED', socketRoom)
 	}
 }
 
@@ -16,8 +14,6 @@ class MockSocketServer {
 	to(roomName) {
 		return {
 			emit: (eventType, eventPayload) => {
-				//console.log('BROADCASTED', eventType, eventPayload)
-				console.log('BROADCASTED', eventType)
 			}
 		}
 	}
