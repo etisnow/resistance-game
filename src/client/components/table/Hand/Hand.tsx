@@ -89,10 +89,7 @@ const Hand = observer(({controller} : IHandProps) => {
 
 	const transitions = useTransition(hand, card=>card.uniqueId, {
 		from: {
-			rot: -20,
-			y: 0,
-			scale: 1,
-
+			transform: `rotate(-20deg) scale(0) translateY(0px)`,
 		},
 		enter: card => {
 			const isSelected = card.uniqueId === selectedCardIndex;
@@ -100,10 +97,8 @@ const Hand = observer(({controller} : IHandProps) => {
 			const scale = isSelected ? 2.5 : 1;
 			const y = isSelected ? -90 : 0;
 			return {
-				rot,
-				y,
-				scale,
-			}
+				transform: `rotate(${rot}deg) scale(${scale}) translateY(${y}px)`,
+			};
 		},
 		update: card => {
 			const isSelected = card.uniqueId === selectedCardIndex;
@@ -111,30 +106,25 @@ const Hand = observer(({controller} : IHandProps) => {
 			const scale = isSelected ? 2.5 : 1;
 			const y = isSelected ? -90 : 0;
 			return {
-				rot,
-				y,
-				scale,
-			}
+				transform: `rotate(${rot}deg) scale(${scale}) translateY(${y}px)`,
+			};
 		},
 		leave: card => {
 			return {
-				y: -getWindowHeight(),
-				rot: 90,
-				opacity:0,
-				scale: 0
-			}
+				transform: `rotate(90deg) scale(0) translateY(${-getWindowHeight()}px)`,
+			};
 		},
 	} as any);
 	return (
 		<div className={"playerHand"} style={{height: playerHandHeight()}}>
-			{map(transitions, ({item: card, key, props: {rot, scale, y}}) => {
+			{map(transitions, ({item: card, key, props: {transform}}) => {
 				const {id} = card;
 				const isSelected = selectedCardIndex === card.uniqueId;
 				const cardMenu = generateCardMenu(id, card.uniqueId, controller, onSelectCard, card);
 				return <animated.div
 					key={key}
 				    style={{
-				        transform: interpolate([rot, scale, y], (rot, scale, y) => `rotate(${rot}deg) scale(${scale}) translateY(${y}px)`),
+				        transform,
 					    position: 'absolute',
 					    display:'flex',
 					    height: playerHandHeight(),
@@ -143,7 +133,6 @@ const Hand = observer(({controller} : IHandProps) => {
 					    zIndex: isSelected ? 60 : 50,
 				    }}
 				>
-
 					<Card
 						key={card.id}
 						id={id}

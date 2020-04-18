@@ -31,7 +31,9 @@ const Room = observer(({controller} : IRoomProps) => {
 	const degDelta = 360 / playersCount;
 
 	const transitions = useTransition(newPlayerList, playerId=>playerId, {
-		from: {x:0, y:0},
+		from: {
+			transform: `translate(0px, 0px)`
+		},
 		enter: playerId => {
 			const player = players[playerId];
 			const currentDeg = (degDelta * newPlayerList.indexOf(playerId))  + 90;
@@ -42,7 +44,9 @@ const Room = observer(({controller} : IRoomProps) => {
 			const currentRad = degToRag(currentDeg);
 			const x = radius*Math.cos(currentRad) + centerX;
 			const y = radius*Math.sin(currentRad) + centerY;
-			return {x, y}
+			return {
+				transform: `translate(${x}px, ${y}px)`
+			}
 		},
 		update: playerId => {
 			const player = players[playerId];
@@ -54,10 +58,14 @@ const Room = observer(({controller} : IRoomProps) => {
 			const currentRad = degToRag(currentDeg);
 			const x = radius*Math.cos(currentRad) + centerX;
 			const y = radius*Math.sin(currentRad) + centerY;
-			return {x, y}
+			return {
+				transform: `translate(${x}px, ${y}px)`
+			}
 		},
 		leave: player => {
-			return {x:0, y:0}
+			return {
+				transform: `translate(0px, 0px)`
+			}
 		},
 	} as any);
 
@@ -67,7 +75,7 @@ const Room = observer(({controller} : IRoomProps) => {
 	const badgeDiagonal = playerRoomDiag(playersCount);
 	return (
 		<div className={"playerRoom"} style={{height: (circRadius(playersCount) * 2) + badgeDiagonal }}>
-			{map(transitions, ({item: playerId, key, props: {x, y}}) => {
+			{map(transitions, ({item: playerId, key, props: {transform}}) => {
 				const player = players[playerId];
 				if (!player || !player.id) return null;
 				const {nickname, color, state} = player;
@@ -76,7 +84,7 @@ const Room = observer(({controller} : IRoomProps) => {
 				return <animated.div
 					key={key}
 				    style={{
-				        transform: interpolate([x,y], (x,y) => `translate(${x}px, ${y}px)`),
+				        transform,
 					    position: 'absolute',
 					    width: `${badgeDiagonal}px`,
 					    height: `${badgeDiagonal}px`,

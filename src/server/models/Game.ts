@@ -1,4 +1,4 @@
-import {each, uniqueId} from "lodash";
+import {each, uniqueId, find} from "lodash";
 import {Player} from "server/models/Player";
 import {gameServer} from 'server/server/GameServer';
 import {
@@ -205,7 +205,8 @@ export class Game {
     selectedPlayerId:string,
     actionContext?:any
   }) {
-    console.log(`Player ${player.nickname} igraet ${actionType} kartoi ${cardUniqueId}`);
+    const card = find(player.hand, {uniqueId: cardUniqueId})
+    console.log(`Player ${player.nickname} igraet ${actionType} kartoi ${cardUniqueId} - ${card.id}`);
     switch (actionType) {
       case EPlayerActionType.cardDiscard:
         discardCardAction({game: this, player, cardUniqueId});
