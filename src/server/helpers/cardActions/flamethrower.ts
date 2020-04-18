@@ -4,14 +4,13 @@ import {ENotification} from 'shared/enum/notifications';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {each} from 'lodash';
-import {ICard} from 'shared/interfaces/cards';
+import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
-import {ITurnContextYporstvoCardSelect} from 'shared/interfaces/turnContext';
 import {discardCard} from 'server/helpers/discardCard';
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
 
-export const flamethrowerAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
+export const flamethrowerAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	game.turnContext = {
 		type: ETurnContextType.flamethrowerSelect,
 		playerId: player.id,

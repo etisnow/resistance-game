@@ -1,6 +1,6 @@
 import {uniqueId} from 'lodash';
 
-export function shuffle(array) {
+export function shuffle<T extends any[]>(array: T): T {
   var currentIndex = array.length, temporaryValue, randomIndex;
 
   // While there remain elements to shuffle...

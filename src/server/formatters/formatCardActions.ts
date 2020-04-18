@@ -1,10 +1,10 @@
 import {filter, find} from 'lodash';
-import {ICardMenuItem} from 'shared/interfaces/cardMenu';
+import {ICardEventMenuItem} from 'shared/interfaces/cardMenu';
 import {ETurnState} from 'shared/enum/player';
 import {EEventID, EEventType} from 'shared/enum/cards';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {Game} from 'server/models/Game';
-import {ICard} from 'shared/interfaces/cards';
+import {ICardEvent} from 'shared/interfaces/cards';
 import {Player} from 'server/models/Player';
 
 const injuresCount = (player: Player) => {
@@ -39,8 +39,8 @@ const getTargetPlayer = (game:Game, player: Player): Player | null => {
 
 };
 
-export const formatCardActions = (game: Game, player: Player, card: ICard): ICardMenuItem[] => {
-	let actions : ICardMenuItem[] = [];
+export const formatCardActions = (game: Game, player: Player, card: ICardEvent): ICardEventMenuItem[] => {
+	let actions : ICardEventMenuItem[] = [];
 	if (!card.eventType) return actions;
 	if (card.id === "thing") return actions;
 

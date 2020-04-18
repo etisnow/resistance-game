@@ -3,13 +3,11 @@ import {Player} from 'server/models/Player';
 import {ENotification} from 'shared/enum/notifications';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import {each} from 'lodash';
-import {ICard} from 'shared/interfaces/cards';
+import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
-import {ITurnContextYporstvoCardSelect} from 'shared/interfaces/turnContext';
 import {discardCard} from 'server/helpers/discardCard';
 
-export const suspicionAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
+export const suspicionAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	game.turnContext = {
 		type: ETurnContextType.suspicionPersonSelect,
 		playerId: player.id,

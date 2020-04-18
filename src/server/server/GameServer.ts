@@ -70,7 +70,7 @@ class GameServer {
   }: {
     player:Player,
     actionType: EPlayerActionType,
-    cardUniqueId: string,
+    cardUniqueId?: string,
     selectedPlayerId?:string,
     actionContext?: any
   }) {

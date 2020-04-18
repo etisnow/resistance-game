@@ -1,11 +1,9 @@
-import {findIndex} from 'lodash';
 import {Player} from 'server/models/Player';
 import {ETurnState} from 'shared/enum/player';
 import {ENotification} from 'shared/enum/notifications';
 import {getCard} from 'shared/constant/cards';
-import {ICard} from 'shared/interfaces/cards';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
-import {EEventID} from 'shared/enum/cards';
+import {ECardType, EEventID} from 'shared/enum/cards';
 import {Game} from 'server/models/Game';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {seductionTradeFinish} from 'server/helpers/cardActions/seduction';
@@ -13,67 +11,70 @@ import {discardCard} from 'server/helpers/discardCard';
 
 export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Player, cardUniqueId: string}) => {
   const tradingCard = player.getCardByUniqueId(cardUniqueId);
+  if (tradingCard.type !== ECardType.event) {
+    throw new Error(`Попытка обменяться НЕ картой эвента ${tradingCard}`);
+  }
   discardCard({player, cardUniqueId, game});
   const isOffenseTrade = player.turnState === ETurnState.inOffenseTrade;
   const context = game.turnContext;
-  let nextPlayer =  null;
-  if (context && context.type === ETurnContextType.seduction) {
-    nextPlayer = game.players[context.playerIdToTrade]
+  let playerToTrade =  null;
+  if (context && context.type === ETurnContextType.trade) {
+    playerToTrade = context.defensePlayer
   } else {
-    nextPlayer = game.getPlayerByPosition({playerId: player.id, isNext: isOffenseTrade});
+    playerToTrade = game.getPlayerByPosition({playerId: player.id, isNext: isOffenseTrade});
   }
 
   if (isOffenseTrade) {
-    nextPlayer.changeTurnState(ETurnState.inDefenseTrade);
+    playerToTrade.changeTurnState(ETurnState.inDefenseTrade);
     player.changeTurnState(ETurnState.idle);
-    game.addLog(`Игрок ${player.nickname} передает карту для обмена игроку ${nextPlayer.nickname}`);
-    game.cardChangeId = tradingCard.id;
+    game.addLog(`Игрок ${player.nickname} передает карту для обмена игроку ${playerToTrade.nickname}`);
+    game.turnContext = {
+      type: ETurnContextType.trade,
+      defensePlayer: playerToTrade,
+      offensePlayer: player,
+      offenseCardId: tradingCard.id,
+    };
     return;
   }
   //isDefense trade
-  if (!game.cardChangeId) {
+  if (context.type !== ETurnContextType.trade) {
     console.error('Нет выбранной карты для обмена у игрока', player.id);
     return;
   }
-  let prevPlayer = null;
-  if (context && context.type === ETurnContextType.seduction) {
-    prevPlayer = game.players[context.playerId]
-  } else {
-    prevPlayer = game.getPlayerByPosition({playerId: player.id, isNext: isOffenseTrade});
-  }
+  let offensePlayer = context.offensePlayer;
+  offensePlayer.changeTurnState(ETurnState.idle);
+  game.addLog(`Игроки ${player.nickname} и ${offensePlayer.nickname} обменялись картами`);
 
-  prevPlayer.changeTurnState(ETurnState.idle);
-  game.addLog(`Игроки ${player.nickname} и ${prevPlayer.nickname} обменялись картами`);
-
-  const prevPlayerCard = getCard(tradingCard.id)
-  prevPlayer.hand.push(prevPlayerCard);
-  prevPlayer.notify(formatPlayerNotification({
+  const offensePlayerCard = getCard(context.offenseCardId);
+  offensePlayer.hand.push(offensePlayerCard);
+  offensePlayer.notify(formatPlayerNotification({
     player: player,
     notification: {
       type: ENotification.okayCard,
-      cards: [prevPlayerCard],
+      cards: [offensePlayerCard],
       text: `Игрок ${player.nickname} дал эту карту`,
     },
   }));
 
-  const playerCard = getCard(game.cardChangeId);
+  const playerCard = getCard(context.offenseCardId);
   player.hand.push(playerCard);
   player.notify(formatPlayerNotification({
     player: player,
     notification: {
       type: ENotification.okayCard,
       cards: [playerCard],
-      text: `Игрок ${prevPlayer.nickname} дал эту карту`,
+      text: `Игрок ${offensePlayer.nickname} дал эту карту`,
     },
   }));
 
-  if (game.cardChangeId === EEventID.injure) {
+  if (context.offenseCardId=== EEventID.injure) {
     game.injurePlayer(player.id);
   }
-  game.cardChangeId = null;
   if (game.turnContext && game.turnContext.type === ETurnContextType.seduction) {
     return seductionTradeFinish({game})
   }
-  game.changeTurn(player.id)
+  game.endTurn(offensePlayer.id);
+  //game.changeTurn(player.id)
+  game.turnContext = null;
 
 };

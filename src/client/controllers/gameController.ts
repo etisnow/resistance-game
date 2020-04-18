@@ -7,6 +7,7 @@ import {ECardType} from 'shared/enum/cards';
 import {EGameState} from 'shared/enum/common';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
 import {EPlayerActionType} from 'shared/enum/playerActions';
+import {IFormatTradeContext} from 'shared/interfaces/common';
 
 
 export default class GameController {
@@ -22,8 +23,8 @@ export default class GameController {
 	@observable deck: {count: number, topCardType: ECardType} = {count: 0, topCardType: ECardType.event};
 	@observable notifications: INotification[] = [];
 	@observable playersToSelect: string[] = [];
-	@observable isLayoutSequential: boolean = true;
-
+	@observable isLayoutSequential: boolean = false;
+	@observable tradeContext: IFormatTradeContext | null = null;
 	constructor(root: RootController) {
 		this.root = root;
 		this.socket = root.socketController;

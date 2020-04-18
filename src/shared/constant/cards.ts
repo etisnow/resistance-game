@@ -1,11 +1,11 @@
 import {each, uniqueId} from 'lodash';
 
 import {ECardType, EEventID, EEventType, EPanicID} from 'shared/enum/cards';
-import {ICard} from 'shared/interfaces/cards';
+import {ICardEvent} from 'shared/interfaces/cards';
 
 export const cardAspectRatio = 1.3957;
 
-const events: {[key: string]: ICard} = {
+const events: {[key: string]: ICardEvent} = {
   [EEventID.tenacity]: {
     type: ECardType.event,
     id: EEventID.tenacity,
@@ -237,7 +237,7 @@ const panic = {
   },
 };
 
-const cardBacks : {[key: string]: ICard} = {
+const cardBacks : {[key: string]: any} = {
   eventBack: {
     type: ECardType.back,
     id: "eventBack",
@@ -252,14 +252,15 @@ const cardBacks : {[key: string]: ICard} = {
   },
 };
 
-const thingCard : ICard = {
-  type: ECardType.thing,
-  id: "thing",
+const thingCard : ICardEvent = {
+  type: ECardType.event,
+  id: EEventID.thing,
+  uniqueId: 'thing_card_unique_id',
   description: "Ты нечто.",
   playersCount: [0],
 };
 
-const fulldeck = Object.assign({}, events, panic, cardBacks, { thing:thingCard }) as {[key: string]: ICard};
+const fulldeck = Object.assign({}, events, panic, cardBacks, { thing:thingCard }) as {[key: string]: ICardEvent};
 
 export const handCardsCount = 4;
 
@@ -268,7 +269,7 @@ each(fulldeck, card => {
 	fullDeckObject[card.id] = card
 });
 
-export const getCard = cardId => {
+export const getCard = (cardId) : ICardEvent => {
   return {...fullDeckObject[cardId], uniqueId: uniqueId('card_')}
 }
 export { fulldeck, thingCard, cardBacks, fullDeckObject };

@@ -1,11 +1,11 @@
 import {map} from 'lodash';
 import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
-import {ICard} from 'shared/interfaces/cards';
+import {ICardEvent} from 'shared/interfaces/cards';
 import {formatCardActions} from 'server/formatters/formatCardActions';
 
 
-const formatCard = (game: Game, player: Player) => (card: ICard) => {
+const formatCard = (game: Game, player: Player) => (card: ICardEvent) => {
 	return {...card, actions: formatCardActions(game, player, card) }
 };
 

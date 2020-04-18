@@ -1,10 +1,13 @@
 import {EServerEventType} from 'shared/enum/enumServerEvents';
 import {Player} from 'server/models/Player';
 import {Game} from 'server/models/Game';
-import {mapValues, map, find} from 'lodash';
+import {find, map, mapValues} from 'lodash';
 import {GameServer} from 'server/server/GameServer';
 import INotification from 'shared/interfaces/notification';
 import {formatHand} from 'server/formatters/formatHand';
+import {ETurnContextType} from 'shared/enum/turnContextType';
+import {ITurnContextTrade} from 'shared/interfaces/turnContext';
+import {IFormatTradeContext} from 'shared/interfaces/common';
 
 function formatEvent(type, payload) {
 	return {
@@ -31,6 +34,16 @@ export const formatPlayerConnectedEvent = ({ game, viewer }: {game: Game, viewer
 	return formatEvent(EServerEventType.playerConnected, formatUpdatePlayerPayload({ game, viewer }))
 };
 
+const formatTradeContext = (game: Game) : IFormatTradeContext => {
+	const tradeContext = game.turnContext;
+	if (!tradeContext || tradeContext.type !== ETurnContextType.trade) return;
+	return {
+		offensePlayerId: tradeContext.offensePlayer ? tradeContext.offensePlayer.id : null,
+		defensePlayerId: tradeContext.defensePlayer ? tradeContext.defensePlayer.id : null,
+		isCardPicked: !!tradeContext.offenseCardId
+	}
+}
+
 const formatUpdatePlayerPayload = ({ game, viewer }: {game: Game, viewer: Player}) => {
 	return {
 		players: formatPlayers(game, viewer),
@@ -38,6 +51,7 @@ const formatUpdatePlayerPayload = ({ game, viewer }: {game: Game, viewer: Player
 		playersList:  game.playersList,
 		isClockwise:  game.isClockwise,
 		gameLog: game.gameLog,
+		tradeContext: formatTradeContext(game),
 		deck: formatDeck(game)
 	}
 };
@@ -49,16 +63,20 @@ const formatPlayer = (game: Game, viewer: Player) => (player: Player) => {
 	const isViewer = viewer.id === player.id;
 	const isViewerThing = viewer.isThing;
 	const isViewerInjured = viewer.isThing;
+
 	return {
 		id: player.id,
 		nickname: player.nickname,
 		state: player.state,
 		isHost: player.isHost,
+		isYou: player === viewer,
 		hand: isViewer ? formatHand(game, player) : null,
 		color: player.color,
 		turnState: player.turnState,
-		isInjured: isViewerThing || isViewer ? player.isInjured : null,
-		isThing: isViewerInjured ? player.isThing : null,
+		//isInjured: true,
+		isInjured: player.isThing ? null : (isViewerThing || isViewer ? player.isInjured : null),
+		//isThing: true,
+		isThing: isViewerThing || isViewerInjured ? player.isThing : null,
 		quarantine: player.quarantine,
 	}
 };

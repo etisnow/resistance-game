@@ -1,7 +1,7 @@
 import {Game} from 'server/models/Game';
 import {fullDeckObject, getCard, handCardsCount} from 'shared/constant/cards';
 import {concat, each, find, range, reduce} from 'lodash';
-import {ICard} from 'shared/interfaces/cards';
+import {ICardAny, ICardEvent, ICardPanic} from 'shared/interfaces/cards';
 import { shuffle} from 'server/helpers/util';
 import * as chroma from 'chroma-js';
 import {gameServer} from 'server/server/GameServer';
@@ -15,28 +15,28 @@ export const gameStarter = (game: Game) => {
 	const playersCount = Object.keys(players).length || 0;
 	if (!playersCount) throw new Error("количество игроков равно нулю");
 
-	const filteredDeck = reduce(fullDeckObject, (acc, card:ICard) => {
+	const filteredDeck = reduce(fullDeckObject, (acc, card: ICardAny) => {
 		each(card.playersCount, (count) => {
 			if (count <= playersCount) {
 				acc.push(getCard(card.id))
 			}
 		});
 		return acc
-	}, []);
+	}, [] as ICardAny[]);
 
 	const shuffledDeck = shuffle(filteredDeck);
 
-	const [playableCards, otherCards] = reduce(shuffledDeck, ([events, other], card: ICard) => {
+	const [playableCards, otherCards] = reduce(shuffledDeck, ([events, other], card) => {
 		if (card.type === ECardType.event && card.id !== 'injure' && card.id !== 'thing') {
 			events.push(card);
 		} else {
 			//REMOVE TEST PANICS
 			if (card.type !== ECardType.panic) {
-			other.push(card);
+				other.push(card);
 			}
 		}
 		return [events, other]
-	}, [[], []]);
+	}, [[] as ICardEvent[], [] as ICardAny[]]);
 
 
 	//Один точно будет нечто, поэтому берем playersCount - 1
@@ -70,7 +70,7 @@ export const gameStarter = (game: Game) => {
 		let currentPlayerHand = playersHands.slice(0, handCardsCount);
 		playersHands.splice(0, handCardsCount);
 		currentPlayer.hand = currentPlayerHand;
-		each(currentPlayerHand, (card: ICard) => {
+		each(currentPlayerHand, (card: ICardEvent) => {
 			if (card.id === 'thing') {
 				currentPlayer.isInjured = true;
 				currentPlayer.isThing = true;
@@ -93,19 +93,18 @@ export const gameStarter = (game: Game) => {
 	});
 
 	if (gameServer.isMock) {
-		let neerone = find(game.players, ({nickname}) => {return nickname === 'neerone';});
+		let neerone = find(game.players, {nickname: 'хост'});
 		if (!neerone) neerone = game.players[0];
 		//neerone.quarantine = 3;
 		neerone.hand.splice(0,1);
 		neerone.hand.splice(0,1);
 		neerone.hand.splice(0,1);
 		neerone.hand.splice(0,1);
-		neerone.hand.push(getCard(EEventID.quarantine));
 		neerone.hand.push(getCard(EEventID.axe));
+		neerone.hand.push(getCard(EEventID.fear));
 		neerone.hand.push(getCard(EEventID.lookaround));
 		neerone.hand.push(getCard(EEventID.analysis));
 		//console.log(neerone);
-		game.changeTurn(neerone.id);
 		//game.turnPlayerId = neerone.id;
 		//game.players['player_1']
 	}

@@ -1,12 +1,13 @@
 export enum ETurnContextType {
+	trade = 'trade',
+	positionswap = 'positionswap',
 	tenacityCardSelect = 'tenacityCardSelect',
 	suspicionPersonSelect = 'suspicionPersonSelect',
-	positionswapPersonSelect = 'positionswapPersonSelect',
 	flamethrowerSelect = 'flamethrowerSelect',
-	smatyvayUdochkiPersonSelect = 'smatyvayUdochkiPersonSelect',
-	zakolochennayaDverPersonSelect = 'zakolochennayaDverPersonSelect',
+	barricadePersonSelect = 'barricadePersonSelect',
 	seduction = 'seduction',
 	quarantinePersonSelect = 'quarantinePersonSelect',
 	axePersonSelect = 'axePersonSelect',
 	analysisPersonSelect = 'analysisPersonSelect',
 }
+

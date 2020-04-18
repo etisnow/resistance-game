@@ -4,7 +4,7 @@ import './styles.scss';
 import {map} from 'lodash';
 import INotification from 'shared/interfaces/notification';
 import GameController from 'client/controllers/gameController';
-import {ICard} from 'shared/interfaces/cards';
+import {ICardAny} from 'shared/interfaces/cards';
 import Card from 'client/components/table/Card/Card';
 import {ENotification} from 'shared/enum/notifications';
 
@@ -47,9 +47,9 @@ const generateCardMenuByNotificationType = (controller: GameController, notifica
 	</div>)
 };
 
-const CardsViewer = ({cards, menu}: {cards: ICard[], menu: (a?:any) => React.ReactNode}) => {
+const CardsViewer = ({cards, menu}: {cards: ICardAny[], menu: (a?:any) => React.ReactNode}) => {
 	return <div className={'cardsViewer'}>
-		{map(cards, (card: ICard, index) => {
+		{map(cards, (card: ICardAny, index) => {
 			return <Card key={index} {...card} menu={menu(card.uniqueId)}/>
 		})}
 	</div>

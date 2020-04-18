@@ -14,12 +14,11 @@ import {ETurnState} from 'shared/enum/player';
 import {handCardsCount} from 'shared/constant/cards';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import INotification from 'shared/interfaces/notification';
-import {ICard} from 'shared/interfaces/cards';
+import {ICardAny, ICardEvent, ICardPanic} from 'shared/interfaces/cards';
 import {actCard, selectCard, selectPlayer} from 'server/helpers/playerAction';
 import {ITurnContext} from 'shared/interfaces/turnContext';
 import {tradeCard} from 'server/helpers/tradeCard';
 import {discardCardAction} from 'server/helpers/discardCard';
-import move from 'lodash-move';
 import {ECardType} from 'shared/enum/cards';
 
 enum EGameState {
@@ -31,11 +30,10 @@ export class Game {
   state: EGameState = EGameState.lobby;
   players: { [key: string]: Player } = {};
   playersList: string[] = [];
-  deck: ICard[] = [];
-  discardedDeck: ICard[] = [];
+  deck: ICardAny[] = [];
+  discardedDeck: ICardAny[] = [];
   turnPlayerId: string | null = null;
   isClockwise : boolean = true;
-  cardChangeId: string | null = null;
   gameLog: string[] = [];
   turnContext: ITurnContext | null = null;
 
@@ -46,6 +44,12 @@ export class Game {
 
   notifyAllPlayers = (event) => {
     gameServer.broadcast({ roomName: this.id, event })
+  };
+  notifyAllPlayersExeptPlayer = (event, player) => {
+    each(this.players, (p) => {
+      if (p === player) return;
+      p.notify(event);
+    })
   };
 
   notifyPlayer = ({player, notification} : {player: Player, notification: INotification}) => {
@@ -91,7 +95,7 @@ export class Game {
     this.discardedDeck = [];
   };
 
-  makePanic = (panicCard: ICard) => {
+  makePanic = (panicCard: ICardPanic) => {
     this.addLog('Паника!');
     this.updateGame();
   };
@@ -100,13 +104,19 @@ export class Game {
     each(this.players, p => {
       p.changeTurnState(ETurnState.idle);
     })
-  }
+  };
 
   changeTurn(playerId: string) {
     this.turnPlayerId = playerId;
     const player = this.players[playerId];
     this.addLog(`Ходит игрок ${player.nickname}!`);
 	this.grabCardFromDeck({player})
+  }
+
+  endTurn(playerId: string) {
+    this.turnContext = null;
+    const nextPlayer = this.getPlayerByPosition({playerId, isNext: true});
+    this.changeTurn(nextPlayer.id);
   }
 
   grabCardFromDeck = ({player}: {player: Player}) => {
@@ -170,7 +180,7 @@ export class Game {
     injuringPlayer.isInjured = true;
   };
 
-  getFirstCard(): ICard {
+  getFirstCard(): ICardEvent | ICardPanic {
 	let grabbedCard = this.deck.slice(0, 1)[0];
     if (!grabbedCard) {
       //В колоде больше не осталось карт, перетасовываем биту
@@ -181,15 +191,20 @@ export class Game {
     return grabbedCard;
   }
 
-  pickCardWithoutPanics() {
+  pickFirstEventCard(): ICardEvent {
     const firstCard = this.getFirstCard();
-    this.addLog('Игрок достает карту...')
+    this.addLog('Игрок достает карту событий...')
     if (firstCard.type === ECardType.panic) {
-      this.addLog('Но попалась паника. Игрок берет следующую карту...');
+      this.addLog('Попалась паника. Игрок берет следующую карту...');
       this.discardedDeck.push(firstCard);
-      return this.pickCardWithoutPanics();
+      return this.pickFirstEventCard();
     }
     return firstCard;
+  }
+
+  grabEventCardFromDeck({player}: {player: Player}) {
+    const eventCard = this.pickFirstEventCard();
+    player.hand.push(eventCard);
   }
 
   cardAction({
@@ -205,8 +220,15 @@ export class Game {
     selectedPlayerId:string,
     actionContext?:any
   }) {
-    const card = find(player.hand, {uniqueId: cardUniqueId})
-    console.log(`Player ${player.nickname} igraet ${actionType} kartoi ${cardUniqueId} - ${card.id}`);
+
+    if (cardUniqueId) {
+      const card = find(player.hand, {uniqueId: cardUniqueId})
+      console.log(`Player ${player.nickname} igraet ${actionType} kartoi ${cardUniqueId} - ${card.id}`);
+    }
+    if (selectedPlayerId) {
+      const selectedPlayer = this.players[selectedPlayerId]
+      console.log(`Player ${player.nickname} выбирает игрока ${selectedPlayer.nickname}`);
+    }
     switch (actionType) {
       case EPlayerActionType.cardDiscard:
         discardCardAction({game: this, player, cardUniqueId});
@@ -234,7 +256,8 @@ export class Game {
   swapPlayers = (AId,BId) => {
     const AIndex = this.playersList.indexOf(AId);
     const BIndex = this.playersList.indexOf(BId);
-    this.playersList = move(this.playersList, AIndex, BIndex);
+    this.playersList[AIndex] = BId;
+    this.playersList[BIndex] = AId;
   }
   destroy() {
     //flush logic

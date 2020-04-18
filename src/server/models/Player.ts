@@ -3,7 +3,7 @@ import {find, findIndex} from 'lodash';
 import socketIO from "socket.io";
 import {Game} from 'server/models/Game';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
-import {ICard} from 'shared/interfaces/cards';
+import {ICardEvent} from 'shared/interfaces/cards';
 import {shuffle} from 'server/helpers/util';
 
 export class Player {
@@ -16,7 +16,8 @@ export class Player {
 	isHost: boolean = false;
 	color:string = '';
 	game: Game = null;
-	hand: ICard[];
+	isYou: boolean;
+	hand: ICardEvent[];
 	isInjured: boolean = false;
 	isThing: boolean = false;
 	quarantine: number = 0;
@@ -43,7 +44,7 @@ export class Player {
 	getCardById = (id) => {
 		return find(this.hand, {id});
 	};
-	getCardByUniqueId = (uniqueId: string) : ICard => {
+	getCardByUniqueId = (uniqueId: string) : ICardEvent => {
 		return find(this.hand, {uniqueId});
 	};
 	makeOffline = () => {

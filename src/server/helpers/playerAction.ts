@@ -5,8 +5,7 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 import {suspicionAct, suspicionSelect} from 'server/helpers/cardActions/suspicion';
 import {positionswapAct, positionswapSelect} from 'server/helpers/cardActions/positionswap';
 import {flamethrowerAct, flamethrowerSelect} from 'server/helpers/cardActions/flamethrower';
-import {smatyvayUdochkiAct, smatyvayUdochkiSelect} from 'server/helpers/cardActions/smatyvayUdochki';
-import {zakolochennayaDverAct, zakolochennayaDverSelect} from 'server/helpers/cardActions/zakolochennayaDver';
+import {reelFishingRodsAct} from 'server/helpers/cardActions/reelFishingRods';
 import {seductionAct, seductionSelect} from 'server/helpers/cardActions/seduction';
 import {whiskeyAct} from 'server/helpers/cardActions/whiskey';
 import {quarantineAct, quarantineSelect} from 'server/helpers/cardActions/quarantine';
@@ -14,6 +13,10 @@ import {axeAct, axeSelect} from 'server/helpers/cardActions/axe';
 import {lookAroundAct} from 'server/helpers/cardActions/lookAround';
 import {analysisAct, analysisSelect} from 'server/helpers/cardActions/analysis';
 import {EEventID} from 'shared/enum/cards';
+import {fearAct} from 'server/helpers/cardActions/fear';
+import {missAct} from 'server/helpers/cardActions/miss';
+import {noThanksAct} from 'server/helpers/cardActions/noThanks';
+import {barricadeAct, barricadeSelect} from 'server/helpers/cardActions/barricade';
 
 export const actCard = ({game, cardUniqueId, player, actionContext} : {game: Game, player: Player, cardUniqueId: string, actionContext?:any}) => {
 	const card = player.getCardByUniqueId(cardUniqueId);
@@ -30,9 +33,9 @@ export const actCard = ({game, cardUniqueId, player, actionContext} : {game: Gam
 		case EEventID.flamethrower:
 			flamethrowerAct({player, game, card}); break;
 		case EEventID.reelFishingRods:
-			smatyvayUdochkiAct({player, game, card}); break;
+			reelFishingRodsAct({player, game, card}); break;
 		case EEventID.barricade:
-			zakolochennayaDverAct({player, game, card}); break;
+			barricadeAct({player, game, card}); break;
 		case EEventID.seduction:
 			seductionAct({player, game, card}); break;
 		case EEventID.whiskey:
@@ -45,29 +48,35 @@ export const actCard = ({game, cardUniqueId, player, actionContext} : {game: Gam
 			lookAroundAct({player, game, card}); break;
 		case EEventID.analysis:
 			analysisAct({player, game, card}); break;
+
+			//DEFENSIVE
+		case EEventID.noThanks:
+			noThanksAct({player, game, card}); break;
+		case EEventID.fear:
+			fearAct({player, game, card}); break;
+		case EEventID.miss:
+			missAct({player, game, card}); break;
 	}
-}
+};
 
 export const selectCard = ({game, cardUniqueId, player, actionContext} : {game: Game, player: Player, cardUniqueId: string, actionContext?:any}) => {
 	const {turnContext} = game;
 	if (turnContext.type === ETurnContextType.tenacityCardSelect) {
 		return tenacitySelect({game, cardUniqueId, player})
 	}
-}
+};
 
 export const selectPlayer = ({game, selectedPlayerId, player, actionContext} : {game: Game, player: Player, selectedPlayerId: string, actionContext?:any}) => {
 	const {turnContext} = game;
 	switch (turnContext.type) {
 		case ETurnContextType.suspicionPersonSelect:
 			return suspicionSelect({game, selectedPlayerId, player});
-		case ETurnContextType.positionswapPersonSelect:
+		case ETurnContextType.positionswap:
 			return positionswapSelect({game, selectedPlayerId, player});
 		case ETurnContextType.flamethrowerSelect:
 			return flamethrowerSelect({game, selectedPlayerId, player});
-		case ETurnContextType.smatyvayUdochkiPersonSelect:
-			return smatyvayUdochkiSelect({game, selectedPlayerId, player})
-		case ETurnContextType.zakolochennayaDverPersonSelect:
-			return zakolochennayaDverSelect({game, selectedPlayerId, player})
+		case ETurnContextType.barricadePersonSelect:
+			return barricadeSelect({game, selectedPlayerId, player})
 		case ETurnContextType.seduction:
 			return seductionSelect({game, selectedPlayerId, player})
 		case ETurnContextType.quarantinePersonSelect:

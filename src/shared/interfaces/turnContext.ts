@@ -1,66 +1,78 @@
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import {ICard} from 'shared/interfaces/cards';
+import { ICardAny, ICardEvent} from 'shared/interfaces/cards';
 import {Player} from 'server/models/Player';
+import {EEventID} from 'shared/enum/cards';
 
-
-export interface ITurnContextYporstvoCardSelect {
-	type: ETurnContextType.tenacityCardSelect,
-	playerId: Player['id'],
-	cards: [ICard, ICard, ICard],
+export interface ITurnContextTrade {
+	type: ETurnContextType.trade,
+	offensePlayer: Player,
+	defensePlayer: Player | null,
+	offenseCardId: EEventID | null,
 }
 
-export interface ITurnContextPodozreniePersonSelect {
+export interface ITurnContextPositionSwap {
+	type: ETurnContextType.positionswap,
+	offensePlayer: Player,
+	defensePlayer: Player | null,
+}
+
+export interface ITurnContextTenacityCardSelect {
+	type: ETurnContextType.tenacityCardSelect,
+	playerId: Player['id'],
+	cards: [ICardEvent, ICardEvent, ICardEvent],
+}
+
+export interface ITurnContextSuspicionPersonSelect {
 	type: ETurnContextType.suspicionPersonSelect,
 	playerId: Player['id']
 }
 
-export interface ITurnContextMenuaemsyaMestamiPersonSelect {
-	type: ETurnContextType.positionswapPersonSelect,
-	playerId: Player['id']
-}
 
-export interface ITurnContextOgnemetSelect {
+
+export interface ITurnContextFlameThrowerSelect {
 	type: ETurnContextType.flamethrowerSelect,
 	playerId: Player['id']
 }
 
-export interface ITurnContextSmatyvayUdochkiSelect {
-	type: ETurnContextType.smatyvayUdochkiPersonSelect,
+export interface ITurnContextReelFishingRodsSelect {
+	type: ETurnContextType.reelFishingRodsPersonSelect,
 	playerId: Player['id']
 }
 
-export interface ITurnContextZakolochennayaDverSelect {
-	type: ETurnContextType.zakolochennayaDverPersonSelect,
+export interface ITurnContextBarricadeSelect {
+	type: ETurnContextType.barricadePersonSelect,
 	playerId: Player['id']
 }
 
-export interface ITurnContextZakolochennayaSoblaznSelect {
+export interface ITurnContextSeductionSelect {
 	type: ETurnContextType.seduction,
 	playerId: Player['id'],
 	playerIdToTrade: Player['id'] | null,
 }
 
-export interface ITurnContextKarantinSelect {
+export interface ITurnContextQuarantineSelect {
 	type: ETurnContextType.quarantinePersonSelect,
 	playerId: Player['id'],
 }
-export interface ITurnContextToporSelect {
+export interface ITurnContextAxeSelect {
 	type: ETurnContextType.axePersonSelect,
 	playerId: Player['id'],
 }
 
-export interface ITurnContextAnalizSelect {
+export interface ITurnContextAnalysisSelect {
 	type: ETurnContextType.analysisPersonSelect,
 	playerId: Player['id'],
 }
+
+
 export type ITurnContext =
-	ITurnContextYporstvoCardSelect
-	| ITurnContextPodozreniePersonSelect
-	| ITurnContextMenuaemsyaMestamiPersonSelect
-	| ITurnContextOgnemetSelect
-	| ITurnContextSmatyvayUdochkiSelect
-	| ITurnContextZakolochennayaDverSelect
-	| ITurnContextZakolochennayaSoblaznSelect
-	| ITurnContextKarantinSelect
-	| ITurnContextToporSelect
-	| ITurnContextAnalizSelect;
+	ITurnContextTrade
+	| ITurnContextPositionSwap
+	| ITurnContextTenacityCardSelect
+	| ITurnContextSuspicionPersonSelect
+	| ITurnContextFlameThrowerSelect
+	| ITurnContextBarricadeSelect
+	| ITurnContextSeductionSelect
+	| ITurnContextQuarantineSelect
+	| ITurnContextAxeSelect
+	| ITurnContextAnalysisSelect;

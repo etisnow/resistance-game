@@ -3,15 +3,14 @@ import {Player} from 'server/models/Player';
 import {ENotification} from 'shared/enum/notifications';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import {uniqueId, each} from 'lodash';
-import {ICard} from 'shared/interfaces/cards';
+import {uniqueId} from 'lodash';
+import {ICardEvent} from 'shared/interfaces/cards';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
-import {ITurnContextYporstvoCardSelect} from 'shared/interfaces/turnContext';
 import {discardCard} from 'server/helpers/discardCard';
 
-export const zakolochennayaDverAct = ({card, game, player} : {card:ICard, game: Game, player: Player}) => {
+export const barricadeAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	game.turnContext = {
-		type: ETurnContextType.zakolochennayaDverPersonSelect,
+		type: ETurnContextType.barricadePersonSelect,
 		playerId: player.id,
 	};
 	discardCard({game, player, cardUniqueId: card.uniqueId});
@@ -26,8 +25,8 @@ export const zakolochennayaDverAct = ({card, game, player} : {card:ICard, game: 
     }));
 };
 
-export const zakolochennayaDverSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
-	if (game.turnContext.type !== ETurnContextType.zakolochennayaDverPersonSelect) {
+export const barricadeSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
+	if (game.turnContext.type !== ETurnContextType.barricadePersonSelect) {
 		throw new Error('Смена места произошла без контекста zakolochennayaDverPersonSelect');
 	}
 	game.turnContext = null;

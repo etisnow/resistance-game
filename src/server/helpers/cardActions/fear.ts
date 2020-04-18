@@ -1,0 +1,41 @@
+import {Game} from 'server/models/Game';
+import {Player} from 'server/models/Player';
+import {ENotification} from 'shared/enum/notifications';
+import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
+import {ICardEvent} from 'shared/interfaces/cards';
+import {discardCard} from 'server/helpers/discardCard';
+import {ETurnContextType} from 'shared/enum/turnContextType';
+import {getCard} from 'shared/constant/cards';
+import {EEventID} from 'shared/enum/cards';
+
+export const fearAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
+	const context = game.turnContext;
+	if (context.type !== ETurnContextType.trade) {
+		throw  new Error('Fear использован вне контекста торговли')
+	}
+	discardCard({game, player, cardUniqueId: card.uniqueId});
+	game.addLog(`${player.nickname}: используя карту Страх отказывается от обмена с игроком ${context.offensePlayer.nickname}`);
+	game.grabEventCardFromDeck({player});
+	const offensePlayer = context.offensePlayer;
+	offensePlayer.hand.push(getCard(context.offenseCardId));
+
+
+	player.notify(formatPlayerNotification({
+      player: player,
+      notification: {
+		type: ENotification.okayCard,
+        cards: [getCard(context.offenseCardId)],
+		text: `${offensePlayer.nickname}: я хотел тебе эту дать`,
+      },
+    }))
+
+    game.notifyAllPlayersExeptPlayer(formatPlayerNotification({
+      player: player,
+      notification: {
+		type: ENotification.okayCard,
+        cards: [getCard(EEventID.fear)],
+		text: `${player.nickname}: отказывается от обмена`,
+      },
+    }), player);
+	game.endTurn(offensePlayer.id);
+};
