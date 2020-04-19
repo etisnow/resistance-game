@@ -13,10 +13,9 @@ export const seductionAct = ({card, game, player} : {card:ICardEvent, game: Game
 	player.changeTurnState(ETurnState.inCardActionProgress);
 	const allPlayersExeptCurrent = player.getAllPlayablePlayersExceptCurrent()
 	game.turnContext = {
-		type: ETurnContextType.trade,
+		type: ETurnContextType.seduction,
 		offensePlayer: player,
-		defensePlayer: null,
-		offenseCardId: null,
+		defensePlayer: null
 	};
     player.notify(formatPlayerNotification({
       player: player,
@@ -48,7 +47,7 @@ export const seductionTradeFinish = ({game} : {game: Game}) => {
 	each(game.players, (player: Player) => {
 		player.changeTurnState(ETurnState.idle);
 	});
-	const nextPlayer = game.getPlayerByPosition({playerId: game.turnContext.offensePlayer.id, isNext: true});
-	game.changeTurn(nextPlayer.id);
+	const offensePlayer = game.turnContext.offensePlayer;
+	game.endTurn(offensePlayer.id);
 	game.turnContext = null;
 };

@@ -22,6 +22,11 @@ export interface ITurnContextBurn {
 	defensePlayer: Player | null,
 }
 
+export interface ITurnContextSeduction {
+	type: ETurnContextType.seduction,
+	offensePlayer: Player,
+	defensePlayer: Player | null,
+}
 
 export interface ITurnContextTenacityCardSelect {
 	type: ETurnContextType.tenacityCardSelect,
@@ -71,7 +76,7 @@ export type ITurnContext =
 	| ITurnContextTenacityCardSelect
 	| ITurnContextSuspicionPersonSelect
 	| ITurnContextBarricadeSelect
-	| ITurnContextSeductionSelect
+	| ITurnContextSeduction
 	| ITurnContextQuarantineSelect
 	| ITurnContextAxeSelect
 	| ITurnContextAnalysisSelect;

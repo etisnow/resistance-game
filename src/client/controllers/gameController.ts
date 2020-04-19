@@ -62,7 +62,7 @@ export default class GameController {
 	};
 
 	selectCard = (notification, cardUniqueId) => {
-		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.cardSelect, cardUniqueId, actionContext: notification});
+		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.cardSelect, actionContext: notification, cardUniqueId});
 		this.hideNotification();
 	};
 

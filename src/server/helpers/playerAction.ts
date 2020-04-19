@@ -68,6 +68,7 @@ export const selectCard = ({game, cardUniqueId, player, actionContext} : {game: 
 
 export const selectPlayer = ({game, selectedPlayerId, player, actionContext} : {game: Game, player: Player, selectedPlayerId: string, actionContext?:any}) => {
 	const {turnContext} = game;
+	console.log('SELECTED', )
 	switch (turnContext.type) {
 		case ETurnContextType.suspicionPersonSelect:
 			return suspicionSelect({game, selectedPlayerId, player});

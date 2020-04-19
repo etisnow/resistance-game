@@ -104,7 +104,6 @@ export class Player {
 			case EEventID.flamethrower:
 			case EEventID.positionswap:
 			case EEventID.analysis:
-			case EEventID.quarantine:
 			case EEventID.suspicion:
 				return this.getPlayabeNeighbours();
 			case EEventID.seduction:
@@ -112,8 +111,20 @@ export class Player {
 				return this.getAllPlayablePlayersExceptCurrent();
 			case EEventID.axe:
 				return this.getAxeTargets();
+			case EEventID.quarantine:
+				return [...this.getPlayabeNeighbours(), this.id]
 		}
 		return [];
+	};
+
+	isCardNonTarget = (card: ICardEvent) => {
+		switch (card.id) {
+			case EEventID.tenacity:
+			case EEventID.lookaround:
+			case EEventID.whiskey:
+				return true;
+		}
+		return false;
 	};
 
 	getRandomCard = () => {

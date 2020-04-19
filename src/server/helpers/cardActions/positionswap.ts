@@ -7,7 +7,7 @@ import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
 import {discardCard} from 'server/helpers/discardCard';
 import {EEventID} from 'shared/enum/cards';
-import { find } from 'lodash';
+import {find} from 'lodash';
 
 export const positionswapAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	game.turnContext = {
@@ -37,14 +37,6 @@ export const positionswapSelect = ({game, player, selectedPlayerId} : {game: Gam
 		offensePlayer: player,
 		defensePlayer: defensePlayer,
 	};
-    player.notify(formatPlayerNotification({
-		player: player,
-		notification: {
-			type: ENotification.playerSelect,
-			playersToSelect: player.getPlayabeNeighbours(),
-			text: 'Выбери с кем хочешь поменяться местами'
-		},
-    }));
     const hasLeaveMeAloneCard = !!find(defensePlayer.hand, {id: EEventID.leaveMeAlone});
     let text = `Игрок ${player.nickname} предлагает поменяться местами`
     let decisionMenu = [{
@@ -66,8 +58,8 @@ export const positionswapSelect = ({game, player, selectedPlayerId} : {game: Gam
 			menu: decisionMenu
 		},
     }));
-	game.addLog(`Игрок ${player.nickname} предложил смену мест  ${defensePlayer.nickname}`);
-	player.changeTurnState(ETurnState.inOffenseTrade)
+	game.addLog(`Игрок ${player.nickname} предложил смену мест игроку ${defensePlayer.nickname}`);
+	player.changeTurnState(ETurnState.idle)
 };
 
 
@@ -76,7 +68,7 @@ export const positionswapFinish = ({game, player, action}: {game:Game, player:Pl
 		throw new Error('Смена места произошла без контекста positionswap');
 	}
 	const {offensePlayer, defensePlayer} = game.turnContext;
-
+	offensePlayer.changeTurnState(ETurnState.inOffenseTrade);
 	const leaveMeAloneCard = find(player.hand, {id:EEventID.leaveMeAlone});
 	if (action === 'swap' || !leaveMeAloneCard) {
 		game.addLog(`Игроки ${offensePlayer.nickname} и ${defensePlayer.nickname} меняются местами`);

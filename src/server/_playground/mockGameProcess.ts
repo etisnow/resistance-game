@@ -13,7 +13,6 @@ const testOffenseCard = ({player, cards}) => {
 		gameServer.connectGame({player: createPlayer(), gameId: currentGame.id, nickname:'Генадий Игрогрив3'});
 		gameServer.connectGame({player: createPlayer(), gameId: currentGame.id, nickname:'Виталий4'});
 		gameServer.startGame({player});
-
 		//Подтасовываем карту
 		const pl = currentGame.players[player.id];
 		pl.hand.splice(0,cards.length, ...cards);
@@ -105,15 +104,17 @@ export function mockGameProcess(player) {
 		//], againstCardId: EEventID.flamethrower})
 
 
-		//testOffenseCard({player, cards: [
-		//	getCard(EEventID.axe),
-		//	getCard(EEventID.reelFishingRods),
-		//]})
-
-		testAxeCard({player, cards: [
-			getCard(EEventID.axe),
-			getCard(EEventID.barricade),
+		testOffenseCard({player, cards: [
+			getCard(EEventID.positionswap),
+			getCard(EEventID.injure),
+			getCard(EEventID.quarantine),
+			getCard(EEventID.noFire),
 		]})
+
+		//testAxeCard({player, cards: [
+		//	getCard(EEventID.axe),
+		//	getCard(EEventID.barricade),
+		//]})
 
 	}, 500)
 }

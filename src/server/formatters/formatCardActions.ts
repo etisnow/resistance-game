@@ -9,7 +9,7 @@ import {Player} from 'server/models/Player';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 
 const injuresCount = (player: Player) => {
-	const injures = filter(player.hand, card => { return card.id === EEventID.injure});
+	const injures = filter(player.hand, { id: EEventID.injure});
 	return injures.length;
 };
 
@@ -54,13 +54,13 @@ export const formatCardActions = (game: Game, player: Player, card: ICardEvent):
 		case ETurnState.idle:
 			return actions;
 		case ETurnState.inCardAction:
-			if (card.eventType === EEventType.injure && canDiscardInjure) {
-				actions.push({ menuType: EPlayerActionType.cardDiscard});
-				return actions;
+			if (card.id === EEventID.injure && !canDiscardInjure) {
+				return [];
 			}
 
 			const targets = player.getCardTargets(card);
-			if (targets.length > 0) {
+			const isNonTargetCard = player.isCardNonTarget(card);
+			if (targets.length > 0 || isNonTargetCard) {
 				actions.push({ menuType: EPlayerActionType.cardAct});
 			}
 

@@ -30,7 +30,7 @@ export const analysisSelect = ({game, player, selectedPlayerId} : {game: Game, p
 	}
 	game.turnContext = null;
 	const selectedPlayer = game.players[selectedPlayerId];
-
+	game.addLog(`Игрок ${player.nickname} играет карту Анализ на игрока ${selectedPlayer.nickname}`)
 
 	game.addLog(`Игрок ${player.nickname} анализирует ${selectedPlayer.nickname}`);
     player.notify(formatPlayerNotification({

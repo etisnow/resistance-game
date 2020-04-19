@@ -189,6 +189,7 @@ export class Game {
 	let grabbedCard = this.deck.slice(0, 1)[0];
     if (!grabbedCard) {
       //В колоде больше не осталось карт, перетасовываем биту
+      this.addLog('Колода закончилась, мешаем карты');
       this.shuffleDiscarded();
       return this.getFirstCard();
     }
@@ -228,7 +229,7 @@ export class Game {
 
     if (cardUniqueId) {
       const card = find(player.hand, {uniqueId: cardUniqueId})
-      console.log(`Player ${player.nickname} igraet ${actionType} kartoi ${cardUniqueId} - ${card.id}`);
+      console.log(`Player ${player.nickname} igraet ${actionType} kartoi ${cardUniqueId} - ${card && card.id}`);
     }
     if (selectedPlayerId) {
       const selectedPlayer = this.players[selectedPlayerId]
