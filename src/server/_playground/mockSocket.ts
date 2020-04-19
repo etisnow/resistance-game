@@ -1,4 +1,5 @@
 import {Player} from 'server/models/Player';
+import {EPlayerState} from 'shared/enum/player';
 
 class MockSocket {
 	on(eventType, payload) {
@@ -22,6 +23,14 @@ class MockSocketServer {
 export const createPlayer = () => {
 	const socket = new MockSocket();
 	return new Player({ socket });
+}
+
+export const createDoor = () => {
+	const socket = new MockSocket();
+	const door = new Player({ socket });
+	door.state = EPlayerState.door;
+	door.nickname = 'ДВЕРЬ';
+	return door;
 }
 
 export const createMockSocketServer = () => {

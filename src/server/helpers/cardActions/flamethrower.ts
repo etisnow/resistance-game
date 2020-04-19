@@ -3,17 +3,18 @@ import {Player} from 'server/models/Player';
 import {ENotification} from 'shared/enum/notifications';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import {each} from 'lodash';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
 import {discardCard} from 'server/helpers/discardCard';
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
+import { find } from 'lodash';
 
 export const flamethrowerAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	game.turnContext = {
-		type: ETurnContextType.flamethrowerSelect,
-		playerId: player.id,
+		type: ETurnContextType.burn,
+		offensePlayer: player,
+		defensePlayer: null,
 	};
 
 	discardCard({game, player, cardUniqueId: card.uniqueId});
@@ -29,28 +30,88 @@ export const flamethrowerAct = ({card, game, player} : {card:ICardEvent, game: G
 };
 
 export const flamethrowerSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
-	if (game.turnContext.type !== ETurnContextType.flamethrowerSelect) {
+	if (!game.turnContext || game.turnContext.type !== ETurnContextType.burn) {
 		throw new Error('Выбор огнемета произошел без контекста flamethrowerSelect');
 	}
-	const selectedPlayer = game.players[selectedPlayerId];
-	game.turnContext = null;
-	game.notifyAllPlayers(formatPlayerNotification({
-      player: player,
-      notification: {
-		type: ENotification.okayCard,
-		cards: [getCard(EEventID.flamethrower)],
-		text: `Игрок ${selectedPlayer.nickname} был заживо сожжен игроком ${player.nickname} и выбывает из игры`,
-      },
-    }));
-	if (selectedPlayer.isThing) {
-		game.notifyAllPlayers(formatPlayerNotification({
-	      player: player,
-	      notification: {
-			type: ENotification.info,
-			text: `Игра закончена! Нечто выбывает из игры`,
-	      },
-	    }))
+	const defensePlayer = game.players[selectedPlayerId];
+	game.turnContext = {
+		type: ETurnContextType.burn,
+		offensePlayer: player,
+		defensePlayer: defensePlayer,
+	};
+    let decisionMenu = [{
+		text: 'Сгореть',
+		action: 'burn',
+	}];
+	let text = `Игрок ${player.nickname} хочет использовать на тебе огнемет`;
+	game.addLog(`Игрок ${player.nickname} используем огнемет на ${defensePlayer.nickname}`)
+	const hasNoFireCard = !!find(defensePlayer.hand, {id: EEventID.noFire});
+	if (hasNoFireCard) {
+		decisionMenu.push({
+			text: 'Использовать шашлык',
+			action: 'noFire',
+		});
+		text = `Игрок ${player.nickname} использует на тебе огнемет, но у тебя есть "Никакого шашлыка"`
 	}
-	game.playersList = game.playersList.filter(pId => pId !== selectedPlayerId);
-	player.changeTurnState(ETurnState.inOffenseTrade)
+    defensePlayer.notify(formatPlayerNotification({
+		player: player,
+		notification: {
+			type: ENotification.actionDecision,
+			text,
+			menu: decisionMenu
+		},
+    }));
+};
+
+
+export const flamethrowerFinish = ({game, player, action} : {game: Game, player: Player, action:string}) => {
+	if (!game.turnContext || game.turnContext.type !== ETurnContextType.burn) {
+		throw new Error('Выбор огнемета произошел без контекста flamethrowerSelect');
+	}
+	const {defensePlayer, offensePlayer} = game.turnContext;
+	switch (action) {
+		case "burn": {
+			game.notifyAllPlayers(formatPlayerNotification({
+		      player: player,
+		      notification: {
+				type: ENotification.okayCard,
+				cards: [getCard(EEventID.flamethrower)],
+				text: `Игрок ${defensePlayer.nickname} был заживо сожжен игроком ${offensePlayer.nickname} и выбывает из игры`,
+		      },
+		    }));
+			game.addLog(`Игрок ${defensePlayer.nickname} был заживо сожжен игроком ${offensePlayer.nickname} и выбывает из игры`)
+			if (defensePlayer.isThing) {
+				game.notifyAllPlayers(formatPlayerNotification({
+			      player: player,
+			      notification: {
+					type: ENotification.info,
+					text: `Игра закончена! ${defensePlayer.nickname} не справился со своим коварным заданием... Люди победили.`,
+			      },
+			    }))
+				game.addLog(`Игра закончена! ${defensePlayer.nickname} не справился со своим коварным заданием...`)
+			}
+			game.playersList = game.playersList.filter(pId => pId !== defensePlayer.id);
+			defensePlayer.hand = [];
+			break;
+		}
+		case "noFire": {
+			const noFireCard = find(defensePlayer.hand, {id: EEventID.noFire});
+			game.notifyAllPlayers(formatPlayerNotification({
+		      player: player,
+		      notification: {
+				type: ENotification.okayCard,
+				cards: [getCard(EEventID.noFire)],
+				text: `Игрок ${defensePlayer.nickname} использовал "Никакого шашлыка" и спасся от огнемета!`,
+		      },
+		    }));
+			discardCard({player: defensePlayer, cardUniqueId: noFireCard.uniqueId, game});
+			game.grabEventCardFromDeck({player});
+			break;
+		}
+	}
+	offensePlayer.changeTurnState(ETurnState.inOffenseTrade);
+	game.turnContext = null;
+
+
+
 };

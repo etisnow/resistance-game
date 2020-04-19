@@ -6,6 +6,7 @@ import {EPlayerActionType} from 'shared/enum/playerActions';
 import {Game} from 'server/models/Game';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {Player} from 'server/models/Player';
+import {ETurnContextType} from 'shared/enum/turnContextType';
 
 const injuresCount = (player: Player) => {
 	const injures = filter(player.hand, card => { return card.id === EEventID.injure});
@@ -19,24 +20,16 @@ const getTargetPlayer = (game:Game, player: Player): Player | null => {
 		|| player.turnState === ETurnState.inCardActionProgress
 	) return null;
 
-	//Во всех остальных случаях должен быть оппонент
-	switch (player.turnState) {
-		case ETurnState.inDefenseSwap:
-			return find(game.players, {turnState: ETurnState.inOffenseSwap});
-		case ETurnState.inOffenseSwap:
-			return find(game.players, {turnState: ETurnState.inDefenseSwap});
-
-		case ETurnState.inOffenseTrade:
-			return find(game.players, {turnState: ETurnState.inDefenseTrade});
-		case ETurnState.inDefenseTrade:
-			return find(game.players, {turnState: ETurnState.inOffenseTrade});
-
-		case ETurnState.inOffenseFiring:
-			return find(game.players, {turnState: ETurnState.inDefenseFiring});
-		case ETurnState.inDefenseFiring:
-			return find(game.players, {turnState: ETurnState.inOffenseFiring});
+	const context = game.turnContext;
+	if (!context) return null;
+	switch (context.type) {
+		case ETurnContextType.trade:
+		case ETurnContextType.burn:
+		case ETurnContextType.positionswap:
+			if (context.defensePlayer === player) return context.offensePlayer;
+			if (context.offensePlayer === player) return context.defensePlayer;
 	}
-
+	return null;
 };
 
 export const formatCardActions = (game: Game, player: Player, card: ICardEvent): ICardEventMenuItem[] => {
@@ -61,30 +54,17 @@ export const formatCardActions = (game: Game, player: Player, card: ICardEvent):
 		case ETurnState.idle:
 			return actions;
 		case ETurnState.inCardAction:
-			if (player.quarantine > 0 && card.eventType !== EEventType.axe) {
-				actions.push({ menuType: EPlayerActionType.cardDiscard});
-				return actions;
-			}
-
-			if (card.eventType === EEventType.axe) {
-				actions.push({ menuType: EPlayerActionType.cardDiscard});
-				if (player.quarantine > 0) {
-					actions.push({ menuType: EPlayerActionType.cardAct});
-				}
-				return actions;
-				//TODO: Логика возможностей использования топора
-				//if ()
-			}
-
-
 			if (card.eventType === EEventType.injure && canDiscardInjure) {
 				actions.push({ menuType: EPlayerActionType.cardDiscard});
 				return actions;
 			}
-			actions.push({ menuType: EPlayerActionType.cardDiscard});
-			if (card.eventType === EEventType.playable) {
+
+			const targets = player.getCardTargets(card);
+			if (targets.length > 0) {
 				actions.push({ menuType: EPlayerActionType.cardAct});
 			}
+
+			actions.push({ menuType: EPlayerActionType.cardDiscard});
 			return actions;
 		case ETurnState.inOffenseTrade:
 			if (card.eventType === EEventType.injure) {

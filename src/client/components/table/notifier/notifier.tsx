@@ -19,7 +19,7 @@ const generateCardMenuByNotificationType = (controller: GameController, notifica
 		case ENotification.info:
 			menu = (<div
 				className={'notificationMenuItem'}
-				onClick={() => controller.hideNotification(notification)}
+				onClick={() => controller.hideNotification()}
 			>
 				Okay
 			</div>);
@@ -28,7 +28,7 @@ const generateCardMenuByNotificationType = (controller: GameController, notifica
 			if (!notification.cards) return null;
 			menu = (<div
 				className={'notificationMenuItem'}
-				onClick={() => controller.hideNotification(notification)}
+				onClick={() => controller.hideNotification()}
 			>
 				Ок, понял
 			</div>);
@@ -40,6 +40,16 @@ const generateCardMenuByNotificationType = (controller: GameController, notifica
 			>
 				Выбрать
 			</div>);
+			break;
+		case ENotification.actionDecision:
+			menu = (
+				<div
+					className={'notificationMenuItem'}
+					onClick={() => controller.selectCard(notification, cardUniqueId)}
+				>
+					Выбрать
+				</div>
+			);
 			break;
 	}
 	return (<div className={'notificationMenuWrapper'}>
@@ -97,10 +107,24 @@ const Notification = ({notification, controller}: {notification: INotification, 
 				</div>
 			);
 			break;
+		case ENotification.actionDecision:
+			notificationContent = (
+				<div className={"centeredNotificationRow column"}>
+					{map(notification.menu, ({text, action}) => {
+						return (<div
+							className={'okayNotificationButton'}
+							onClick={() => controller.actionDecision(action)}
+						>
+							{text}
+						</div>)
+					})}
+				</div>
+			);
+			break;
 	}
 	return (
 		<div className={'notificationWrapper'}>
-			<h3>{notification.text}</h3>
+			<span className={'notificationText'}>{notification.text}</span>
 			<div className={'notificationRow'}>
 				{notificationContent}
 			</div>

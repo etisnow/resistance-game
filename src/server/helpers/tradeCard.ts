@@ -1,5 +1,5 @@
 import {Player} from 'server/models/Player';
-import {ETurnState} from 'shared/enum/player';
+import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {ENotification} from 'shared/enum/notifications';
 import {getCard} from 'shared/constant/cards';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
@@ -14,17 +14,25 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
   if (tradingCard.type !== ECardType.event) {
     throw new Error(`Попытка обменяться НЕ картой эвента ${tradingCard}`);
   }
-  discardCard({player, cardUniqueId, game});
+
   const isOffenseTrade = player.turnState === ETurnState.inOffenseTrade;
   const context = game.turnContext;
-  let playerToTrade =  null;
-  if (context && context.type === ETurnContextType.trade) {
+  let playerToTrade: Player | null =  null;
+  if (context && context.type === ETurnContextType.trade && context.defensePlayer) {
     playerToTrade = context.defensePlayer
   } else {
     playerToTrade = game.getPlayerByPosition({playerId: player.id, isNext: isOffenseTrade});
   }
 
   if (isOffenseTrade) {
+    if (playerToTrade.state === EPlayerState.door) {
+      game.addLog(`Игрок ${player.nickname} не меняется из-за заколоченной двери`);
+      //const playerCard = getCard((context as any).offenseCardId);
+      //player.hand.push(playerCard);
+      game.endTurn(player.id);
+      return
+    }
+    discardCard({player, cardUniqueId, game});
     playerToTrade.changeTurnState(ETurnState.inDefenseTrade);
     player.changeTurnState(ETurnState.idle);
     game.addLog(`Игрок ${player.nickname} передает карту для обмена игроку ${playerToTrade.nickname}`);
@@ -36,6 +44,7 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
     };
     return;
   }
+  discardCard({player, cardUniqueId, game});
   //isDefense trade
   if (context.type !== ETurnContextType.trade) {
     console.error('Нет выбранной карты для обмена у игрока', player.id);

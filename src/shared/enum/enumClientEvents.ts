@@ -6,4 +6,5 @@ export enum EClientEventType {
   startGame = "startGame",
   grabCardFromDeck = "grabCardFromDeck",
   playerAction = "playerAction",
+  actionDecision = "actionDecision",
 }

@@ -57,20 +57,25 @@ export default class GameController {
 		this.notifications.splice(0, 1);
 	};
 
-	hideNotification = (notification) => {
+	hideNotification = () => {
 		this.notifications.splice(0, 1);
 	};
 
 	selectCard = (notification, cardUniqueId) => {
-		this.notifications.splice(0, 1);
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.cardSelect, cardUniqueId, actionContext: notification});
+		this.hideNotification();
 	};
 
 	selectPlayer = (playerId: string ) => {
 		this.playersToSelect = [];
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.playerSelect, selectedPlayerId: playerId});
-	}
+	};
 
+	actionDecision = (action: string ) => {
+		this.playersToSelect = [];
+		this.socket.sendToServer(EClientEventType.actionDecision, {actionType: EPlayerActionType.actionDecision, action});
+		this.hideNotification();
+	};
 	toggleRoomLayout = () => {
 		this.isLayoutSequential = !this.isLayoutSequential;
 	}

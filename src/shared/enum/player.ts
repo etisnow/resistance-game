@@ -11,10 +11,4 @@ export enum ETurnState {
 
 	inOffenseTrade = 'inOffenseTrade',
 	inDefenseTrade = 'inDefenseTrade',
-
-	inOffenseSwap = 'inOffenseSwap',
-	inDefenseSwap = 'inDefenseSwap',
-
-	inOffenseFiring = 'inOffenseFiring',
-	inDefenseFiring = 'inDefenseFiring',
 }

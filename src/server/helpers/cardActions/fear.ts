@@ -27,7 +27,7 @@ export const fearAct = ({card, game, player} : {card:ICardEvent, game: Game, pla
         cards: [getCard(context.offenseCardId)],
 		text: `${offensePlayer.nickname}: я хотел тебе эту дать`,
       },
-    }))
+    }));
 
     game.notifyAllPlayersExeptPlayer(formatPlayerNotification({
       player: player,

@@ -3,5 +3,5 @@ export enum ENotification {
 	okayCard = 'okayCard',
 	selectCard = 'selectCard',
 	playerSelect = 'playerSelect',
-	swapDesicion = 'swapDesicion',
+	actionDecision = 'actionDecision',
 }

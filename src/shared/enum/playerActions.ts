@@ -4,4 +4,5 @@ export enum EPlayerActionType {
 	cardAct = 'act',
 	cardSelect = 'select',
 	playerSelect = 'playerSelect',
+	actionDecision = 'actionDecision',
 }

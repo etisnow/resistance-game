@@ -16,17 +16,7 @@ export const axeAct = ({card, game, player} : {card:ICardEvent, game: Game, play
 	discardCard({game, player, cardUniqueId: card.uniqueId});
 	player.changeTurnState(ETurnState.inCardActionProgress);
 
-	const neighbours = player.getNeighbours().filter((n:string) => {
-		const neigbh = game.players[n];
-		return neigbh.quarantine > 0 || neigbh.state === EPlayerState.door;
-	});
-
-
-
-	const axeTargets = [...neighbours];
-	if (player.quarantine > 0) {
-		axeTargets.push(player.id)
-	}
+	const axeTargets = player.getAxeTargets();
 
     player.notify(formatPlayerNotification({
       player: player,

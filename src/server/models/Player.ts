@@ -5,6 +5,7 @@ import {Game} from 'server/models/Game';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {shuffle} from 'server/helpers/util';
+import {EEventID} from 'shared/enum/cards';
 
 export class Player {
 	id = null;
@@ -76,6 +77,43 @@ export class Player {
 			.filter((p) => p.state !== EPlayerState.door && p.quarantine === 0)
 			.map(p => p.id);
 		return nighbours;
+	};
+
+	getAxeTargets = () => {
+		const game = this.game;
+		const neighbours = this.getNeighbours().filter((n:string) => {
+			const neigbh = game.players[n];
+			return neigbh.quarantine > 0 || neigbh.state === EPlayerState.door;
+		});
+
+		const axeTargets = [...neighbours];
+		if (this.quarantine > 0) {
+			axeTargets.push(this.id)
+		}
+		return axeTargets;
+	}
+	getAllPlayablePlayersExceptCurrent() {
+		return this.game.playersList.filter(pId => {
+			const iterPlayer = this.game.players[pId];
+			return pId !== this.id && iterPlayer.quarantine === 0 && iterPlayer.state === EPlayerState.dummy;
+		});
+	}
+	getCardTargets = (card: ICardEvent) => {
+		switch (card.id) {
+			case EEventID.barricade:
+			case EEventID.flamethrower:
+			case EEventID.positionswap:
+			case EEventID.analysis:
+			case EEventID.quarantine:
+			case EEventID.suspicion:
+				return this.getPlayabeNeighbours();
+			case EEventID.seduction:
+			case EEventID.reelFishingRods:
+				return this.getAllPlayablePlayersExceptCurrent();
+			case EEventID.axe:
+				return this.getAxeTargets();
+		}
+		return [];
 	};
 
 	getRandomCard = () => {

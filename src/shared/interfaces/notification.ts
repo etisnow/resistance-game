@@ -5,7 +5,8 @@ interface INotification {
 	type: ENotification,
 	text?: string;
 	cards?: ICardEvent[];
-	playersToSelect?: string[]
+	playersToSelect?: string[],
+	menu? : {text: string, action: string}[]
 }
 
 export default INotification;

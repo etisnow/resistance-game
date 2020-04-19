@@ -1,4 +1,4 @@
-import {each, uniqueId, find} from "lodash";
+import {each, find, uniqueId} from "lodash";
 import {Player} from "server/models/Player";
 import {gameServer} from 'server/server/GameServer';
 import {
@@ -10,12 +10,12 @@ import {
 } from 'server/formatters/formatOutgoingEvents';
 import {gameStarter} from 'server/helpers/gameStarter';
 import {shuffle} from 'server/helpers/util';
-import {ETurnState} from 'shared/enum/player';
+import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {handCardsCount} from 'shared/constant/cards';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import INotification from 'shared/interfaces/notification';
 import {ICardAny, ICardEvent, ICardPanic} from 'shared/interfaces/cards';
-import {actCard, selectCard, selectPlayer} from 'server/helpers/playerAction';
+import {actCard, playerActionDecision, selectCard, selectPlayer} from 'server/helpers/playerAction';
 import {ITurnContext} from 'shared/interfaces/turnContext';
 import {tradeCard} from 'server/helpers/tradeCard';
 import {discardCardAction} from 'server/helpers/discardCard';
@@ -115,7 +115,12 @@ export class Game {
 
   endTurn(playerId: string) {
     this.turnContext = null;
+    const endTurnPlayer = this.players[playerId];
+    endTurnPlayer.changeTurnState(ETurnState.idle);
     const nextPlayer = this.getPlayerByPosition({playerId, isNext: true});
+    if (nextPlayer.state === EPlayerState.door) {
+      return this.endTurn(nextPlayer.id);
+    }
     this.changeTurn(nextPlayer.id);
   }
 
@@ -251,6 +256,11 @@ export class Game {
         this.updateGame();
         return;
     }
+  }
+
+  actionDecision = ({player, action}) => {
+    playerActionDecision({game: this, player, action});
+    this.updateGame();
   }
 
   swapPlayers = (AId,BId) => {

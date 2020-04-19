@@ -19,6 +19,9 @@ export const registerHandlers = (player: Player) => {
   player.socket.on(EClientEventType.grabCardFromDeck, function () {
     gameServer.grabCardFromDeck({player});
   });
+  player.socket.on(EClientEventType.actionDecision, function ({action}) {
+    gameServer.actionDecision({player, action});
+  });
   player.socket.on(EClientEventType.playerAction, function ({
     actionType,
     cardUniqueId,

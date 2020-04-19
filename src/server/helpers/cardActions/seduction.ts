@@ -11,7 +11,7 @@ import {each} from 'lodash';
 export const seductionAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	discardCard({game, player, cardUniqueId: card.uniqueId});
 	player.changeTurnState(ETurnState.inCardActionProgress);
-	const allPlayersExeptCurrent = game.playersList.filter(pId => pId !== player.id && player.quarantine === 0);
+	const allPlayersExeptCurrent = player.getAllPlayablePlayersExceptCurrent()
 	game.turnContext = {
 		type: ETurnContextType.trade,
 		offensePlayer: player,

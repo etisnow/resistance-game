@@ -3,8 +3,8 @@ import {Player} from 'server/models/Player';
 import {tenacityAct, tenacitySelect} from 'server/helpers/cardActions/tenacity';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {suspicionAct, suspicionSelect} from 'server/helpers/cardActions/suspicion';
-import {positionswapAct, positionswapSelect} from 'server/helpers/cardActions/positionswap';
-import {flamethrowerAct, flamethrowerSelect} from 'server/helpers/cardActions/flamethrower';
+import {positionswapAct, positionswapFinish, positionswapSelect} from 'server/helpers/cardActions/positionswap';
+import {flamethrowerAct, flamethrowerFinish, flamethrowerSelect} from 'server/helpers/cardActions/flamethrower';
 import {reelFishingRodsAct} from 'server/helpers/cardActions/reelFishingRods';
 import {seductionAct, seductionSelect} from 'server/helpers/cardActions/seduction';
 import {whiskeyAct} from 'server/helpers/cardActions/whiskey';
@@ -73,7 +73,7 @@ export const selectPlayer = ({game, selectedPlayerId, player, actionContext} : {
 			return suspicionSelect({game, selectedPlayerId, player});
 		case ETurnContextType.positionswap:
 			return positionswapSelect({game, selectedPlayerId, player});
-		case ETurnContextType.flamethrowerSelect:
+		case ETurnContextType.burn:
 			return flamethrowerSelect({game, selectedPlayerId, player});
 		case ETurnContextType.barricadePersonSelect:
 			return barricadeSelect({game, selectedPlayerId, player})
@@ -85,6 +85,19 @@ export const selectPlayer = ({game, selectedPlayerId, player, actionContext} : {
 			return axeSelect({game, selectedPlayerId, player})
 		case ETurnContextType.analysisPersonSelect:
 			return analysisSelect({game, selectedPlayerId, player})
+	}
+
+}
+
+
+export const playerActionDecision = ({game, action, player} : {game: Game, player: Player, action: string}) => {
+	switch (action) {
+		case "cancelSwap":
+		case "swap":
+			return positionswapFinish({game, player, action});
+		case "burn":
+		case "noFire":
+			return flamethrowerFinish({game, player, action});
 	}
 
 }

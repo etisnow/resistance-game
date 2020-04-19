@@ -16,6 +16,13 @@ export interface ITurnContextPositionSwap {
 	defensePlayer: Player | null,
 }
 
+export interface ITurnContextBurn {
+	type: ETurnContextType.burn,
+	offensePlayer: Player,
+	defensePlayer: Player | null,
+}
+
+
 export interface ITurnContextTenacityCardSelect {
 	type: ETurnContextType.tenacityCardSelect,
 	playerId: Player['id'],
@@ -29,15 +36,7 @@ export interface ITurnContextSuspicionPersonSelect {
 
 
 
-export interface ITurnContextFlameThrowerSelect {
-	type: ETurnContextType.flamethrowerSelect,
-	playerId: Player['id']
-}
 
-export interface ITurnContextReelFishingRodsSelect {
-	type: ETurnContextType.reelFishingRodsPersonSelect,
-	playerId: Player['id']
-}
 
 export interface ITurnContextBarricadeSelect {
 	type: ETurnContextType.barricadePersonSelect,
@@ -68,9 +67,9 @@ export interface ITurnContextAnalysisSelect {
 export type ITurnContext =
 	ITurnContextTrade
 	| ITurnContextPositionSwap
+	| ITurnContextBurn
 	| ITurnContextTenacityCardSelect
 	| ITurnContextSuspicionPersonSelect
-	| ITurnContextFlameThrowerSelect
 	| ITurnContextBarricadeSelect
 	| ITurnContextSeductionSelect
 	| ITurnContextQuarantineSelect

@@ -29,9 +29,9 @@
 		cursor: pointer;
 	}
 	&.isDoor {
-		background: url('/img/barricade_badge.png');
-		background-size: contain;
-		background-position: center center;
+		background-image: url('/img/barricade_badge.png') !important;
+		background-size: contain  !important;
+		background-position: center center  !important;
 	}
 	.quarantineBadge {
 		display: flex;

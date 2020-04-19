@@ -15,7 +15,7 @@ interface IRoomProps {
 const getPositionFromPlayerList = ({players, degDelta, playerId, playerList, playersCount}) => {
 	const player = players[playerId];
 	const currentDeg = (degDelta * playerList.indexOf(playerId))  + 90;
-	if (!player) return;
+	if (!player) return {x: 0, y:0};
 	const centerX = 0;
 	const centerY = 0;
 	const radius = circRadius(playersCount);
@@ -116,11 +116,6 @@ const Room = observer(({controller} : IRoomProps) => {
 				const {nickname, color, state} = player;
 				const inTurn = player.turnState !== ETurnState.idle;
 				const canBeSelected = controller.playersToSelect && controller.playersToSelect.includes(player.id);
-				const interpolatedTradeLineProps = interpolate([tradeLineStartX, tradeLineStartY, tradeLineEndX, tradeLineEndY], (x1,x2,y1,y2) => {
-					console.log({x1,x2,y1,y2})
-					return {x1,x2,y1,y2}
-				})
-				console.log(interpolatedTradeLineProps)
 				const tradeLineCenterOffset = playerRoomHeight / 2;
 				return (
 					<React.Fragment>

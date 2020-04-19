@@ -76,7 +76,9 @@ class GameServer {
   }) {
     player.game.cardAction({player, actionType, cardUniqueId, selectedPlayerId, actionContext})
   }
-
+  actionDecision({player, action}) {
+    player.game.actionDecision({player, action})
+  }
 }
 
 const gameServer = new GameServer();
