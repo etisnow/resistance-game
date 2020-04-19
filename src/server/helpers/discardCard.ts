@@ -5,7 +5,7 @@ import {findIndex} from 'lodash';
 
 export const discardCard = ({game, player, cardUniqueId}: {game: Game, player: Player, cardUniqueId: string}) => {
   const discardCardIndex = findIndex(player.hand, (card) => card.uniqueId === cardUniqueId);
-  game.discardedDeck.push(player.getCardById(cardUniqueId));
+  game.discardedDeck.push(player.getCardByUniqueId(cardUniqueId));
   player.hand.splice(discardCardIndex, 1);
 };
 

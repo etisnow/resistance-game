@@ -11,7 +11,7 @@ import {
 import {gameStarter} from 'server/helpers/gameStarter';
 import {shuffle} from 'server/helpers/util';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
-import {handCardsCount} from 'shared/constant/cards';
+import {handCardsCount, thingCard} from 'shared/constant/cards';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import INotification from 'shared/interfaces/notification';
 import {ICardAny, ICardEvent, ICardPanic} from 'shared/interfaces/cards';
@@ -20,6 +20,10 @@ import {ITurnContext} from 'shared/interfaces/turnContext';
 import {tradeCard} from 'server/helpers/tradeCard';
 import {discardCardAction} from 'server/helpers/discardCard';
 import {ECardType} from 'shared/enum/cards';
+import {panicAction} from 'server/helpers/panicActions';
+import {ETurnContextType} from 'shared/enum/turnContextType';
+import {chainReactionTrade} from 'server/helpers/cardActions/panic/chainReaction';
+import {ENotification} from 'shared/enum/notifications';
 
 enum EGameState {
   lobby = "lobby",
@@ -84,8 +88,8 @@ export class Game {
 
   start = () => {
     const players = this.players;
-    gameStarter(this);
     this.addLog('Игра началась');
+    gameStarter(this);
     this.notifyAllPlayers(formatStartGameEvent({players}))
     this.updateGame();
   };
@@ -95,8 +99,9 @@ export class Game {
     this.discardedDeck = [];
   };
 
-  makePanic = (panicCard: ICardPanic) => {
-    this.addLog('Паника!');
+  makePanic = (player: Player, panicCard: ICardPanic) => {
+    panicAction({player, game: this, panicCard});
+    this.discardedDeck.push(panicCard);
     this.updateGame();
   };
   resetPlayerStates = () => {
@@ -132,7 +137,7 @@ export class Game {
 	let grabbedCard = this.getFirstCard();
     //Если паника, то прекращаем граббинг и создаем панику
     if (grabbedCard.type === ECardType.panic) {
-      return this.makePanic(grabbedCard);
+      return this.makePanic(player, grabbedCard);
     }
 
     // Добавляем поднятую карту игроку на руку
@@ -181,19 +186,34 @@ export class Game {
       console.error('Неудалось заразить игрока, т.к не было найдено его ID', playerId);
       return;
     }
-    console.log('INJURED PLAYER' , playerId);
     injuringPlayer.isInjured = true;
+    const cleanPlayer = find(this.players, {state: EPlayerState.dummy, isInjured: false});
+    if (!cleanPlayer) {
+      this.notifyAllPlayers(formatPlayerNotification({
+        player: cleanPlayer,
+        notification: {
+          type: ENotification.okayCard,
+          cards: [thingCard],
+          text: 'Нечто выйграло'
+        },
+      }))
+    }
   };
 
   getFirstCard(): ICardEvent | ICardPanic {
-	let grabbedCard = this.deck.slice(0, 1)[0];
-    if (!grabbedCard) {
-      //В колоде больше не осталось карт, перетасовываем биту
+    if (this.deck.length === 0) {
       this.addLog('Колода закончилась, мешаем карты');
       this.shuffleDiscarded();
       return this.getFirstCard();
     }
+	let grabbedCard = this.deck.slice(0, 1)[0];
+    if (!grabbedCard) {
+      return this.getFirstCard();
+    }
 	this.deck.splice(0, 1);
+    console.log('=====DECK', this.deck.length, this.discardedDeck.length, this.deck.length + this.discardedDeck.length, this.discardedDeck.map(card => {
+      return card.id
+    }))
     return grabbedCard;
   }
 
@@ -241,7 +261,11 @@ export class Game {
         this.updateGame();
         return;
       case EPlayerActionType.cardTrade:
-        tradeCard({game: this, player, cardUniqueId});
+        if (this.turnContext && this.turnContext.type === ETurnContextType.chainReaction) {
+          chainReactionTrade({game: this, player, cardUniqueId});
+        } else {
+          tradeCard({game: this, player, cardUniqueId});
+        }
         this.updateGame();
         return;
       case EPlayerActionType.cardAct:
@@ -257,19 +281,20 @@ export class Game {
         this.updateGame();
         return;
     }
-  }
+  };
 
   actionDecision = ({player, action}) => {
     playerActionDecision({game: this, player, action});
     this.updateGame();
-  }
+  };
 
   swapPlayers = (AId,BId) => {
     const AIndex = this.playersList.indexOf(AId);
     const BIndex = this.playersList.indexOf(BId);
     this.playersList[AIndex] = BId;
     this.playersList[BIndex] = AId;
-  }
+  };
+
   destroy() {
     //flush logic
   }

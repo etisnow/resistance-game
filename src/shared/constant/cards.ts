@@ -1,7 +1,7 @@
 import {each, uniqueId} from 'lodash';
 
 import {ECardType, EEventID, EEventType, EPanicID} from 'shared/enum/cards';
-import {ICardEvent} from 'shared/interfaces/cards';
+import {ICardEvent, ICardPanic} from 'shared/interfaces/cards';
 
 export const cardAspectRatio = 1.3957;
 
@@ -228,13 +228,16 @@ const panic = {
       "Сбросьте три карты с руки и возьмите три новые карты событий. Сбрасывайте все попадающиеся карты паники.",
     playersCount: [4],
   },
-  [EPanicID.recognitionTime]: {
-    type: ECardType.panic,
-    id: EPanicID.recognitionTime,
-    description:
-      "Начиная с вам и по порядку хода, каждый игрок либо показывает, либо не показывает все карты на руке остальным игрокам. Время признаний заканчивается, когда кто-то из игроков показывает карту заражения, при этом нет необходимости показывать остальные карты на руке.",
-    playersCount: [8],
-  },
+
+
+
+  //[EPanicID.recognitionTime]: {
+  //  type: ECardType.panic,
+  //  id: EPanicID.recognitionTime,
+  //  description:
+  //    "Начиная с вам и по порядку хода, каждый игрок либо показывает, либо не показывает все карты на руке остальным игрокам. Время признаний заканчивается, когда кто-то из игроков показывает карту заражения, при этом нет необходимости показывать остальные карты на руке.",
+  //  playersCount: [8],
+  //},
 };
 
 const cardBacks : {[key: string]: any} = {
@@ -270,6 +273,14 @@ each(fulldeck, card => {
 });
 
 export const getCard = (cardId) : ICardEvent => {
+  if (!fullDeckObject[cardId]) {
+    console.error('Не удается найти карту ',  cardId)
+  }
   return {...fullDeckObject[cardId], uniqueId: uniqueId('card_')}
 }
+
+export const getPanic = (cardId) : ICardPanic => {
+  return {...fullDeckObject[cardId], uniqueId: uniqueId('card_')}
+}
+
 export { fulldeck, thingCard, cardBacks, fullDeckObject };

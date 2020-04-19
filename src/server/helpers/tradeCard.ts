@@ -6,8 +6,9 @@ import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ECardType, EEventID} from 'shared/enum/cards';
 import {Game} from 'server/models/Game';
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import {seductionTradeFinish} from 'server/helpers/cardActions/offense/seduction';
+//import {seductionTradeFinish} from 'server/helpers/cardActions/offense/seduction';
 import {discardCard} from 'server/helpers/discardCard';
+import { remove } from 'lodash';
 
 export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Player, cardUniqueId: string}) => {
   const tradingCard = player.getCardByUniqueId(cardUniqueId);
@@ -32,7 +33,7 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
       game.endTurn(player.id);
       return
     }
-    discardCard({player, cardUniqueId, game});
+    remove(player.hand, (card) => { return card.uniqueId === cardUniqueId});
     playerToTrade.changeTurnState(ETurnState.inDefenseTrade);
     player.changeTurnState(ETurnState.idle);
     game.addLog(`Игрок ${player.nickname} передает карту для обмена игроку ${playerToTrade.nickname}`);
@@ -44,7 +45,7 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
     };
     return;
   }
-  discardCard({player, cardUniqueId, game});
+  remove(player.hand, (card) => { return card.uniqueId === cardUniqueId});
   //isDefense trade
   if (context.type !== ETurnContextType.trade) {
     console.error('Нет выбранной карты для обмена у игрока', player.id);
@@ -65,7 +66,7 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
     player: player,
     notification: {
       type: ENotification.okayCard,
-      cards: [offensePlayerCard],
+      cards: [defensePlayerCard],
       text: `Игрок ${player.nickname} дал эту карту`,
     },
   }));
@@ -74,9 +75,9 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
   }
 
   /* DEFENSE CARD PUSH */
-  player.hand.push(offensePlayerCard);
-  player.notify(formatPlayerNotification({
-    player: player,
+  defensePlayer.hand.push(offensePlayerCard);
+  defensePlayer.notify(formatPlayerNotification({
+    player: defensePlayer,
     notification: {
       type: ENotification.okayCard,
       cards: [offensePlayerCard],
@@ -84,15 +85,15 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
     },
   }));
   if (offensePlayerCard.id=== EEventID.injure) {
-    game.injurePlayer(player.id);
+    game.injurePlayer(defensePlayer.id);
   }
+  defensePlayer.changeTurnState(ETurnState.idle)
 
-
-  if (game.turnContext && game.turnContext.type === ETurnContextType.seduction) {
-    return seductionTradeFinish({game})
-  }
+  //if (game.turnContext && game.turnContext.type === ETurnContextType.seduction) {
+  //  return seductionTradeFinish({game})
+  //}
+  game.turnContext = null;
   game.endTurn(offensePlayer.id);
   //game.changeTurn(player.id)
-  game.turnContext = null;
 
 };

@@ -42,7 +42,6 @@ class GameServer {
   }
 
   startGame({player}: {player:Player}) {
-    console.log('startgame', player.id)
     player.game.start();
   }
 

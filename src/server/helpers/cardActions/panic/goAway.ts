@@ -7,13 +7,12 @@ import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
 import {discardCard} from 'server/helpers/discardCard';
 
-export const reelFishingRodsAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
+export const goAwayAct = ({game, player} : {game: Game, player: Player}) => {
 	game.turnContext = {
 		type: ETurnContextType.positionswap,
 		offensePlayer: player,
 		defensePlayer: null,
 	};
-	discardCard({game, player, cardUniqueId: card.uniqueId});
 	player.changeTurnState(ETurnState.inCardActionProgress);
 	const allPlayersExeptCurrent = player.getAllPlayablePlayersExceptCurrent();
     player.notify(formatPlayerNotification({

@@ -7,6 +7,7 @@ import GameLog from 'client/components/gameLog/GameLog';
 import Room from 'client/components/table/Room/Room';
 import Hand from 'client/components/table/Hand/Hand';
 import Notifier from 'client/components/table/notifier/notifier';
+import {Helmet} from "react-helmet";
 
 interface ITableProps {
 	controller: GameController
@@ -27,6 +28,9 @@ const Table = observer(({controller} : ITableProps) => {
 				<button className={'layoutChangeButton'} onClick={() => {controller.toggleRoomLayout()}}>
 					Вид: {controller.isLayoutSequential ? 'От игрока' : 'Сверху'}
 				</button>
+	            <Helmet>
+	                <title>{player.nickname}</title>
+	            </Helmet>
 			</div>
 		)
 });

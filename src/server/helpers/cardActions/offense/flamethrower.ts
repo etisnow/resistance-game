@@ -8,7 +8,7 @@ import {ETurnState} from 'shared/enum/player';
 import {discardCard} from 'server/helpers/discardCard';
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
-import { find } from 'lodash';
+import { find, each } from 'lodash';
 
 export const flamethrowerAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	game.turnContext = {
@@ -91,7 +91,12 @@ export const flamethrowerFinish = ({game, player, action} : {game: Game, player:
 				game.addLog(`Игра закончена! ${defensePlayer.nickname} не справился со своим коварным заданием...`)
 			}
 			game.playersList = game.playersList.filter(pId => pId !== defensePlayer.id);
-			defensePlayer.hand = [];
+
+
+			const discardCardIds = defensePlayer.hand.map(cardToDiscard => cardToDiscard.uniqueId)
+			each(discardCardIds, cardUniqueId => {
+				discardCard({player: defensePlayer, game, cardUniqueId})
+			});
 			break;
 		}
 		case "noFire": {

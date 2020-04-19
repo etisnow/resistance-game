@@ -9,5 +9,12 @@ export enum ETurnContextType {
 	quarantinePersonSelect = 'quarantinePersonSelect',
 	axePersonSelect = 'axePersonSelect',
 	analysisPersonSelect = 'analysisPersonSelect',
+
+	/*PANICS */
+	chainReaction = 'chainReaction',
+	blindDateCardSelect = 'blindDateCardSelect',
+	oneTwoPersonSelect = 'oneTwoPersonSelect',
+	onlyBetweenUsPersonSelect = 'onlyBetweenUsPersonSelect',
+	forgetfullnessSelect = 'forgetfullnessSelect',
 }
 

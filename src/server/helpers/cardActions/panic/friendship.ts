@@ -3,26 +3,24 @@ import {Player} from 'server/models/Player';
 import {ENotification} from 'shared/enum/notifications';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
-import {discardCard} from 'server/helpers/discardCard';
 
-export const reelFishingRodsAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
-	game.turnContext = {
-		type: ETurnContextType.positionswap,
-		offensePlayer: player,
-		defensePlayer: null,
-	};
-	discardCard({game, player, cardUniqueId: card.uniqueId});
+
+export const friendshipAct = ({game, player} : {game: Game, player: Player}) => {
 	player.changeTurnState(ETurnState.inCardActionProgress);
 	const allPlayersExeptCurrent = player.getAllPlayablePlayersExceptCurrent();
+	game.turnContext = {
+		type: ETurnContextType.seduction,
+		offensePlayer: player,
+		defensePlayer: null
+	};
     player.notify(formatPlayerNotification({
       player: player,
       notification: {
 		type: ENotification.playerSelect,
 		playersToSelect: allPlayersExeptCurrent,
-		text: 'Выбри с кем хочешь поменяться местами'
+		text: 'Выбри с кем хочешь поменяться картами'
       },
     }));
+    game.addLog(`Игрок ${player.nickname} играет панику "Давай дружить"`);
 };
-

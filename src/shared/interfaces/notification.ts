@@ -1,10 +1,10 @@
 import {ENotification} from 'shared/enum/notifications';
-import {ICardEvent} from 'shared/interfaces/cards';
+import {ICardEvent, ICardPanic} from 'shared/interfaces/cards';
 
 interface INotification {
 	type: ENotification,
 	text?: string;
-	cards?: ICardEvent[];
+	cards?: ICardEvent[] | ICardPanic[];
 	playersToSelect?: string[],
 	menu? : {text: string, action: string}[]
 }

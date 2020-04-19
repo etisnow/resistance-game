@@ -28,7 +28,6 @@ export class Player {
 		if (playerState === EPlayerState.door) {
 			return;
 		}
-		//console.log("A user connected : " + socket.id);
 		this.id = _.uniqueId('player_');
 		this.socket = socket;
 	}
@@ -39,7 +38,6 @@ export class Player {
 	register = ({nickname, game}: {nickname:string, game: Game}) => {
 		this.nickname = nickname;
 		this.game = game;
-		//console.log('connect player to the game')
 		game.connectPlayer({player: this});
 	};
 	getCardById = (id) => {
@@ -65,7 +63,7 @@ export class Player {
 		return [rightId, leftId];
 	};
 
-	getPlayabeNeighbours = (ignoreOptions?: { ignoreDoors:boolean, ignoreQuarantine:boolean }) => {
+	getPlayabeNeighbours = (ignoreOptions?: { ignoreDoors:boolean, ignoreQuarantine:boolean }) : string[] => {
 		const game = this.game;
 		if (!game) { throw new Error('Не забиндена игра у игрока'); }
 		const currentPlayerIndex = findIndex(game.playersList, (playerId) => this.id === playerId );

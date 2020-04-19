@@ -11,7 +11,7 @@ import {each} from 'lodash';
 export const seductionAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	discardCard({game, player, cardUniqueId: card.uniqueId});
 	player.changeTurnState(ETurnState.inCardActionProgress);
-	const allPlayersExeptCurrent = player.getAllPlayablePlayersExceptCurrent()
+	const allPlayersExeptCurrent = player.getAllPlayablePlayersExceptCurrent();
 	game.turnContext = {
 		type: ETurnContextType.seduction,
 		offensePlayer: player,
@@ -25,29 +25,38 @@ export const seductionAct = ({card, game, player} : {card:ICardEvent, game: Game
 		text: 'Выбри с кем хочешь поменяться картами'
       },
     }));
+    game.addLog(`Игрок ${player.nickname} играет Соблазн`);
 };
 
 export const seductionSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
 	const playerToTrade = game.players[selectedPlayerId];
+	if (player === playerToTrade) {
+		game.turnContext = null;
+		game.endTurn(player.id);
+		return;
+	}
 	game.turnContext = {
 		type: ETurnContextType.trade,
 		offensePlayer: player,
 		defensePlayer: playerToTrade,
 		offenseCardId: null,
 	};
-	game.addLog(`Игрок ${player.nickname} играет карту "Cоблазн" и предлагает обмен картами ${playerToTrade.nickname}`);
+    game.addLog(`Игрок ${player.nickname} предлагает обмен картами ${playerToTrade.nickname}`);
 	//playerToTrade.changeTurnState(ETurnState.inDefenseTrade);
 	player.changeTurnState(ETurnState.inOffenseTrade)
 };
 
-export const seductionTradeFinish = ({game} : {game: Game}) => {
-	if (game.turnContext.type !== ETurnContextType.trade) {
-		throw new Error('Завершение обмена seduction');
-	}
-	each(game.players, (player: Player) => {
-		player.changeTurnState(ETurnState.idle);
-	});
-	const offensePlayer = game.turnContext.offensePlayer;
-	game.endTurn(offensePlayer.id);
-	game.turnContext = null;
-};
+//export const seductionTradeFinish = ({game} : {game: Game}) => {
+//	if (game.turnContext.type !== ETurnContextType.trade) {
+//		throw new Error('Завершение обмена seduction');
+//	}
+//	console.log('SEDUCTION FINISH');
+//	each(game.players, (player: Player) => {
+//		player.changeTurnState(ETurnState.idle);
+//	});
+//	const offensePlayer = game.turnContext.offensePlayer;
+//	const defensePlayer = game.turnContext.defensePlayer;
+//	defensePlayer.changeTurnState(ETurnState.idle)
+//	game.turnContext = null;
+//	game.endTurn(offensePlayer.id);
+//};

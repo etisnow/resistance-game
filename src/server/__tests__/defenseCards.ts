@@ -87,7 +87,7 @@ describe('defense cards',  () => {
 
 		expect(prevPlayer.hand.length).toBe(4);
 
-		console.log(game.gameLog)
+
 	});
 
 

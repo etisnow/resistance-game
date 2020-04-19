@@ -41,17 +41,9 @@ export interface ITurnContextSuspicionPersonSelect {
 
 
 
-
-
 export interface ITurnContextBarricadeSelect {
 	type: ETurnContextType.barricadePersonSelect,
 	playerId: Player['id']
-}
-
-export interface ITurnContextSeductionSelect {
-	type: ETurnContextType.seduction,
-	playerId: Player['id'],
-	playerIdToTrade: Player['id'] | null,
 }
 
 export interface ITurnContextQuarantineSelect {
@@ -69,6 +61,35 @@ export interface ITurnContextAnalysisSelect {
 }
 
 
+
+/* PANICS */
+export interface ITurnContextChainReaction {
+	type: ETurnContextType.chainReaction,
+	playersPick: {player: Player, card: ICardEvent}[],
+	startPlayer: Player,
+}
+
+export interface ITurnContextBlindDateCardSelect {
+	type: ETurnContextType.blindDateCardSelect,
+	playerId: Player['id']
+}
+
+export interface ITurnContextOneTwoPersonSelect {
+	type: ETurnContextType.oneTwoPersonSelect,
+	playerId: Player['id']
+}
+
+export interface ITurnContextOnlyBetweenUsPersonSelect {
+	type: ETurnContextType.onlyBetweenUsPersonSelect,
+	playerId: Player['id']
+}
+
+export interface ITurnContextForgetfullnessCardSelect {
+	type: ETurnContextType.forgetfullnessSelect,
+	playerId: Player['id'],
+	cards: string[],
+}
+
 export type ITurnContext =
 	ITurnContextTrade
 	| ITurnContextPositionSwap
@@ -79,4 +100,10 @@ export type ITurnContext =
 	| ITurnContextSeduction
 	| ITurnContextQuarantineSelect
 	| ITurnContextAxeSelect
-	| ITurnContextAnalysisSelect;
+	| ITurnContextAnalysisSelect
+	/*PANICS*/
+	| ITurnContextBlindDateCardSelect
+	| ITurnContextChainReaction
+	| ITurnContextOneTwoPersonSelect
+	| ITurnContextOnlyBetweenUsPersonSelect
+	| ITurnContextForgetfullnessCardSelect;

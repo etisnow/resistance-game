@@ -17,6 +17,10 @@ import {fearAct} from 'server/helpers/cardActions/defense/fear';
 import {missAct} from 'server/helpers/cardActions/defense/miss';
 import {noThanksAct} from 'server/helpers/cardActions/defense/noThanks';
 import {barricadeAct, barricadeSelect} from 'server/helpers/cardActions/offense/barricade';
+import {blindDateAct, blindDateSelect} from 'server/helpers/cardActions/panic/blindDate';
+import {oneTwoPlayerSelect} from 'server/helpers/cardActions/panic/oneTwo';
+import {onlyBetweenUsSelect} from 'server/helpers/cardActions/panic/onlyBetweenUs';
+import {forgetfullnessSelect} from 'server/helpers/cardActions/panic/forgetfulness';
 
 export const actCard = ({game, cardUniqueId, player, actionContext} : {game: Game, player: Player, cardUniqueId: string, actionContext?:any}) => {
 	const card = player.getCardByUniqueId(cardUniqueId);
@@ -61,14 +65,19 @@ export const actCard = ({game, cardUniqueId, player, actionContext} : {game: Gam
 
 export const selectCard = ({game, cardUniqueId, player, actionContext} : {game: Game, player: Player, cardUniqueId: string, actionContext?:any}) => {
 	const {turnContext} = game;
-	if (turnContext.type === ETurnContextType.tenacityCardSelect) {
-		return tenacitySelect({game, cardUniqueId, player})
+	if (!turnContext) return;
+	switch (turnContext.type) {
+		case ETurnContextType.tenacityCardSelect:
+			return tenacitySelect({game, cardUniqueId, player})
+		case ETurnContextType.blindDateCardSelect:
+			return blindDateSelect({game, cardUniqueId, player})
+		case ETurnContextType.forgetfullnessSelect:
+			return forgetfullnessSelect({game, cardUniqueId, player})
 	}
 };
 
 export const selectPlayer = ({game, selectedPlayerId, player, actionContext} : {game: Game, player: Player, selectedPlayerId: string, actionContext?:any}) => {
 	const {turnContext} = game;
-	console.log('SELECTED', )
 	switch (turnContext.type) {
 		case ETurnContextType.suspicionPersonSelect:
 			return suspicionSelect({game, selectedPlayerId, player});
@@ -86,6 +95,10 @@ export const selectPlayer = ({game, selectedPlayerId, player, actionContext} : {
 			return axeSelect({game, selectedPlayerId, player})
 		case ETurnContextType.analysisPersonSelect:
 			return analysisSelect({game, selectedPlayerId, player})
+		case ETurnContextType.oneTwoPersonSelect:
+			return oneTwoPlayerSelect({game, selectedPlayerId, player})
+		case ETurnContextType.onlyBetweenUsPersonSelect:
+			return onlyBetweenUsSelect({game, selectedPlayerId, player})
 	}
 
 }

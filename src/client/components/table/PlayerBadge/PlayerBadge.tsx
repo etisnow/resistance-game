@@ -42,14 +42,18 @@ const Quarantine = ({quarantine}) => {
 }
 
 const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, onSelect = null, id, isDoor, quarantine, isYou, isInjured, isThing}: IPlayerBadgeProps) => {
-	console.log('IS DOOR')
 	return (
 		<div className={cx({playerBadge: true, canBeSelected, isDoor, onQuarantine: quarantine > 0, isYou })} style={{background: color}} onClick={() => (onSelect && canBeSelected) ? onSelect(id) : null}>
-			{inTurn && <TurnBadge/>}
-			{isInjured && <InjureBadge/>}
-			{isThing && <ThingBadge/>}
-			{!isDoor && formatNickname(nickname)}
-			<Quarantine quarantine={quarantine}/>
+			{ !isDoor && (
+				<React.Fragment>
+					{inTurn && <TurnBadge/>}
+					{isInjured && <InjureBadge/>}
+					{isThing && <ThingBadge/>}
+					{formatNickname(nickname)}
+					<Quarantine quarantine={quarantine}/>
+				</React.Fragment>
+			)}
+
 		</div>
 	)
 };

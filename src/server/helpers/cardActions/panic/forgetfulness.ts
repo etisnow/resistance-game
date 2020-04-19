@@ -1,0 +1,65 @@
+import {Game} from 'server/models/Game';
+import {Player} from 'server/models/Player';
+import {ETurnState} from 'shared/enum/player';
+import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
+import {ENotification} from 'shared/enum/notifications';
+import {clone, find} from 'lodash';
+import {formatCardActions} from 'server/formatters/formatCardActions';
+import {EPlayerActionType} from 'shared/enum/playerActions';
+import {discardCard} from 'server/helpers/discardCard';
+import {ETurnContextType} from 'shared/enum/turnContextType';
+
+export const notifyPlayerDiscardCards = ({game, player}: {game:Game, player:Player}) => {
+	const clonedPlayer = clone(player);
+	clonedPlayer.turnState = ETurnState.inCardAction;
+	const filteredCards = clonedPlayer.hand.filter(card => {
+		const cardActions = formatCardActions(game, clonedPlayer, card);
+		const cardTrade = find(cardActions, { menuType: EPlayerActionType.cardDiscard});
+		return !!cardTrade;
+	});
+
+	player.notify(formatPlayerNotification({
+		player,
+		notification: {
+			type: ENotification.selectCard,
+			cards: filteredCards,
+			text:'Выбери одну из свои карт, чтобы поменять её на карту из колоды'
+		}
+	}));
+}
+
+export const forgetfullnessAct = ({game, player}: {game:Game, player:Player}) => {
+	game.addLog('Игрок меняет три карты с руки на три из колоды');
+	player.changeTurnState(ETurnState.inCardActionProgress);
+
+	notifyPlayerDiscardCards({game, player});
+
+	game.turnContext = {
+		type: ETurnContextType.forgetfullnessSelect,
+		playerId: player.id,
+		cards: [],
+	}
+};
+
+
+export const forgetfullnessSelect = ({game, cardUniqueId, player}: {game:Game, player: Player, cardUniqueId: string}) => {
+	if (!game.turnContext || game.turnContext.type !== ETurnContextType.forgetfullnessSelect) {
+		throw new Error('Забывчивость зафакапилась')
+	}
+	discardCard({game, player, cardUniqueId: cardUniqueId});
+	game.turnContext.cards.push(cardUniqueId);
+
+	if (game.turnContext.cards.length < 3) {
+		notifyPlayerDiscardCards({game, player});
+		return;
+	}
+
+	const first = game.pickFirstEventCard();
+	const second = game.pickFirstEventCard();
+	const third = game.pickFirstEventCard();
+	player.hand.push(first);
+	player.hand.push(second);
+	player.hand.push(third);
+	game.turnContext = null;
+	player.changeTurnState(ETurnState.inOffenseTrade)
+}

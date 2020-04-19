@@ -46,7 +46,7 @@ export const positionswapSelect = ({game, player, selectedPlayerId} : {game: Gam
 	if (hasLeaveMeAloneCard) {
 		decisionMenu.push({
 			text: 'Отказаться от обмена местами',
-			action: 'reject',
+			action: 'cancelSwap',
 		})
 		text = `Игрок ${player.nickname} предлагает поменяться местами, но у тебя есть "Мне и здесь неплохо"`
 	}
@@ -67,6 +67,7 @@ export const positionswapFinish = ({game, player, action}: {game:Game, player:Pl
 	if (game.turnContext.type !== ETurnContextType.positionswap) {
 		throw new Error('Смена места произошла без контекста positionswap');
 	}
+	console.log('position swap finish!!')
 	const {offensePlayer, defensePlayer} = game.turnContext;
 	offensePlayer.changeTurnState(ETurnState.inOffenseTrade);
 	const leaveMeAloneCard = find(player.hand, {id:EEventID.leaveMeAlone});
