@@ -181,12 +181,11 @@ export class Game {
 
 
   injurePlayer = (playerId: string) => {
-    const injuringPlayer = this.players[playerId];
-    if (!injuringPlayer) {
+    if (!this.players[playerId]) {
       console.error('Неудалось заразить игрока, т.к не было найдено его ID', playerId);
       return;
     }
-    injuringPlayer.isInjured = true;
+    this.players[playerId].isInjured = true;
     const cleanPlayer = find(this.players, {state: EPlayerState.dummy, isInjured: false});
     if (!cleanPlayer) {
       this.notifyAllPlayers(formatPlayerNotification({

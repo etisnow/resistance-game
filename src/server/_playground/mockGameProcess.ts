@@ -115,18 +115,18 @@ export function mockGameProcess(player) {
 		//], againstCardId: EEventID.barricade});
 
 
-		testDefenseActionCard({player, cards: [
-			getCard(EEventID.leaveMeAlone),
+		//testDefenseActionCard({player, cards: [
+		//	getCard(EEventID.leaveMeAlone),
+		//	getCard(EEventID.noFire),
+		//], againstCardId: EEventID.flamethrower})
+
+
+		testOffenseCard({player, cards: [
+			getCard(EEventID.positionswap),
+			getCard(EEventID.injure),
+			getCard(EEventID.quarantine),
 			getCard(EEventID.noFire),
-		], againstCardId: EEventID.flamethrower})
-
-
-		//testOffenseCard({player, cards: [
-		//	getCard(EEventID.positionswap),
-		//	getCard(EEventID.injure),
-		//	getCard(EEventID.quarantine),
-	//	getCard(EEventID.noFire),
-		//]})
+		]})
 
 		//testAxeCard({player, cards: [
 		//	getCard(EEventID.axe),
