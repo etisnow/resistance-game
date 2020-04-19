@@ -260,7 +260,7 @@ const thingCard : ICardEvent = {
   playersCount: [0],
 };
 
-const fulldeck = Object.assign({}, events, panic, cardBacks, { thing:thingCard }) as {[key: string]: ICardEvent};
+const fulldeck = Object.assign({}, events, panic, cardBacks) as {[key: string]: ICardEvent};
 
 export const handCardsCount = 4;
 

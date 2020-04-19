@@ -1,22 +1,22 @@
 import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
-import {tenacityAct, tenacitySelect} from 'server/helpers/cardActions/tenacity';
+import {tenacityAct, tenacitySelect} from 'server/helpers/cardActions/offense/tenacity';
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import {suspicionAct, suspicionSelect} from 'server/helpers/cardActions/suspicion';
-import {positionswapAct, positionswapFinish, positionswapSelect} from 'server/helpers/cardActions/positionswap';
-import {flamethrowerAct, flamethrowerFinish, flamethrowerSelect} from 'server/helpers/cardActions/flamethrower';
-import {reelFishingRodsAct} from 'server/helpers/cardActions/reelFishingRods';
-import {seductionAct, seductionSelect} from 'server/helpers/cardActions/seduction';
-import {whiskeyAct} from 'server/helpers/cardActions/whiskey';
-import {quarantineAct, quarantineSelect} from 'server/helpers/cardActions/quarantine';
-import {axeAct, axeSelect} from 'server/helpers/cardActions/axe';
-import {lookAroundAct} from 'server/helpers/cardActions/lookAround';
-import {analysisAct, analysisSelect} from 'server/helpers/cardActions/analysis';
+import {suspicionAct, suspicionSelect} from 'server/helpers/cardActions/offense/suspicion';
+import {positionswapAct, positionswapFinish, positionswapSelect} from 'server/helpers/cardActions/offense/positionswap';
+import {flamethrowerAct, flamethrowerFinish, flamethrowerSelect} from 'server/helpers/cardActions/offense/flamethrower';
+import {reelFishingRodsAct} from 'server/helpers/cardActions/offense/reelFishingRods';
+import {seductionAct, seductionSelect} from 'server/helpers/cardActions/offense/seduction';
+import {whiskeyAct} from 'server/helpers/cardActions/offense/whiskey';
+import {quarantineAct, quarantineSelect} from 'server/helpers/cardActions/offense/quarantine';
+import {axeAct, axeSelect} from 'server/helpers/cardActions/offense/axe';
+import {lookAroundAct} from 'server/helpers/cardActions/offense/lookAround';
+import {analysisAct, analysisSelect} from 'server/helpers/cardActions/offense/analysis';
 import {EEventID} from 'shared/enum/cards';
-import {fearAct} from 'server/helpers/cardActions/fear';
-import {missAct} from 'server/helpers/cardActions/miss';
-import {noThanksAct} from 'server/helpers/cardActions/noThanks';
-import {barricadeAct, barricadeSelect} from 'server/helpers/cardActions/barricade';
+import {fearAct} from 'server/helpers/cardActions/defense/fear';
+import {missAct} from 'server/helpers/cardActions/defense/miss';
+import {noThanksAct} from 'server/helpers/cardActions/defense/noThanks';
+import {barricadeAct, barricadeSelect} from 'server/helpers/cardActions/offense/barricade';
 
 export const actCard = ({game, cardUniqueId, player, actionContext} : {game: Game, player: Player, cardUniqueId: string, actionContext?:any}) => {
 	const card = player.getCardByUniqueId(cardUniqueId);

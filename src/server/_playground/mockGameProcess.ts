@@ -47,7 +47,7 @@ const testDefenseCard = ({player, cards, againstCardId}) => {
 		//Подтасовываем карту
 		const pl = currentGame.players[player.id];
 		pl.hand.splice(0,cards.length, ...cards);
-
+		player.isThing = true;
 
 		const randomdiscardCard = host.hand[0];
 		gameServer.playerAction({player: host, actionType: EPlayerActionType.cardDiscard, cardUniqueId: randomdiscardCard.uniqueId});
@@ -91,11 +91,12 @@ export function mockGameProcess(player) {
 	setTimeout(() => {
 		gameServer.isMock = true;
 
-		//testDefenseCard({player, cards: [
-		//	getCard(EEventID.fear),
-		//	getCard(EEventID.noThanks),
-		//	getCard(EEventID.miss),
-		//], againstCardId: EEventID.barricade})
+		testDefenseCard({player, cards: [
+			getCard(EEventID.injure),
+			getCard(EEventID.fear),
+			getCard(EEventID.noThanks),
+			getCard(EEventID.miss),
+		], againstCardId: EEventID.barricade});
 
 
 		//testDefenseActionCard({player, cards: [
@@ -104,12 +105,12 @@ export function mockGameProcess(player) {
 		//], againstCardId: EEventID.flamethrower})
 
 
-		testOffenseCard({player, cards: [
-			getCard(EEventID.positionswap),
-			getCard(EEventID.injure),
-			getCard(EEventID.quarantine),
-			getCard(EEventID.noFire),
-		]})
+		//testOffenseCard({player, cards: [
+		//	getCard(EEventID.positionswap),
+		//	getCard(EEventID.injure),
+		//	getCard(EEventID.quarantine),
+		//	getCard(EEventID.noFire),
+		//]})
 
 		//testAxeCard({player, cards: [
 		//	getCard(EEventID.axe),

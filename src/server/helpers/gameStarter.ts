@@ -1,8 +1,8 @@
 import {Game} from 'server/models/Game';
 import {fullDeckObject, getCard, handCardsCount} from 'shared/constant/cards';
 import {concat, each, find, range, reduce} from 'lodash';
-import {ICardAny, ICardEvent, ICardPanic} from 'shared/interfaces/cards';
-import { shuffle} from 'server/helpers/util';
+import {ICardAny, ICardEvent} from 'shared/interfaces/cards';
+import {shuffle} from 'server/helpers/util';
 import * as chroma from 'chroma-js';
 import {gameServer} from 'server/server/GameServer';
 import {ECardType, EEventID} from 'shared/enum/cards';
@@ -27,7 +27,7 @@ export const gameStarter = (game: Game) => {
 	const shuffledDeck = shuffle(filteredDeck);
 
 	const [playableCards, otherCards] = reduce(shuffledDeck, ([events, other], card) => {
-		if (card.type === ECardType.event && card.id !== 'injure' && card.id !== 'thing') {
+		if (card.type === ECardType.event && card.id !== EEventID.injure && card.id !== EEventID.thing) {
 			events.push(card);
 		} else {
 			//REMOVE TEST PANICS
@@ -71,7 +71,7 @@ export const gameStarter = (game: Game) => {
 		playersHands.splice(0, handCardsCount);
 		currentPlayer.hand = currentPlayerHand;
 		each(currentPlayerHand, (card: ICardEvent) => {
-			if (card.id === 'thing') {
+			if (card.id === EEventID.thing) {
 				currentPlayer.isInjured = true;
 				currentPlayer.isThing = true;
 			}

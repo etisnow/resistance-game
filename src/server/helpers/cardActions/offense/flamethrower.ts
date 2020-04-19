@@ -79,7 +79,7 @@ export const flamethrowerFinish = ({game, player, action} : {game: Game, player:
 				text: `Игрок ${defensePlayer.nickname} был заживо сожжен игроком ${offensePlayer.nickname} и выбывает из игры`,
 		      },
 		    }));
-			game.addLog(`Игрок ${defensePlayer.nickname} был заживо сожжен игроком ${offensePlayer.nickname} и выбывает из игры`)
+			game.addLog(`Игрок ${defensePlayer.nickname} был заживо сожжен игроком ${offensePlayer.nickname} и выбывает из игры`);
 			if (defensePlayer.isThing) {
 				game.notifyAllPlayers(formatPlayerNotification({
 			      player: player,

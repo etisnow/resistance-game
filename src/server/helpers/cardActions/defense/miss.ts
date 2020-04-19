@@ -27,12 +27,12 @@ export const missAct = ({card, game, player} : {card:ICardEvent, game: Game, pla
 
 
 
-    game.notifyAllPlayers(formatPlayerNotification({
+    game.notifyAllPlayersExeptPlayer(formatPlayerNotification({
       player: player,
       notification: {
 		type: ENotification.okayCard,
         cards: [getCard(EEventID.miss)],
-		text: `${player.nickname}: отказывается от обмена`,
+		text: `${player.nickname}: отказывается от обмена и теперь ходит игрок ${nextPlayer.nickname}`,
       },
-    }));
+    }), player);
 };

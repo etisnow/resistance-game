@@ -1,4 +1,4 @@
-import {filter, find} from 'lodash';
+import {filter} from 'lodash';
 import {ICardEventMenuItem} from 'shared/interfaces/cardMenu';
 import {ETurnState} from 'shared/enum/player';
 import {EEventID, EEventType} from 'shared/enum/cards';
@@ -35,7 +35,7 @@ const getTargetPlayer = (game:Game, player: Player): Player | null => {
 export const formatCardActions = (game: Game, player: Player, card: ICardEvent): ICardEventMenuItem[] => {
 	let actions : ICardEventMenuItem[] = [];
 	if (!card.eventType) return actions;
-	if (card.id === "thing") return actions;
+	if (card.id === EEventID.thing) return [];
 
 	const isCurrentPlayerInjured = player.isInjured;
 	const isCurrentPlayerThing = player.isThing;
@@ -74,8 +74,10 @@ export const formatCardActions = (game: Game, player: Player, card: ICardEvent):
 			actions.push({ menuType: EPlayerActionType.cardTrade});
 			return actions;
 		case ETurnState.inDefenseTrade:
-			if (card.eventType === EEventType.injure && canTradeInjure) {
-				actions.push({ menuType: EPlayerActionType.cardTrade});
+			if (card.id === EEventID.injure) {
+				if (canTradeInjure) {
+					actions.push({ menuType: EPlayerActionType.cardTrade});
+				}
 				return actions;
 			}
 			if (card.eventType === EEventType.antiTrade) {
