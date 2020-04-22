@@ -24,7 +24,7 @@ export default class GameController {
 	@observable notifications: INotification[] = [];
 	@observable playersToSelect: string[] = [];
 	@observable isLayoutSequential: boolean = false;
-	@observable tradeContext: IFormatTradeContext | null = null;
+	@observable tradeContext: IFormatTradeContext[] | null = null;
 	constructor(root: RootController) {
 		this.root = root;
 		this.socket = root.socketController;

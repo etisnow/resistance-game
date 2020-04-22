@@ -6,6 +6,7 @@ import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {shuffle} from 'server/helpers/util';
 import {EEventID} from 'shared/enum/cards';
+import {ETurnContextType} from 'shared/enum/turnContextType';
 
 export class Player {
 	id = null;
@@ -52,6 +53,26 @@ export class Player {
 
 	changeTurnState = (newTurnState: ETurnState) => {
 		this.turnState = newTurnState
+		if (this.turnState === ETurnState.inOffenseTrade) {
+			const context = this.game.turnContext;
+			let playerToTrade: Player | null =  null;
+			if (context && context.type === ETurnContextType.trade && context.defensePlayer) {
+				playerToTrade = context.defensePlayer
+			} else {
+				playerToTrade = this.game.getPlayerByPosition({playerId: this.id, isNext: true});
+			}
+		    if (playerToTrade.state === EPlayerState.door) {
+		      this.game.addLog(`Игрок ${this.nickname} не меняется из-за заколоченной двери`);
+		      this.game.endTurn(this.id);
+		      return
+		    }
+		    this.game.turnContext = {
+		      type: ETurnContextType.trade,
+		      defensePlayer: playerToTrade,
+		      offensePlayer: this,
+		      offenseCardId: null,
+		    };
+		}
 	};
 
 	getNeighbours = () => {

@@ -211,6 +211,10 @@ export class Game {
     }
 	this.deck.splice(0, 1);
     console.log('=====DECK', this.deck.length, this.discardedDeck.length, this.deck.length + this.discardedDeck.length, this.discardedDeck.map(card => {
+      if (card === undefined) {
+        console.log('CARD IS INDEDINED', this.discardedDeck)
+        return 'TEST!!!';
+      }
       return card.id
     }))
     return grabbedCard;

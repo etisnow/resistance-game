@@ -1,13 +1,13 @@
 import {EServerEventType} from 'shared/enum/enumServerEvents';
 import {Player} from 'server/models/Player';
 import {Game} from 'server/models/Game';
-import {find, map, mapValues} from 'lodash';
+import {find, map, mapValues, reduce, remove, filter} from 'lodash';
 import {GameServer} from 'server/server/GameServer';
 import INotification from 'shared/interfaces/notification';
 import {formatHand} from 'server/formatters/formatHand';
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import {ITurnContextTrade} from 'shared/interfaces/turnContext';
 import {IFormatTradeContext} from 'shared/interfaces/common';
+import {ETurnState} from 'shared/enum/player';
 
 function formatEvent(type, payload) {
 	return {
@@ -34,13 +34,53 @@ export const formatPlayerConnectedEvent = ({ game, viewer }: {game: Game, viewer
 	return formatEvent(EServerEventType.playerConnected, formatUpdatePlayerPayload({ game, viewer }))
 };
 
-const formatTradeContext = (game: Game) : IFormatTradeContext => {
-	const tradeContext = game.turnContext;
-	if (!tradeContext || tradeContext.type !== ETurnContextType.trade) return;
-	return {
-		offensePlayerId: tradeContext.offensePlayer ? tradeContext.offensePlayer.id : null,
-		defensePlayerId: tradeContext.defensePlayer ? tradeContext.defensePlayer.id : null,
-		isCardPicked: !!tradeContext.offenseCardId
+const formatTradeContext = (game: Game) : IFormatTradeContext[] => {
+	/* TEST AREA */
+/*	if (!game.playersList) return;
+	let test= reduce(game.playersList, (acc, pId) => {
+		const player = game.players[pId];
+		const defensePlayer = game.getPlayerByPosition({playerId:pId, isNext:true});
+		acc.push({
+			offensePlayerId: pId,
+			defensePlayerId: defensePlayer.id,
+			isCardPicked: false
+		})
+		return acc;
+	}, [])
+	const host = find(game.players, {nickname:"хост"});
+	const igrogriv = find(game.players, {nickname:"Генадий Игрогрив3"});
+	test = filter(test, (trade) => { return trade.offensePlayerId !== host.id})
+	if (host && igrogriv) {
+		test.push({
+			offensePlayerId: host.id,
+			defensePlayerId: igrogriv.id,
+			isCardPicked: false
+		})
+	}
+	return test;*/
+	/*test area*/
+
+	if (!game.turnContext) return;
+	switch (game.turnContext.type) {
+		case ETurnContextType.chainReaction:
+			return reduce(game.playersList, (acc, pId) => {
+				const player = game.players[pId];
+				if (player.turnState === ETurnState.inOffenseTrade) {
+					acc.push({
+						offensePlayerId: pId,
+						defensePlayerId: game.getPlayerByPosition({playerId:pId, isNext:true}),
+						isCardPicked: false
+					})
+				}
+				return acc;
+			}, [])
+		case ETurnContextType.trade:
+			const ctx: any = game.turnContext;
+			return [{
+				offensePlayerId: ctx.offensePlayer ? ctx.offensePlayer.id : null,
+				defensePlayerId: ctx.defensePlayer ? ctx.defensePlayer.id : null,
+				isCardPicked: !!ctx.offenseCardId
+			}]
 	}
 }
 

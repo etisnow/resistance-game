@@ -6,8 +6,6 @@ import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ECardType, EEventID} from 'shared/enum/cards';
 import {Game} from 'server/models/Game';
 import {ETurnContextType} from 'shared/enum/turnContextType';
-//import {seductionTradeFinish} from 'server/helpers/cardActions/offense/seduction';
-import {discardCard} from 'server/helpers/discardCard';
 import { remove } from 'lodash';
 
 export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Player, cardUniqueId: string}) => {
@@ -15,24 +13,14 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
   if (tradingCard.type !== ECardType.event) {
     throw new Error(`Попытка обменяться НЕ картой эвента ${tradingCard}`);
   }
-
-  const isOffenseTrade = player.turnState === ETurnState.inOffenseTrade;
   const context = game.turnContext;
-  let playerToTrade: Player | null =  null;
-  if (context && context.type === ETurnContextType.trade && context.defensePlayer) {
-    playerToTrade = context.defensePlayer
-  } else {
-    playerToTrade = game.getPlayerByPosition({playerId: player.id, isNext: isOffenseTrade});
+  if (!context || context.type !== ETurnContextType.trade) {
+    throw new Error('Торговля произошла без контекста trade');
   }
+  const isOffenseTrade = player.turnState === ETurnState.inOffenseTrade;
+  let playerToTrade: Player = context.defensePlayer;
 
   if (isOffenseTrade) {
-    if (playerToTrade.state === EPlayerState.door) {
-      game.addLog(`Игрок ${player.nickname} не меняется из-за заколоченной двери`);
-      //const playerCard = getCard((context as any).offenseCardId);
-      //player.hand.push(playerCard);
-      game.endTurn(player.id);
-      return
-    }
     remove(player.hand, (card) => { return card.uniqueId === cardUniqueId});
     playerToTrade.changeTurnState(ETurnState.inDefenseTrade);
     player.changeTurnState(ETurnState.idle);
