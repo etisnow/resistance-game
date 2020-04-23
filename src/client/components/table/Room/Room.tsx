@@ -7,6 +7,7 @@ import {circRadius, degToRag, playerRoomDiag} from 'client/helpers/roomHelpers';
 import GameController from 'client/controllers/gameController';
 import PlayerBadge from 'client/components/table/PlayerBadge/PlayerBadge';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
+import {ETurnContextType} from 'shared/enum/turnContextType';
 
 interface IRoomProps {
 	controller: GameController
@@ -212,7 +213,11 @@ const Room = observer(({controller} : IRoomProps) => {
 			<svg className={'svg-room'} viewBox={`0 0 ${playerRoomHeight} ${playerRoomHeight}`} xmlns="http://www.w3.org/2000/svg" style={canvasHeightWidth}>
 				{map(tradeArrows, ({item: arrow, key, props }) => {
 					const { ax, ay, bx, by, mid1X, mid1Y, mid2X, mid2Y, arrowRotation, arrowX, arrowY  } = props as any;
-					const color = "yellow";
+					let color = "yellow";
+					switch (arrow.type) {
+						case ETurnContextType.burn: { color = "#ff3c3c"; break; }
+						case ETurnContextType.positionswap: { color = "#3cd2ff"; break; }
+					}
 					return (
 						<React.Fragment key={key}>
 							<animated.path

@@ -56,9 +56,6 @@ class GameServer {
   destroyGame(id) {
     this.games[id].destroy();
   }
-  grabCardFromDeck({player}: {player: Player}) {
-    player.game.grabCardFromDeck({player})
-  }
 
   playerAction({
     player,

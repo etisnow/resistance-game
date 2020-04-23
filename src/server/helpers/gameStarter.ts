@@ -30,7 +30,10 @@ export const gameStarter = (game: Game) => {
 		if (card.type === ECardType.event && card.id !== EEventID.injure && card.id !== EEventID.thing) {
 			events.push(card);
 		} else {
-			other.push(card);
+			if (gameServer.isMock && card.type === ECardType.panic) {
+			} else {
+				other.push(card);
+			}
 		}
 		return [events, other]
 	}, [[] as ICardEvent[], [] as ICardAny[]]);
@@ -88,6 +91,7 @@ export const gameStarter = (game: Game) => {
 		const secondColor = chroma.mix(color, '00a70c').hex();
 		game.players[playerId].color = `linear-gradient(${color}, ${secondColor})`
 	});
+
 	//if (gameServer.isMock) {
 	//	let neerone = find(game.players, {nickname: 'хост'});
 	//	if (!neerone) neerone = game.players[0];

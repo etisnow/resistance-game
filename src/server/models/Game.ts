@@ -115,21 +115,7 @@ export class Game {
     this.turnPlayerId = playerId;
     const player = this.players[playerId];
     this.addLog(`Ходит игрок ${player.nickname}!`);
-	this.grabCardFromDeck({player})
-  }
 
-  endTurn(playerId: string) {
-    this.turnContext = null;
-    const endTurnPlayer = this.players[playerId];
-    endTurnPlayer.changeTurnState(ETurnState.idle);
-    const nextPlayer = this.getPlayerByPosition({playerId, isNext: true});
-    if (nextPlayer.state === EPlayerState.door) {
-      return this.endTurn(nextPlayer.id);
-    }
-    this.changeTurn(nextPlayer.id);
-  }
-
-  grabCardFromDeck = ({player}: {player: Player}) => {
     //if (player.id !== this.turnPlayerId) { console.error('Попытка взять карту не в свой ход'); return; }
     if (player.hand.length > handCardsCount + 1) { console.error('Попытка взять карту если карт больше ' + handCardsCount); return; }
 
@@ -143,11 +129,24 @@ export class Game {
     // Добавляем поднятую карту игроку на руку
     player.hand.push(grabbedCard);
     // Меняем статус игрока
+    each(this.players, player => {
+      player.changeTurnState(ETurnState.idle);
+    });
     player.changeTurnState(ETurnState.inCardAction);
     this.addLog(`Игрок ${player.nickname} взял карту и ходит...`);
     this.updateGame();
-  };
+  }
 
+  endTurn(playerId: string) {
+    this.turnContext = null;
+    const endTurnPlayer = this.players[playerId];
+    endTurnPlayer.changeTurnState(ETurnState.idle);
+    const nextPlayer = this.getPlayerByPosition({playerId, isNext: true});
+    if (nextPlayer.state === EPlayerState.door) {
+      return this.endTurn(nextPlayer.id);
+    }
+    this.changeTurn(nextPlayer.id);
+  }
 
 
   getPlayerByPosition = ({playerId, isNext}: {playerId: string, isNext: boolean}) : Player => {
@@ -210,13 +209,13 @@ export class Game {
       return this.getFirstCard();
     }
 	this.deck.splice(0, 1);
-    console.log('=====DECK', this.deck.length, this.discardedDeck.length, this.deck.length + this.discardedDeck.length, this.discardedDeck.map(card => {
+/*    console.log('=====DECK', this.deck.length, this.discardedDeck.length, this.deck.length + this.discardedDeck.length, this.discardedDeck.map(card => {
       if (card === undefined) {
         console.log('CARD IS INDEDINED', this.discardedDeck)
         return 'TEST!!!';
       }
       return card.id
-    }))
+    }))*/
     return grabbedCard;
   }
 
@@ -287,6 +286,7 @@ export class Game {
   };
 
   actionDecision = ({player, action}) => {
+    console.log(`Player ${player.nickname} выбирает action ${action}`)
     playerActionDecision({game: this, player, action});
     this.updateGame();
   };

@@ -2,10 +2,16 @@ import {Player} from 'server/models/Player';
 import {EPlayerState} from 'shared/enum/player';
 
 class MockSocket {
+	spy: any
+	constructor() {
+		const mockCallback = jest.fn();
+		this.spy = mockCallback
+	}
 	on(eventType, payload) {
 		console.log('')
 	}
 	emit(eventType, payload) {
+		this.spy(eventType, payload)
 	}
 	join(socketRoom) {
 	}

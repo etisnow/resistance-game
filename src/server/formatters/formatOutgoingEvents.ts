@@ -61,6 +61,7 @@ const formatTradeContext = (game: Game) : IFormatTradeContext[] => {
 	/*test area*/
 
 	if (!game.turnContext) return;
+	const ctx: any = game.turnContext;
 	switch (game.turnContext.type) {
 		case ETurnContextType.chainReaction:
 			return reduce(game.playersList, (acc, pId) => {
@@ -69,17 +70,25 @@ const formatTradeContext = (game: Game) : IFormatTradeContext[] => {
 					acc.push({
 						offensePlayerId: pId,
 						defensePlayerId: game.getPlayerByPosition({playerId:pId, isNext:true}),
-						isCardPicked: false
+						isCardPicked: false,
+						type: game.turnContext.type,
 					})
 				}
 				return acc;
-			}, [])
+			}, []);
 		case ETurnContextType.trade:
-			const ctx: any = game.turnContext;
 			return [{
 				offensePlayerId: ctx.offensePlayer ? ctx.offensePlayer.id : null,
 				defensePlayerId: ctx.defensePlayer ? ctx.defensePlayer.id : null,
-				isCardPicked: !!ctx.offenseCardId
+				isCardPicked: !!ctx.offenseCardId,
+				type: game.turnContext.type,
+			}];
+		case ETurnContextType.burn:
+		case ETurnContextType.positionswap:
+			return [{
+				offensePlayerId: ctx.offensePlayer ? ctx.offensePlayer.id : null,
+				defensePlayerId: ctx.defensePlayer ? ctx.defensePlayer.id : null,
+				type: game.turnContext.type,
 			}]
 	}
 }

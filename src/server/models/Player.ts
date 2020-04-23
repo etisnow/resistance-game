@@ -10,7 +10,7 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 
 export class Player {
 	id = null;
-	socket: socketIO.Socket;
+	socket: any;
 	state: EPlayerState = EPlayerState.dummy;
 	turnState: ETurnState = ETurnState.idle;
 	nickname: string = '';
