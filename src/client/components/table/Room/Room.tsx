@@ -45,6 +45,52 @@ const midpoint = (x1,y1,x2,y2) => {
 	}
 }
 
+const arrowHeight = 20;
+const arrowWidth = 10;
+
+const lineAnimation = ({newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players, tradeLineCenterOffset}) => {
+	const biggerBadgeRad = badgeRadius + 5;
+	const playersCount = newPlayerList.length;
+	const iterateDegree = 360 / playersCount;
+
+	const {x:ax,y:ay} = getPositionFromPlayerList({players, playerId: offensePlayerId, playerList: newPlayerList});
+	const {x:bx,y:by} = getPositionFromPlayerList({players, playerId: defensePlayerId, playerList: newPlayerList});
+
+	//const AbadgeDeg = getPlayerDeg(offensePlayerId, newPlayerList);
+	//const BbadgeDeg = getPlayerDeg(defensePlayerId, newPlayerList);
+
+	var angleBetweenPointsDeg = Math.atan2(by - ay, bx - ax) * 180 / Math.PI;
+
+
+	const APlayerDegree = angleBetweenPointsDeg;
+	const BPlayerDegree = angleBetweenPointsDeg - 180;
+
+	const {y:newAY,x:newAX} = getCirclePoint(biggerBadgeRad, APlayerDegree, ax, ay);
+	const {y:arrowY,x:arrowX} = getCirclePoint(biggerBadgeRad, BPlayerDegree, bx, by);
+	const {y:newBY,x:newBX} = getCirclePoint(biggerBadgeRad + 20, BPlayerDegree, bx, by);
+
+	const {x: midX, y:midY} = midpoint(newAX, newAY, newBX, newBY);
+
+	const {x: offsettedMid1X, y: offsettedMid1Y} = getCirclePoint(biggerBadgeRad/3, angleBetweenPointsDeg - 90, midX, midY);
+	const {x: offsettedMid2X, y: offsettedMid2Y} = getCirclePoint(biggerBadgeRad/3, angleBetweenPointsDeg + 90, midX, midY);
+
+
+	return {
+		ax:newAX + tradeLineCenterOffset,
+		ay:newAY + tradeLineCenterOffset,
+		bx: newBX + tradeLineCenterOffset,
+		by: newBY + tradeLineCenterOffset,
+		mid1X: offsettedMid1X + tradeLineCenterOffset,
+		mid1Y: offsettedMid1Y + tradeLineCenterOffset,
+		mid2X: offsettedMid2X + tradeLineCenterOffset,
+		mid2Y: offsettedMid2Y + tradeLineCenterOffset,
+		arrowX: arrowX + tradeLineCenterOffset,
+		arrowY: arrowY + tradeLineCenterOffset,
+		arrowRotation: angleBetweenPointsDeg + 90,
+	} as any
+}
+
+
 const Room = observer(({controller} : IRoomProps) => {
 
 	const { currentPlayer, currentPlayerId } = controller;
@@ -92,74 +138,26 @@ const Room = observer(({controller} : IRoomProps) => {
 	const canvasHeightWidth = {height: playerRoomHeight, width: playerRoomHeight }
 	const tradeLineCenterOffset = playerRoomHeight / 2;
 	const tradeArrows = useTransition(tradeContext, ({offensePlayerId}) => offensePlayerId, {
-		initial: ({offensePlayerId, defensePlayerId}) => {
-			const {x:ax,y:ay} = getPositionFromPlayerList({players, playerId: offensePlayerId, playerList: newPlayerList});
-			return {
-				ax: ax + tradeLineCenterOffset,
-				ay: ax + tradeLineCenterOffset,
-				bx:ax + tradeLineCenterOffset,
-				by:ay + tradeLineCenterOffset,
-				mid1X: ax + tradeLineCenterOffset,
-				mid1Y: ay + tradeLineCenterOffset,
-				mid2X: ax + tradeLineCenterOffset,
-				mid2Y: ay + tradeLineCenterOffset,
-				arrowRotation: 0,
-			} as any
-		},
 		enter: ({offensePlayerId, defensePlayerId}) => {
-			const {x:ax,y:ay} = getPositionFromPlayerList({players, playerId: offensePlayerId, playerList: newPlayerList});
+			const {ax,ay, arrowRotation} = lineAnimation({newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players, tradeLineCenterOffset});
 			return {
-				ax: ax + tradeLineCenterOffset,
-				ay: ax + tradeLineCenterOffset,
-				bx:ax + tradeLineCenterOffset,
-				by:ay + tradeLineCenterOffset,
-				mid1X: ax + tradeLineCenterOffset,
-				mid1Y: ay + tradeLineCenterOffset,
-				mid2X: ax + tradeLineCenterOffset,
-				mid2Y: ay + tradeLineCenterOffset,
-				arrowRotation: 0,
+				ax,
+				ay,
+				bx: ax,
+				by: ay,
+				mid1X: ax,
+				mid1Y: ay,
+				mid2X: ax,
+				mid2Y: ay,
+				arrowX: ax,
+				arrowY: ay,
+				arrowRotation,
 			} as any
 		},
 		update: ({offensePlayerId, defensePlayerId}) => {
-			const biggerBadgeRad = badgeRadius + 5;
-			const playersCount = newPlayerList.length;
-			const iterateDegree = 360 / playersCount;
-
-			const {x:ax,y:ay} = getPositionFromPlayerList({players, playerId: offensePlayerId, playerList: newPlayerList});
-			const {x:bx,y:by} = getPositionFromPlayerList({players, playerId: defensePlayerId, playerList: newPlayerList});
-
-			const AbadgeDeg = getPlayerDeg(offensePlayerId, newPlayerList);
-			const BbadgeDeg = getPlayerDeg(defensePlayerId, newPlayerList);
-
-			var angleBetweenPointsDeg = Math.atan2(by - ay, bx - ax) * 180 / Math.PI;
-
-			//const APlayerDegree = AbadgeDeg + 90;
-			//const BPlayerDegree = BbadgeDeg - 90;
-			const APlayerDegree = angleBetweenPointsDeg;
-			const BPlayerDegree = angleBetweenPointsDeg - 180;
-
-			const {y:newAY,x:newAX} = getCirclePoint(biggerBadgeRad, APlayerDegree, ax, ay);
-			const {y:newBY,x:newBX} = getCirclePoint(biggerBadgeRad, BPlayerDegree, bx, by);
-
-			const {x: midX, y:midY} = midpoint(newAX, newAY, newBX, newBY);
-
-			const {x: offsettedMid1X, y: offsettedMid1Y} = getCirclePoint(biggerBadgeRad/4, angleBetweenPointsDeg - 70, midX, midY);
-			const {x: offsettedMid2X, y: offsettedMid2Y} = getCirclePoint(biggerBadgeRad/4, angleBetweenPointsDeg - 20, midX, midY);
-
-
-			return {
-				ax:newAX + tradeLineCenterOffset,
-				ay:newAY + tradeLineCenterOffset,
-				bx: newBX + tradeLineCenterOffset,
-				by: newBY + tradeLineCenterOffset,
-				mid1X: offsettedMid1X + tradeLineCenterOffset,
-				mid1Y: offsettedMid1Y + tradeLineCenterOffset,
-				mid2X: offsettedMid2X + tradeLineCenterOffset,
-				mid2Y: offsettedMid2Y + tradeLineCenterOffset,
-				arrowRotation: angleBetweenPointsDeg,
-			} as any
+			return lineAnimation({newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players, tradeLineCenterOffset});
 		},
-		config: config.molasses
+		config: config.stiff
 	} as any);
 
 
@@ -212,18 +210,27 @@ const Room = observer(({controller} : IRoomProps) => {
 				})}
 			</div>
 			<svg className={'svg-room'} viewBox={`0 0 ${playerRoomHeight} ${playerRoomHeight}`} xmlns="http://www.w3.org/2000/svg" style={canvasHeightWidth}>
-				{map(tradeArrows, ({item: tradeContext, key, props }) => {
-					const { ax, ay, bx, by, mid1X, mid1Y, mid2X, mid2Y, arrowRotation  } = props as any;
+				{map(tradeArrows, ({item: arrow, key, props }) => {
+					const { ax, ay, bx, by, mid1X, mid1Y, mid2X, mid2Y, arrowRotation, arrowX, arrowY  } = props as any;
+					const color = "yellow";
 					return (
-						<React.Fragment>
+						<React.Fragment key={key}>
 							<animated.path
-								key={key}
+								fill={color}
+								transform={interpolate([arrowX, arrowY, arrowRotation], (x4,y4, rot) => {
+									return `rotate(${rot} ${x4} ${y4})`
+								})}
+								d={interpolate([arrowX, arrowY], (x,y) => {
+									return `M ${x},${y} ${x + 4},${y + arrowHeight} ${x-4},${y +arrowHeight} z `
+								})}
+							/>
+							<animated.path
 								fill="transparent"
-								strokeWidth={4}
+								strokeWidth={2}
 								d={interpolate([ax, ay, mid1X, mid1Y, mid2X, mid2Y, bx, by], (x1,y1,x2,y2,x3,y3,x4,y4) => {
 									return `M${x1},${y1} C${x2},${y2} ${x3},${y3} ${x4},${y4}`
 								})}
-								stroke="yellow"
+								stroke={color}
 							/>
 						</React.Fragment>
 					)

@@ -123,7 +123,7 @@ export function mockGameProcess(player) {
 
 		testOffenseCard({player, cards: [
 			getCard(EEventID.positionswap),
-			getCard(EEventID.injure),
+			getCard(EEventID.seduction),
 			getCard(EEventID.quarantine),
 			getCard(EEventID.noFire),
 		]})
