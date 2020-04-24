@@ -11,62 +11,62 @@ import {ENotification} from 'shared/enum/notifications';
 describe('nothanks test',  () => {
 
 	it('nothanks card', () => {
-		const [gameServer, game, neeronePlayer] = createMockGameServer();
-		neeronePlayer.hand.splice(0,1);
-		neeronePlayer.hand.splice(0,1, getCard(EEventID.noThanks));
-		expect(neeronePlayer.hand[0].id).toBe(EEventID.noThanks);
+		const [gameServer, game, defensePlayer] = createMockGameServer();
+		defensePlayer.hand.splice(0,1);
+		defensePlayer.hand.splice(0,1, getCard(EEventID.noThanks));
+		expect(defensePlayer.hand[0].id).toBe(EEventID.noThanks);
 
-		const prevPlayer = game.getPlayerByPosition({isNext: false, playerId: neeronePlayer.id})
-		prevPlayer.hand.splice(0,2, getCard(EEventID.analysis), getCard(EEventID.barricade));
+		const offensePlayer = game.getPlayerByPosition({isNext: false, playerId: defensePlayer.id})
+		offensePlayer.hand.splice(0,2, getCard(EEventID.analysis), getCard(EEventID.barricade));
 
-		game.changeTurn(prevPlayer.id);
+		game.changeTurn(offensePlayer.id);
 
-		expect(prevPlayer.turnState).toBe(ETurnState.inCardAction);
-		let barricade = find(prevPlayer.hand, {id: EEventID.barricade});
+		expect(offensePlayer.turnState).toBe(ETurnState.inCardAction);
+		let barricade = find(offensePlayer.hand, {id: EEventID.barricade});
 
 		expect(barricade).not.toBe(undefined);
 		gameServer.playerAction({
-			player:prevPlayer,
+			player:offensePlayer,
 			cardUniqueId: barricade.uniqueId,
 			actionType: EPlayerActionType.cardDiscard
 		});
 
 
-		expect(prevPlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: barricade.uniqueId}));
-		expect(prevPlayer.turnState).toBe(ETurnState.inOffenseTrade);
-		let analysis = find(prevPlayer.hand, {id: EEventID.analysis});
+		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: barricade.uniqueId}));
+		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
+		let analysis = find(offensePlayer.hand, {id: EEventID.analysis});
 		const analysisId = analysis.uniqueId
 		gameServer.playerAction({
-			player:prevPlayer,
+			player:offensePlayer,
 			cardUniqueId: analysis.uniqueId,
-			selectedPlayerId:neeronePlayer.id,
+			selectedPlayerId:defensePlayer.id,
 			actionType: EPlayerActionType.cardTrade
 		});
-		analysis = find(prevPlayer.hand, {uniqueId: analysis.uniqueId});
+		analysis = find(offensePlayer.hand, {uniqueId: analysis.uniqueId});
 		expect(analysis).toBe(undefined);
-		let noThanksCard = find(neeronePlayer.hand, {id: EEventID.noThanks});
-		expect(prevPlayer.turnState).toBe(ETurnState.idle);
+		let noThanksCard = find(defensePlayer.hand, {id: EEventID.noThanks});
+		expect(offensePlayer.turnState).toBe(ETurnState.idle);
 
-		expect(neeronePlayer.turnState).toBe(ETurnState.inDefenseTrade);
+		expect(defensePlayer.turnState).toBe(ETurnState.inDefenseTrade);
 		gameServer.playerAction({
-			player:neeronePlayer,
+			player:defensePlayer,
 			cardUniqueId: noThanksCard.uniqueId,
-			selectedPlayerId:prevPlayer.id,
+			selectedPlayerId:offensePlayer.id,
 			actionType: EPlayerActionType.cardAct
 		});
 
 
-		expect(neeronePlayer.hand).not.toContainEqual(expect.objectContaining({ uniqueId: noThanksCard.uniqueId }));
+		expect(defensePlayer.hand).not.toContainEqual(expect.objectContaining({ uniqueId: noThanksCard.uniqueId }));
 		//У него не должно быть той карты анализа, но должна появиться новая
-		expect(prevPlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: analysisId}));
-		expect(prevPlayer.hand).toContainEqual(expect.objectContaining({id: EEventID.analysis}));
+		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: analysisId}));
+		expect(offensePlayer.hand).toContainEqual(expect.objectContaining({id: EEventID.analysis}));
 
-		expect(neeronePlayer.turnState).toBe(ETurnState.inCardAction);
-		expect(prevPlayer.turnState).toBe(ETurnState.idle);
-		expect(prevPlayer.hand.length).toBe(4);
+		expect(defensePlayer.turnState).toBe(ETurnState.inCardAction);
+		expect(offensePlayer.turnState).toBe(ETurnState.idle);
+		expect(offensePlayer.hand.length).toBe(4);
 
 		//т.к теперь ходит нирон, у него 5 карт  на руке
-		expect(neeronePlayer.hand.length).toBe(5);
+		expect(defensePlayer.hand.length).toBe(5);
 		expect(checkAllDeckCards(game, false)).toBe(true);
 
 	});

@@ -7,6 +7,7 @@ import {uniqueId} from 'lodash';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {discardCard} from 'server/helpers/discardCard';
+import {checkAllDeckCards} from '_integration/helpers';
 
 export const barricadeAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	game.turnContext = {
@@ -51,8 +52,6 @@ export const barricadeSelect = ({game, player, selectedPlayerId} : {game: Game, 
 			game.playersList.splice(selectedPlayerIndex, 0, doorPlayer.id);
 		}
 	}
-
-
 
 
 	const selectedPlayer = game.players[selectedPlayerId];

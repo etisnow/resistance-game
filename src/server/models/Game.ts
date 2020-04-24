@@ -83,6 +83,7 @@ export class Game {
   };
 
   addLog(log: string) {
+    console.info(log)
     this.gameLog.push(log)
   }
 
