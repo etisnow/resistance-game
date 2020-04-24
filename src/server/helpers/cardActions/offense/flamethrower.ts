@@ -8,7 +8,7 @@ import {ETurnState} from 'shared/enum/player';
 import {discardCard} from 'server/helpers/discardCard';
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
-import { find, each } from 'lodash';
+import {each, find, map} from 'lodash';
 
 export const flamethrowerAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	game.turnContext = {
@@ -79,6 +79,7 @@ export const flamethrowerFinish = ({game, player, action} : {game: Game, player:
 				text: `Игрок ${defensePlayer.nickname} был заживо сожжен игроком ${offensePlayer.nickname} и выбывает из игры`,
 		      },
 		    }));
+			console.log(`Игрок ${defensePlayer.nickname} был заживо сожжен игроком ${offensePlayer.nickname} и выбывает из игры`)
 			game.addLog(`Игрок ${defensePlayer.nickname} был заживо сожжен игроком ${offensePlayer.nickname} и выбывает из игры`);
 			if (defensePlayer.isThing) {
 				game.notifyAllPlayers(formatPlayerNotification({
@@ -91,7 +92,7 @@ export const flamethrowerFinish = ({game, player, action} : {game: Game, player:
 				game.addLog(`Игра закончена! ${defensePlayer.nickname} не справился со своим коварным заданием...`)
 			}
 			game.playersList = game.playersList.filter(pId => pId !== defensePlayer.id);
-
+			player.changeTurnState(ETurnState.dead)
 
 			const discardCardIds = defensePlayer.hand.map(cardToDiscard => cardToDiscard.uniqueId)
 			each(discardCardIds, cardUniqueId => {
@@ -102,12 +103,12 @@ export const flamethrowerFinish = ({game, player, action} : {game: Game, player:
 		case "noFire": {
 			const noFireCard = find(defensePlayer.hand, {id: EEventID.noFire});
 			game.notifyAllPlayers(formatPlayerNotification({
-		      player: player,
-		      notification: {
-				type: ENotification.okayCard,
-				cards: [getCard(EEventID.noFire)],
-				text: `Игрок ${defensePlayer.nickname} использовал "Никакого шашлыка" и спасся от огнемета!`,
-		      },
+				player: player,
+				notification: {
+					type: ENotification.okayCard,
+					cards: [getCard(EEventID.noFire)],
+					text: `Игрок ${defensePlayer.nickname} использовал "Никакого шашлыка" и спасся от огнемета!`,
+				},
 		    }));
 			discardCard({player: defensePlayer, cardUniqueId: noFireCard.uniqueId, game});
 			game.grabEventCardFromDeck({player});
@@ -116,7 +117,5 @@ export const flamethrowerFinish = ({game, player, action} : {game: Game, player:
 	}
 	offensePlayer.changeTurnState(ETurnState.inOffenseTrade);
 	game.turnContext = null;
-
-
 
 };

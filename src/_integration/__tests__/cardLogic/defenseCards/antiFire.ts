@@ -122,17 +122,17 @@ describe('antifire test',  () => {
 
 		expect(game.playersList).not.toContain(defensePlayer.id);
 
-
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
 
 		const nextPlayer = game.getPlayerByPosition({playerId:offensePlayer.id, isNext: true});
 
-		expect(nextPlayer.turnState).toBe(ETurnState.inDefenseTrade);
+		expect(nextPlayer.turnState).toBe(ETurnState.idle);
 
 		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: flamethrower.uniqueId}));
 		expect(checkAllDeckCards(game, false)).toBe(true);
 		expect(offensePlayer.hand.length).toBe(4);
 		expect(defensePlayer.hand.length).toBe(0);
+		expect(defensePlayer.turnState).toBe(ETurnState.dead);
 
 
 	});

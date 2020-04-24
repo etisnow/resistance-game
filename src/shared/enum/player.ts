@@ -11,4 +11,5 @@ export enum ETurnState {
 
 	inOffenseTrade = 'inOffenseTrade',
 	inDefenseTrade = 'inDefenseTrade',
+	dead = 'dead',
 }

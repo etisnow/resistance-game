@@ -62,9 +62,9 @@ export class Player {
 				playerToTrade = this.game.getPlayerByPosition({playerId: this.id, isNext: true});
 			}
 		    if (playerToTrade.state === EPlayerState.door) {
-		      this.game.addLog(`Игрок ${this.nickname} не меняется из-за заколоченной двери`);
-		      this.game.endTurn(this.id);
-		      return
+				this.game.addLog(`Игрок ${this.nickname} не меняется из-за заколоченной двери`);
+				this.game.endTurn(this.id);
+				return
 		    }
 		    this.game.turnContext = {
 		      type: ETurnContextType.trade,
