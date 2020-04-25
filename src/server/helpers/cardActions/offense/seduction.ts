@@ -46,17 +46,17 @@ export const seductionSelect = ({game, player, selectedPlayerId} : {game: Game, 
 	player.changeTurnState(ETurnState.inOffenseTrade)
 };
 
-//export const seductionTradeFinish = ({game} : {game: Game}) => {
-//	if (game.turnContext.type !== ETurnContextType.trade) {
-//		throw new Error('Завершение обмена seduction');
-//	}
-//	console.log('SEDUCTION FINISH');
-//	each(game.players, (player: Player) => {
-//		player.changeTurnState(ETurnState.idle);
-//	});
-//	const offensePlayer = game.turnContext.offensePlayer;
-//	const defensePlayer = game.turnContext.defensePlayer;
-//	defensePlayer.changeTurnState(ETurnState.idle)
-//	game.turnContext = null;
-//	game.endTurn(offensePlayer.id);
-//};
+export const seductionTradeFinish = ({game} : {game: Game}) => {
+	if (game.turnContext.type !== ETurnContextType.trade) {
+		throw new Error('Завершение обмена seduction');
+	}
+	console.log('SEDUCTION FINISH');
+	each(game.players, (player: Player) => {
+		player.changeTurnState(ETurnState.idle);
+	});
+	const offensePlayer = game.turnContext.offensePlayer;
+	const defensePlayer = game.turnContext.defensePlayer;
+	defensePlayer.changeTurnState(ETurnState.idle)
+	game.turnContext = null;
+	game.endTurn(offensePlayer.id);
+};

@@ -8,13 +8,13 @@ import {ETurnState} from 'shared/enum/player';
 import {discardCard} from 'server/helpers/discardCard';
 
 export const goAwayAct = ({game, player} : {game: Game, player: Player}) => {
-	game.turnContext = {
-		type: ETurnContextType.positionswap,
-		offensePlayer: player,
-		defensePlayer: null,
-	};
 	player.changeTurnState(ETurnState.inCardActionProgress);
 	const allPlayersExeptCurrent = player.getAllPlayablePlayersExceptCurrent();
+	console.log('PLAYER NOTIFIED!!!', ENotification.playerSelect, player.nickname)
+	game.turnContext = {
+		type: ETurnContextType.oneTwoPersonSelect,
+		playerId: player.id,
+	}
     player.notify(formatPlayerNotification({
       player: player,
       notification: {

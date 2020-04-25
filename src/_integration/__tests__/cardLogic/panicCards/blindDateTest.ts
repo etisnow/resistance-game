@@ -10,10 +10,10 @@ import {Simulate} from 'react-dom/test-utils';
 import play = Simulate.play;
 
 
-describe('whiskey test',  () => {
+describe('blindDate test',  () => {
 
-	it('whiskey card', () => {
-		const [gameServer, game, offensePlayer, nextPlayer] = createMockGameServer();
+	it('blindDate card', () => {
+		const [gameServer, game, offensePlayer] = createMockGameServer();
 		offensePlayer.hand.splice(0,1);
 		offensePlayer.hand.splice(0,1, getCard(EEventID.whiskey));
 		expect(offensePlayer.hand[0].id).toBe(EEventID.whiskey);
@@ -22,10 +22,21 @@ describe('whiskey test',  () => {
 		game.changeTurn(offensePlayer.id);
 
 
+		const whiskey = offensePlayer.hand[0];
+		gameServer.playerAction({
+			player:offensePlayer,
+			cardUniqueId: whiskey.uniqueId,
+			actionType: EPlayerActionType.cardSelect
+		});
 
+		const nextPlayer = offensePlayer.getNextPlayer();
+		expect(offensePlayer.turnState).toBe(ETurnState.idle);
+		expect(offensePlayer.hand.length).toBe(4);
 
+		expect(nextPlayer.turnState).toBe(ETurnState.inCardAction);
+		expect(nextPlayer.hand.length).toBe(5);
 
-		//expect(checkAllDeckCards(game, false)).toBe(true);
+		expect(checkAllDeckCards(game, false)).toBe(true);
 
 	});
 

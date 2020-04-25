@@ -22,6 +22,7 @@ export const blindDateAct = ({game, player}: {game:Game, player:Player}) => {
 
 
 export const blindDateSelect = ({game, cardUniqueId, player}: {game:Game, player: Player, cardUniqueId: string}) => {
+	console.log('BLIND DATE CARD UNIQUE', cardUniqueId)
 	discardCard({game, player, cardUniqueId: cardUniqueId});
 	const first = game.pickFirstEventCard();
 	player.hand.push(first);

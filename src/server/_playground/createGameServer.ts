@@ -12,6 +12,7 @@ export const createMockGameServer = (): [GameServer, Game, ...Player[]] => {
 	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'Вася'});
 	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'Петя'});
 	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'Гена'});
+	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'Вена'});
 	gameServer.startGame({player: neeronePlayer});
 	return [gameServer, game, ...map(game.players, (p => p))]
 }

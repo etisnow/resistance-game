@@ -17,22 +17,22 @@ export const notifyPlayerDiscardCards = ({game, player}: {game:Game, player:Play
 		const cardTrade = find(cardActions, { menuType: EPlayerActionType.cardDiscard});
 		return !!cardTrade;
 	});
-
-	player.notify(formatPlayerNotification({
-		player,
-		notification: {
-			type: ENotification.selectCard,
-			cards: filteredCards,
-			text:'Выбери одну из свои карт, чтобы поменять её на карту из колоды'
-		}
-	}));
-}
+	return {
+		type: ENotification.selectCard,
+		cards: filteredCards,
+		text:'Выбери одну из свои карт, чтобы поменять её на карту из колоды'
+	}
+};
 
 export const forgetfullnessAct = ({game, player}: {game:Game, player:Player}) => {
 	game.addLog('Игрок меняет три карты с руки на три из колоды');
 	player.changeTurnState(ETurnState.inCardActionProgress);
 
-	notifyPlayerDiscardCards({game, player});
+
+	player.notify(formatPlayerNotification({
+		player,
+		notification: notifyPlayerDiscardCards({game, player})
+	}));
 
 	game.turnContext = {
 		type: ETurnContextType.forgetfullnessSelect,
@@ -50,7 +50,10 @@ export const forgetfullnessSelect = ({game, cardUniqueId, player}: {game:Game, p
 	game.turnContext.cards.push(cardUniqueId);
 
 	if (game.turnContext.cards.length < 3) {
-		notifyPlayerDiscardCards({game, player});
+		player.notify(formatPlayerNotification({
+			player,
+			notification: notifyPlayerDiscardCards({game, player})
+		}));
 		return;
 	}
 

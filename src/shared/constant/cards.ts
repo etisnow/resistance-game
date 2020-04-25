@@ -218,7 +218,7 @@ const panic = {
     type: ECardType.panic,
     id: EPanicID.friendship,
     description:
-      "Поменяйтесь одной картой с любым игроком по вашему выбору, если он не на карантине.",
+      "Поменяйтесь одной картой с любым игроком по вашему выбору, если он не на карантине. Ваш ход заканчивается.",
     playersCount: [7,9],
   },
   [EPanicID.forgetfulness]: {

@@ -24,5 +24,6 @@ export const reelFishingRodsAct = ({card, game, player} : {card:ICardEvent, game
 		text: 'Выбри с кем хочешь поменяться местами'
       },
     }));
+    game.addLog(`Игрок ${player.nickname} сматывает удочки`);
 };
 

@@ -41,6 +41,6 @@ export const onlyBetweenUsSelect = ({game, selectedPlayerId, player}: {game:Game
 		text: `${selectedPlayer.nickname}: На, смотри! Чертова паника`,
       },
     }));
-	player.changeTurnState(ETurnState.inOffenseTrade);
 	game.turnContext = null;
+	player.changeTurnState(ETurnState.inOffenseTrade);
 };

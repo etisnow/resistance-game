@@ -7,6 +7,7 @@ import {ECardType, EEventID} from 'shared/enum/cards';
 import {Game} from 'server/models/Game';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import { remove } from 'lodash';
+import {seductionTradeFinish} from 'server/helpers/cardActions/offense/seduction';
 
 export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Player, cardUniqueId: string}) => {
   const tradingCard = player.getCardByUniqueId(cardUniqueId);

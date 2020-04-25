@@ -6,9 +6,10 @@ import {each, filter, find, remove} from 'lodash';
 import {discardCard} from 'server/helpers/discardCard';
 import {EEventID} from 'shared/enum/cards';
 
-const getNextChainReactionPlayer = ({game, currentPlayer}:  {game: Game, currentPlayer: Player}) => {
+export const getNextChainReactionPlayer = ({game, currentPlayer}:  {game: Game, currentPlayer: Player}) => {
 	const nextPlayer = game.getPlayerByPosition({playerId: currentPlayer.id, isNext: true});
 	if (nextPlayer.state === EPlayerState.door) return getNextChainReactionPlayer({game, currentPlayer: nextPlayer});
+	if (nextPlayer === currentPlayer) return null;
 	return nextPlayer;
 }
 
@@ -26,7 +27,11 @@ export const chainReactionAct = ({game, player}: {game:Game, player:Player}) => 
 		playersPick: [],
 		startPlayer: player,
 	};
-	each(game.players, (p => p.changeTurnState(ETurnState.inOffenseTrade)));
+	each(game.players, (p => {
+		if (p.state !== EPlayerState.door) {
+			 p.changeTurnState(ETurnState.inOffenseTrade)
+		}
+	}));
 };
 
 
@@ -43,6 +48,7 @@ export const chainReactionTrade = ({game, player, cardUniqueId}: {game: Game, pl
 	if (game.turnContext.playersPick.length === getPlayersCount({game})) {
 		each(game.turnContext.playersPick, ({player: pickPlayer, card: pickCard}) => {
 			const nextPlayer = getNextChainReactionPlayer({game, currentPlayer: pickPlayer});
+			if (!nextPlayer) return;
 			nextPlayer.hand.push(pickCard);
 			if (pickCard.id=== EEventID.injure) {
 				game.injurePlayer(nextPlayer.id);

@@ -7,7 +7,7 @@ import {EPlayerState} from 'shared/enum/player';
 
 export const checkAllDeckCards = (game: Game, withPanics = true) => {
 	const cardsOnHands = reduce(game.players, (acc, player) => {
-		if (player.state ===EPlayerState.door) return acc
+		if (player.state ===EPlayerState.door) return acc;
 		return concat(acc, player.hand);
 	}, [])
 	const fullCardsLength = cardsOnHands.length + game.deck.length + game.discardedDeck.length;
@@ -29,8 +29,34 @@ export const checkAllDeckCards = (game: Game, withPanics = true) => {
 	}, [] as ICardAny[]);
 
 	const cardsShouldBe = filteredDeck.length;
+
+	each(game.discardedDeck, (cId) => {
+		if (!cId) {
+			throw new Error(cId + ' discarded!');
+		}
+	});
+	each(game.deck, (cId) => {
+		if (!cId) {
+			throw new Error(cId + 'in the deck!');
+		}
+	});
 	if (cardsShouldBe !== fullCardsLength) {
 		console.error(`CARDS: ${fullCardsLength}, BUT SHOULD BE: ${cardsShouldBe}`)
 	}
 	return cardsShouldBe === fullCardsLength;
 };
+
+export const printPlayersStatuses = game => {
+	each(game.players, pl => {
+		console.log(pl.nickname, pl.turnState);
+	})
+}
+
+
+export const printNotifications = player => {
+	each(player.socket.spy.mock.calls, ([type, event]) => {
+		if (type !== 'notification') return;
+		console.log(event);
+		//console.log(pl.nickname, pl.turnState);
+	})
+}

@@ -17,4 +17,5 @@ export const whiskeyAct = ({card, game, player} : {card:ICardEvent, game: Game, 
 		text: `${player.nickname}: я слишком пьян для этого дерьма! Вот мои карты.`
       },
     }), player);
+    game.addLog(`${player.nickname}: я слишком пьян для этого дерьма! Вот мои карты.`);
 };

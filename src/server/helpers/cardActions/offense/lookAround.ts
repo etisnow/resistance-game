@@ -20,5 +20,6 @@ export const lookAroundAct = ({card, game, player} : {card:ICardEvent, game: Gam
 		text: `${player.nickname} изменил направление хода`
       },
     }));
+    game.addLog(`${player.nickname} изменил направление хода`);
     player.changeTurnState(ETurnState.inOffenseTrade)
 };

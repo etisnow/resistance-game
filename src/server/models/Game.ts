@@ -24,6 +24,7 @@ import {panicAction} from 'server/helpers/panicActions';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {chainReactionTrade} from 'server/helpers/cardActions/panic/chainReaction';
 import {ENotification} from 'shared/enum/notifications';
+import {checkAllDeckCards} from '_integration/helpers';
 
 enum EGameState {
   lobby = "lobby",
@@ -149,6 +150,7 @@ export class Game {
     if (nextPlayer.state === EPlayerState.door) {
       return this.endTurn(nextPlayer.id);
     }
+    checkAllDeckCards(this, !gameServer.isMock);
     this.changeTurn(nextPlayer.id);
   }
 

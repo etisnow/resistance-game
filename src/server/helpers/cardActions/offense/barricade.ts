@@ -55,6 +55,6 @@ export const barricadeSelect = ({game, player, selectedPlayerId} : {game: Game, 
 
 
 	const selectedPlayer = game.players[selectedPlayerId];
-	game.addLog(`Игрок ${player.nickname} играет карту "Заколоченная дверь" на  ${selectedPlayer.nickname}`);
+	game.addLog(`Игрок ${player.nickname} забарикадировался от  ${selectedPlayer.nickname}`);
 	player.changeTurnState(ETurnState.inOffenseTrade)
 };

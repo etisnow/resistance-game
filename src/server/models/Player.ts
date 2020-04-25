@@ -1,6 +1,5 @@
 import * as _ from 'lodash';
 import {find, findIndex} from 'lodash';
-import socketIO from "socket.io";
 import {Game} from 'server/models/Game';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {ICardEvent} from 'shared/interfaces/cards';
@@ -52,6 +51,7 @@ export class Player {
 	};
 
 	changeTurnState = (newTurnState: ETurnState) => {
+		if (this.state === EPlayerState.door) return;
 		this.turnState = newTurnState
 		if (this.turnState === ETurnState.inOffenseTrade) {
 			const context = this.game.turnContext;
@@ -61,17 +61,19 @@ export class Player {
 			} else {
 				playerToTrade = this.game.getPlayerByPosition({playerId: this.id, isNext: true});
 			}
-		    if (playerToTrade.state === EPlayerState.door) {
+		    if (playerToTrade.state === EPlayerState.door && !this.game.turnContext) {
 				this.game.addLog(`Игрок ${this.nickname} не меняется из-за заколоченной двери`);
 				this.game.endTurn(this.id);
 				return
 		    }
-		    this.game.turnContext = {
-		      type: ETurnContextType.trade,
-		      defensePlayer: playerToTrade,
-		      offensePlayer: this,
-		      offenseCardId: null,
-		    };
+		    if (this.game.turnContext === null) {
+			    this.game.turnContext = {
+			      type: ETurnContextType.trade,
+			      defensePlayer: playerToTrade,
+			      offensePlayer: this,
+			      offenseCardId: null,
+			    };
+		    }
 		}
 	};
 
@@ -146,8 +148,19 @@ export class Player {
 		return false;
 	};
 
+	getNextPlayer = () => {
+		return this.game.getPlayerByPosition({playerId: this.id, isNext:true});
+	}
+	getPrevPlayer = () => {
+		return this.game.getPlayerByPosition({playerId: this.id, isNext:false});
+	}
 	getRandomCard = () => {
-		const randomCardArray = shuffle(this.hand);
-		return randomCardArray[0];
+		const randomCard = shuffle(this.hand)[0];
+		return randomCard;
+	}
+	getRandomPlayableCard = () => {
+		const randomCard = shuffle(this.hand)[0];
+		if (randomCard.id === EEventID.thing) return this.getRandomCard();
+		return randomCard;
 	}
 }

@@ -6,7 +6,7 @@ import {ENotification} from 'shared/enum/notifications';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {filter, find} from 'lodash';
 
-const getPlayerByStep = ({game, currentPlayer, isNext, step}: {game:Game, currentPlayer:Player, step: number, isNext: boolean}) => {
+export const getPlayerByStep = ({game, currentPlayer, isNext, step}: {game:Game, currentPlayer:Player, step: number, isNext: boolean}) => {
 	const nextPlayer = game.getPlayerByPosition({playerId: currentPlayer.id,isNext})
 	if (step !== 0) {
 		if (nextPlayer.state === EPlayerState.door) { return getPlayerByStep({game, currentPlayer: nextPlayer, isNext, step}) }
@@ -28,7 +28,8 @@ export const oneTwoAct = ({game, player}: {game:Game, player:Player}) => {
 	}).map(p=>p.id);
 
 	if (selectPlayersId.length === 0) {
-		game.addLog('Игрок не меняется ни с кем, т.к нет удовлетворяющих условий')
+		game.addLog('Игрок не меняется ни с кем, т.к нет удовлетворяющих условий');
+		player.changeTurnState(ETurnState.inOffenseTrade);
 		return;
 	}
 

@@ -8,6 +8,7 @@ import {formatHand} from 'server/formatters/formatHand';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {IFormatTradeContext} from 'shared/interfaces/common';
 import {ETurnState} from 'shared/enum/player';
+import {getNextChainReactionPlayer} from 'server/helpers/cardActions/panic/chainReaction';
 
 function formatEvent(type, payload) {
 	return {
@@ -69,7 +70,7 @@ const formatTradeContext = (game: Game) : IFormatTradeContext[] => {
 				if (player.turnState === ETurnState.inOffenseTrade) {
 					acc.push({
 						offensePlayerId: pId,
-						defensePlayerId: game.getPlayerByPosition({playerId:pId, isNext:true}),
+						defensePlayerId: getNextChainReactionPlayer({currentPlayer: player, game}),
 						isCardPicked: false,
 						type: game.turnContext.type,
 					})

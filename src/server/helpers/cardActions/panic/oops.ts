@@ -6,7 +6,6 @@ import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
 
 export const oopsAct = ({game, player} : {game: Game, player: Player}) => {
-	player.changeTurnState(ETurnState.inOffenseTrade);
     game.notifyAllPlayers(formatPlayerNotification({
       player: player,
       notification: {
@@ -16,4 +15,5 @@ export const oopsAct = ({game, player} : {game: Game, player: Player}) => {
       },
     }));
     game.addLog(`${player.nickname} как бы случайно показывает все карты.`)
+	player.changeTurnState(ETurnState.inOffenseTrade);
 };

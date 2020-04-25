@@ -22,7 +22,7 @@
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-helmet": "^6.0.0",
-    "react-scripts": "3.4.1",
+    "react-scripts": "^3.4.1",
     "react-scroll": "^1.7.16",
     "react-spring": "^8.0.27",
     "socket.io": "^2.3.0",
@@ -35,7 +35,8 @@
     "server-watch": "nodemon",
     "server": "ts-node --project server.tsconfig.json -r tsconfig-paths/register ./src/server/index.ts",
     "build": "react-scripts build",
-    "test": "yarn jest",
+    "test": "yarn jest --bail --runInBand",
+    "testAll": "yarn jest",
     "testCacheClear": "yarn jest --clearCache",
     "eject": "react-scripts eject"
   },
