@@ -47,8 +47,11 @@ export class Game {
   }
 
   notifyAllPlayers = (event) => {
-    gameServer.broadcast({ roomName: this.id, event })
+    each(this.players, (p) => {
+      p.notify(event);
+    })
   };
+
   notifyAllPlayersExeptPlayer = (event, player) => {
     each(this.players, (p) => {
       if (p === player) return;

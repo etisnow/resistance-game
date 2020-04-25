@@ -9,12 +9,12 @@ import {discardCard} from 'server/helpers/discardCard';
 export const whiskeyAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	discardCard({game, player, cardUniqueId: card.uniqueId});
 	player.changeTurnState(ETurnState.inOffenseTrade);
-    game.notifyAllPlayers(formatPlayerNotification({
+    game.notifyAllPlayersExeptPlayer(formatPlayerNotification({
       player: player,
       notification: {
 		type: ENotification.okayCard,
         cards: player.hand as ICardEvent[],
 		text: `${player.nickname}: я слишком пьян для этого дерьма! Вот мои карты.`
       },
-    }));
+    }), player);
 };
