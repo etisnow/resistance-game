@@ -211,6 +211,7 @@ const Room = observer(({controller} : IRoomProps) => {
 										inTurn={inTurn}
 										canBeSelected={canBeSelected}
 										id={player.id}
+										isConnected={player.isConnected}
 										isYou={player.isYou}
 										isInjured={player.isInjured}
 										isThing={player.isThing}

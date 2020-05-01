@@ -10,6 +10,7 @@ import INotificationAction from 'shared/interfaces/notification';
 import {processTurnContext} from 'server/helpers/playerHelpers';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {ETurnContextType} from 'shared/enum/turnContextType';
+//import {formatPlayerConnectedEvent} from 'server/formatters/formatOutgoingEvents';
 
 export class Player {
 	id = null;
@@ -17,7 +18,6 @@ export class Player {
 	state: EPlayerState = EPlayerState.dummy;
 	turnState: ETurnState = ETurnState.idle;
 	nickname: string = '';
-	isOnline: boolean = true;
 	isHost: boolean = false;
 	color:string = '';
 	game: Game = null;
@@ -26,7 +26,9 @@ export class Player {
 	isInjured: boolean = false;
 	isThing: boolean = false;
 	quarantine: number = 0;
+	isReady: boolean = false;
 	currentAction: INotificationAction;
+	isConnected: boolean = true;
 
 	constructor({ socket, playerState = EPlayerState.dummy }) {
 		this.state = playerState;
@@ -141,8 +143,9 @@ export class Player {
 	getCardByUniqueId = (uniqueId: string) : ICardEvent => {
 		return find(this.hand, {uniqueId});
 	};
+
 	makeOffline = () => {
-		this.isOnline = false;
+		this.isConnected = false;
 	};
 
 
@@ -246,4 +249,11 @@ export class Player {
 		}
 		return this.getRandomPlayableCard();
 	}
+
+	toggleReady = () => {
+		this.isReady = !this.isReady;
+		this.game.updateGame();
+		//this.game.notifyAllPlayers(formatPlayerConnectedEvent({viewer: this, game: this.game}))
+	}
+
 }

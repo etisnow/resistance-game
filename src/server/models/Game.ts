@@ -2,8 +2,8 @@ import {clone, each, filter, find, map, uniqueId} from "lodash";
 import {Player} from "server/models/Player";
 import {gameServer} from 'server/server/GameServer';
 import {
-  formatPlayerConnectedEvent,
-  formatPlayerConnectionSuccessEvent,
+  //formatPlayerConnectedEvent,
+  //formatPlayerConnectionSuccessEvent,
   formatPlayerNotification,
   formatStartGameEvent,
   formatUpdateGameEvent,
@@ -26,10 +26,8 @@ import {chainReactionTrade} from 'server/helpers/cardActions/panic/chainReaction
 import {ENotificationAction} from 'shared/enum/notifications';
 import {checkAllDeckCards} from '_integration/helpers';
 import clc from 'cli-color';
+import {EGameState} from 'shared/enum/common';
 
-enum EGameState {
-  lobby = "lobby",
-}
 
 export class Game {
   id = null;
@@ -110,14 +108,15 @@ export class Game {
     this.players[player.id] = player;
     this.playersList.push(player.id);
     const players = this.players;
-	player.notify(formatPlayerConnectionSuccessEvent({player: player, game: this, players}));
-	player.socket.join(this.id);
-    this.notifyAllPlayers(formatPlayerConnectedEvent({viewer: player, game: this}))
+	//player.notify(formatPlayerConnectionSuccessEvent({player: player, game: this, players}));
+	//player.socket.join(this.id);
+    this.updateGame();
+    //this.notifyAllPlayers(formatPlayerConnectedEvent({viewer: player, game: this}))
   }
 
   disconnectPlayer({ player }: {player: Player}) {
     delete this.players[player.id];
-    player.socket.leave(this.id);
+    //player.socket.leave(this.id);
     this.updateGame();
   }
 
@@ -149,6 +148,7 @@ export class Game {
     const players = this.players;
     debugLog('============================================================');
     this.addLog('Игра началась');
+    this.state = EGameState.sarted;
     gameStarter(this);
     this.changeTurn(this.playersList[0]);
     checkAllDeckCards(this, !gameServer.isMock);

@@ -16,6 +16,9 @@ export const registerHandlers = (player: Player) => {
   player.socket.on(EClientEventType.startGame, function () {
     gameServer.startGame({player});
   });
+  player.socket.on(EClientEventType.toggleReadyGame, function () {
+    gameServer.toggleReady({player});
+  });
   player.socket.on(EClientEventType.playerAction, function ({
     actionType,
     cardUniqueId,

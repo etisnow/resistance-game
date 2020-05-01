@@ -1,8 +1,9 @@
 export enum EServerEventType {
   gameConnectionSuccess = "gameConnectionSuccess",
   updateGame = "updateGame",
-  playerConnected = "playerConnected",
+  //playerConnected = "playerConnected",
   gameStarted = "gameStarted",
   lobbyUpdate = "lobbyUpdate",
   notification = "notification",
+  commonError = "commonError",
 }

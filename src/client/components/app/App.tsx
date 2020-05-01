@@ -26,7 +26,7 @@ class App extends React.Component<any, any> {
 	};
 	render() {
 		return (
-			<div className="App">
+			<div className="nechto-wrapper">
 				{this.renderContent()}
 			</div>
 		);

@@ -1,0 +1,24 @@
+.player-lobby-item {
+    padding: 5px 10px;
+    background: black;
+    color: white;
+    font-size: 14px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    box-shadow: 1px 8px 7px -4px black;
+	justify-content: space-between;
+	display: flex;
+	&.isReady {
+		background: #009442;
+		box-shadow: 1px 8px 7px -4px #047903;
+	}
+	.kick-button {
+		color: #ffe000;
+		background: none;
+		border: 1px solid #ffe000;
+		padding: 3px 10px;
+		border-radius: 5px;
+		cursor: pointer;
+		background: #0000001f;
+	}
+}

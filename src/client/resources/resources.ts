@@ -33,6 +33,9 @@ import panicBack from "client/resources/cards/panicBack.png";
 import thing from "client/resources/cards/thing.png";
 
 
+import barricadeBadge from "client/resources/images/barricade_badge.png";
+
+
 const resources = {
 tenacity,
 fear,
@@ -67,6 +70,8 @@ recognitionTime,
 eventBack,
 panicBack,
 thing,
+
+barricadeBadge
 }
 
 export {resources};

@@ -1,7 +1,6 @@
 import {observable} from "mobx";
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {ICardEvent} from 'shared/interfaces/cards';
-import INotificationAction from 'shared/interfaces/notification';
 
 
 export default class Player {
@@ -17,4 +16,6 @@ export default class Player {
 	@observable isThing: boolean = false;
 	@observable quarantine: number = 0;
 	@observable isYou: boolean = false;
+	@observable isReady: boolean = false;
+	@observable isConnected: boolean = true;
 }

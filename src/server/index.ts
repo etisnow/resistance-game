@@ -27,6 +27,7 @@ class App {
       registerHandlers(player);
       //mockGameProcess(player);
     });
+
   }
 
   public Start() {

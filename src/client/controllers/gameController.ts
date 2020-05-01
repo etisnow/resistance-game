@@ -49,6 +49,9 @@ export default class GameController {
 		this.socket.sendToServer(EClientEventType.startGame, {})
 	};
 
+	toggleReady = () => {
+		this.socket.sendToServer(EClientEventType.toggleReadyGame, {})
+	}
 
 	cardAction = (actionType: EPlayerActionType, cardUniqueId: string) => {
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType, cardUniqueId})
