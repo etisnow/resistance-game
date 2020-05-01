@@ -1,7 +1,8 @@
 export enum EPlayerActionType {
 	cardDiscard = 'discard',
-	cardTrade = 'trade',
+	cardTrade = 'cardTrade',
 	cardAct = 'act',
 	cardSelect = 'select',
 	playerSelect = 'playerSelect',
+	actionDecision = 'actionDecision',
 }

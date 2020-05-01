@@ -6,7 +6,6 @@ import {animated, interpolate, useTransition} from 'react-spring';
 import GameController from 'client/controllers/gameController';
 import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
 import {cardAspectRatio} from 'shared/constant/cards';
-import {getCardMenuItems} from 'client/helpers/cardHelpers';
 import Card from 'client/components/table/Card/Card';
 import {ETurnState} from 'shared/enum/player';
 import {EPlayerActionType} from 'shared/enum/playerActions';
@@ -24,10 +23,10 @@ const handleCardAction = (gameController: GameController, onSelectCard, actionTy
 	onSelectCard(actionType, cardUniqueId);
 };
 
-const generateCardMenu = (id, cardUniqueId, gameController: GameController, onSelectCard) => {
+const generateCardMenu = (id, cardUniqueId, gameController: GameController, onSelectCard, card) => {
 	const player = gameController.currentPlayer;
 	if (!player || player.turnState === ETurnState.idle) return null;
-	const menuItems = getCardMenuItems(id, player, null);
+	const menuItems = card.actions;
 	if (menuItems.length === 0) return null;
 	const menu = menuItems.map((menuIitem) => {
 		switch (menuIitem.menuType) {
@@ -90,52 +89,42 @@ const Hand = observer(({controller} : IHandProps) => {
 
 	const transitions = useTransition(hand, card=>card.uniqueId, {
 		from: {
-			rot: -20,
-			y: 0,
-			scale: 1,
-
+			transform: `rotate(-20deg) scale(0) translateY(0px)`,
 		},
 		enter: card => {
 			const isSelected = card.uniqueId === selectedCardIndex;
 			const rot = isSelected ? 0 : cardNumberInRow(card) * (180 / cardsCount) - 90 + (90/cardsCount);
-			const scale = isSelected ? 2 : 1;
-			const y = isSelected ? -120 : 0;
+			const scale = isSelected ? 2.5 : 1;
+			const y = isSelected ? -90 : 0;
 			return {
-				rot,
-				y,
-				scale,
-			}
+				transform: `rotate(${rot}deg) scale(${scale}) translateY(${y}px)`,
+			};
 		},
 		update: card => {
 			const isSelected = card.uniqueId === selectedCardIndex;
 			const rot = isSelected ? 0 : cardNumberInRow(card) * (180 / cardsCount) - 90 + (90/cardsCount);
-			const scale = isSelected ? 2 : 1;
-			const y = isSelected ? -120 : 0;
+			const scale = isSelected ? 2.5 : 1;
+			const y = isSelected ? -90 : 0;
 			return {
-				rot,
-				y,
-				scale,
-			}
+				transform: `rotate(${rot}deg) scale(${scale}) translateY(${y}px)`,
+			};
 		},
 		leave: card => {
 			return {
-				y: -getWindowHeight(),
-				rot: 90,
-				opacity:0,
-				scale: 0
-			}
+				transform: `rotate(90deg) scale(0) translateY(${-getWindowHeight()}px)`,
+			};
 		},
 	} as any);
 	return (
 		<div className={"playerHand"} style={{height: playerHandHeight()}}>
-			{map(transitions, ({item: card, key, props: {rot, scale, y}}) => {
+			{map(transitions, ({item: card, key, props: {transform}}) => {
 				const {id} = card;
 				const isSelected = selectedCardIndex === card.uniqueId;
-				const cardMenu = generateCardMenu(id, card.uniqueId, controller, onSelectCard);
+				const cardMenu = generateCardMenu(id, card.uniqueId, controller, onSelectCard, card);
 				return <animated.div
 					key={key}
 				    style={{
-				        transform: interpolate([rot, scale, y], (rot, scale, y) => `rotate(${rot}deg) scale(${scale}) translateY(${y}px)`),
+				        transform,
 					    position: 'absolute',
 					    display:'flex',
 					    height: playerHandHeight(),
@@ -144,7 +133,6 @@ const Hand = observer(({controller} : IHandProps) => {
 					    zIndex: isSelected ? 60 : 50,
 				    }}
 				>
-
 					<Card
 						key={card.id}
 						id={id}

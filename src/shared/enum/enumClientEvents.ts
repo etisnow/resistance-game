@@ -4,6 +4,6 @@ export enum EClientEventType {
   kickPlayer = "kickPlayer",
   disconnect = "disconnect",
   startGame = "startGame",
-  grabCardFromDeck = "grabCardFromDeck",
   playerAction = "playerAction",
+  actionDecision = "actionDecision",
 }

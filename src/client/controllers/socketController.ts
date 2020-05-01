@@ -1,9 +1,9 @@
 import {SocketIOClient} from 'socket.io-client';
-import INotification from 'shared/interfaces/notification';
+import INotificationAction from 'shared/interfaces/notification';
 import RootController from 'client/controllers/rootController';
 import {EAppState, EGameState} from 'shared/enum/common';
 import {EServerEventType} from 'shared/enum/enumServerEvents';
-
+import {ENotificationAction} from 'shared/enum/notifications';
 
 
 function handleGlobalEvents(socket, root: RootController) {
@@ -14,11 +14,14 @@ function handleGlobalEvents(socket, root: RootController) {
 		root.gameController.players = players
 	});
 
-	const updateGame = ({players, playersList, deck, gameLog}) => {
+	const updateGame = ({tradeContext, players, playersList, deck, gameLog, currentAction}) => {
 		root.state = EAppState.game;
 		root.gameController.players = players;
 		root.gameController.playersList = playersList;
 		root.gameController.deck = deck;
+		root.gameController.tradeContext = tradeContext;
+		root.gameController.currentAction = currentAction;
+		console.log(root.gameController.currentAction)
 		root.gameController.gameLog = gameLog;
 	};
 
@@ -33,8 +36,16 @@ function handleGlobalEvents(socket, root: RootController) {
 		root.launcherController.games = games;
 	});
 
-	socket.on(EServerEventType.notification, (notification: INotification) => {
-		root.gameController.notifications.push(notification);
+	socket.on(EServerEventType.notification, (notification: INotificationAction) => {
+		switch (notification.type) {
+			case ENotificationAction.info:
+			case ENotificationAction.actionDecision:
+			case ENotificationAction.okayCard:
+			case ENotificationAction.selectCard:
+				root.gameController.notifications.push(notification);
+			default:
+				return null
+		}
 	})
 }
 

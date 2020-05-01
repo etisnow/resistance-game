@@ -1,12 +1,20 @@
 export enum ETurnContextType {
-	yporstvoCardSelect = 'yporstvoCardSelect',
-	podozreniePersonSelect = 'podozreniePersonSelect',
-	menyaemsyaMestamiPersonSelect = 'menyaemsyaMestamiPersonSelect',
-	ognemetSelect = 'ognemetSelect',
-	smatyvayUdochkiPersonSelect = 'smatyvayUdochkiPersonSelect',
-	zakolochennayaDverPersonSelect = 'zakolochennayaDverPersonSelect',
-	soblazn = 'soblazn',
-	karantinPersonSelect = 'karantinPersonSelect',
-	toporPersonSelect = 'toporPersonSelect',
-	analizPersonSelect = 'analizPersonSelect',
+	trade = 'trade',
+	positionswap = 'positionswap',
+	burn = 'burn',
+	tenacityCardSelect = 'tenacityCardSelect',
+	suspicionPersonSelect = 'suspicionPersonSelect',
+	barricadePersonSelect = 'barricadePersonSelect',
+	seduction = 'seduction',
+	quarantinePersonSelect = 'quarantinePersonSelect',
+	axePersonSelect = 'axePersonSelect',
+	analysisPersonSelect = 'analysisPersonSelect',
+
+	/*PANICS */
+	chainReaction = 'chainReaction',
+	blindDateCardSelect = 'blindDateCardSelect',
+	oneTwoPersonSelect = 'oneTwoPersonSelect',
+	onlyBetweenUsPersonSelect = 'onlyBetweenUsPersonSelect',
+	forgetfullnessSelect = 'forgetfullnessSelect',
 }
+

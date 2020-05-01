@@ -13,6 +13,9 @@ interface IPlayerBadgeProps {
 	isDoor: boolean;
 	onSelect: ((playerId: string) => void) | null;
 	quarantine: number;
+	isYou: boolean;
+	isInjured: boolean;
+	isThing: boolean;
 }
 
 const formatNickname = (nickname) => {
@@ -24,6 +27,12 @@ const TurnBadge = () => {
 	return <div className={'turnBadge'}/>
 };
 
+const InjureBadge = () => {
+	return <div className={'infectBadge'}/>
+};
+const ThingBadge = () => {
+	return <div className={'thingBadge'}/>
+};
 const Quarantine = ({quarantine}) => {
 	return quarantine ? (
 		<div className={'quarantineBadge'}>
@@ -32,12 +41,19 @@ const Quarantine = ({quarantine}) => {
 	) :  null;
 }
 
-const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, onSelect = null, id, isDoor, quarantine}: IPlayerBadgeProps) => {
+const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, onSelect = null, id, isDoor, quarantine, isYou, isInjured, isThing}: IPlayerBadgeProps) => {
 	return (
-		<div className={cx({playerBadge: true, canBeSelected, isDoor, onQuarantine: quarantine > 0 })} style={{background: color}} onClick={() => (onSelect && canBeSelected) ? onSelect(id) : null}>
-			{inTurn && <TurnBadge/>}
-			{!isDoor && formatNickname(nickname)}
-			<Quarantine quarantine={quarantine}/>
+		<div className={cx({playerBadge: true, canBeSelected, isDoor, onQuarantine: quarantine > 0, isYou })} style={{background: color}} onClick={() => (onSelect && canBeSelected) ? onSelect(id) : null}>
+			{ !isDoor && (
+				<React.Fragment>
+					{inTurn && <TurnBadge/>}
+					{isInjured && <InjureBadge/>}
+					{isThing && <ThingBadge/>}
+					{formatNickname(nickname)}
+					<Quarantine quarantine={quarantine}/>
+				</React.Fragment>
+			)}
+
 		</div>
 	)
 };

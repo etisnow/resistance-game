@@ -12,7 +12,7 @@ interface IDeckCardProps {
 const DeckCard = observer(({type}: IDeckCardProps) => {
 	return (
 		<div className={'deckCardWrapper'}>
-			<Card id={type === ECardType.panic ? 'panic_back' : 'event_back'} />
+			<Card id={type === ECardType.panic ? 'panicBack' : 'eventBack'} />
 		</div>
 	)
 });

@@ -3,7 +3,8 @@ import http from "http";
 import socketIO from "socket.io";
 import { registerHandlers } from "server/handlers/handlers";
 import { gameServer } from "server/server/GameServer";
-import {mockGameProcess} from 'server/_playground/mockGameProcess';
+import {mockGameProcess} from '_integration/mockGameProcess';
+import {debugLog} from 'server/helpers/util';
 
 const port: number = 30;
 
@@ -26,7 +27,7 @@ class App {
     gameServer.initialize(this.io);
     this.io.on("connection", (socket: socketIO.Socket) => {
       const player = gameServer.initPlayer(socket);
-      gameServer.isMock = true;
+      //gameServer.isMock = true;
       registerHandlers(player);
       mockGameProcess(player);
     });
@@ -34,7 +35,7 @@ class App {
 
   public Start() {
     this.server.listen(this.port);
-    console.log(`Server listening on port ${this.port}.`);
+    debugLog(`Server listening on port ${this.port}.`);
   }
 }
 

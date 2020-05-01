@@ -1,12 +1,13 @@
 import {computed, observable} from "mobx";
 import SocketController from 'client/controllers/socketController';
 import Player from 'client/models/Player';
-import INotification from 'shared/interfaces/notification';
+import INotificationAction from 'shared/interfaces/notification';
 import RootController from 'client/controllers/rootController';
 import {ECardType} from 'shared/enum/cards';
 import {EGameState} from 'shared/enum/common';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
 import {EPlayerActionType} from 'shared/enum/playerActions';
+import {IFormatTradeContext} from 'shared/interfaces/common';
 
 
 export default class GameController {
@@ -20,9 +21,11 @@ export default class GameController {
 	@observable playersList: string[] = [];
 	@observable gameLog: string[] = [];
 	@observable deck: {count: number, topCardType: ECardType} = {count: 0, topCardType: ECardType.event};
-	@observable notifications: INotification[] = [];
+	@observable notifications: INotificationAction[] = [];
 	@observable playersToSelect: string[] = [];
-	@observable isLayoutSequential: boolean = true;
+	@observable isLayoutSequential: boolean = false;
+	@observable tradeContext: IFormatTradeContext[] | null = null;
+	@observable currentAction: INotificationAction | null = null;
 
 	constructor(root: RootController) {
 		this.root = root;
@@ -56,20 +59,25 @@ export default class GameController {
 		this.notifications.splice(0, 1);
 	};
 
-	hideNotification = (notification) => {
+	hidENotificationAction = () => {
 		this.notifications.splice(0, 1);
 	};
 
 	selectCard = (notification, cardUniqueId) => {
-		this.notifications.splice(0, 1);
-		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.cardSelect, cardUniqueId, actionContext: notification});
+		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.cardSelect, actionContext: notification, cardUniqueId});
+		this.hidENotificationAction();
 	};
 
 	selectPlayer = (playerId: string ) => {
 		this.playersToSelect = [];
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.playerSelect, selectedPlayerId: playerId});
-	}
+	};
 
+	actionDecision = (action: string ) => {
+		this.playersToSelect = [];
+		this.socket.sendToServer(EClientEventType.actionDecision, {actionType: EPlayerActionType.actionDecision, action});
+		this.hidENotificationAction();
+	};
 	toggleRoomLayout = () => {
 		this.isLayoutSequential = !this.isLayoutSequential;
 	}

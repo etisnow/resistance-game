@@ -42,7 +42,6 @@ class GameServer {
   }
 
   startGame({player}: {player:Player}) {
-    console.log('startgame', player.id)
     player.game.start();
   }
 
@@ -57,27 +56,25 @@ class GameServer {
   destroyGame(id) {
     this.games[id].destroy();
   }
-  grabCardFromDeck({player}: {player: Player}) {
-    player.game.grabCardFromDeck({player})
-  }
 
   playerAction({
     player,
     actionType,
     selectedPlayerId,
     cardUniqueId,
-    actionContext
+    action
   }: {
     player:Player,
     actionType: EPlayerActionType,
-    cardUniqueId: string,
-    selectedPlayerId:string,
-    actionContext?: any
+    cardUniqueId?: string,
+    selectedPlayerId?:string,
+    action?: string
   }) {
-    console.log('card action', actionType)
-    player.game.cardAction({player, actionType, cardUniqueId, selectedPlayerId, actionContext})
+    player.game.cardAction({player, actionType, cardUniqueId, selectedPlayerId, action})
   }
-
+/*  actionDecision({player, action}) {
+    player.game.actionDecision({player, action})
+  }*/
 }
 
 const gameServer = new GameServer();
