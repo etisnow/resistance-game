@@ -183,13 +183,11 @@ const Room = observer(({controller} : IRoomProps) => {
 		<React.Fragment>
 			<div className={"playerRoom"} style={canvasHeightWidth}>
 				{map(transitions, ({item: playerId, key, props }) => {
-					const { tradeLineStartX, tradeLineStartY, tradeLineEndX, tradeLineEndY } = props as any;
 					const player = players[playerId];
 					if (!player || !player.id) return null;
 					const {nickname, color, state} = player;
 					const inTurn = player.turnState !== ETurnState.idle;
 					const canBeSelected = canPlayerBeSelected(player);
-					const tradeLineCenterOffset = playerRoomHeight / 2;
 					return (
 						<React.Fragment key={key}>
 							<animated.div

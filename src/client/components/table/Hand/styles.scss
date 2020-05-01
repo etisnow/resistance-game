@@ -1,11 +1,19 @@
 .playerHand {
 	display: flex;
 	position: fixed;
-	bottom: 3%;
+	bottom: 0;
     width: 100%;
     height: 31%;
 	justify-content: center;
 	z-index: 21;
+	.playerHandInnerWrapper {
+		position: relative;
+		justify-content: center;
+		display: flex;
+	}
+	svg {
+		position: absolute;
+	}
 }
 .cardsMapper {
   z-index: 50;
@@ -30,7 +38,7 @@
     flex-direction: row;
     justify-content: space-between;
     position: absolute;
-    bottom: 4%;
+    bottom: 2%;
 	.cardMenuItem {
 		color: white;
 		display: flex;
@@ -43,4 +51,9 @@
 		background: rgb(148,186,0);
 		background: linear-gradient(94deg, rgba(148,186,0,1) 0%, rgba(0,102,22,1) 100%);
 	}
+}
+
+
+.rotationCardWrapper {
+	position: relative;
 }

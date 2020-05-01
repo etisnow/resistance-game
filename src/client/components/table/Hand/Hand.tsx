@@ -9,6 +9,7 @@ import {cardAspectRatio} from 'shared/constant/cards';
 import Card from 'client/components/table/Card/Card';
 import {ETurnState} from 'shared/enum/player';
 import {EPlayerActionType} from 'shared/enum/playerActions';
+import {degToRag} from 'client/helpers/roomHelpers';
 
 interface IHandProps {
 	controller: GameController
@@ -64,6 +65,59 @@ const generateCardMenu = (id, cardUniqueId, gameController: GameController, onSe
 	)
 };
 
+const calculateScale = () => {
+	const cardHeight = getWindowHeight() / playerHandHeight() ;
+	const scale = cardHeight / cardAspectRatio;
+	//const scale = getWindowHeight() / playerHandHeight();
+	return scale * 0.85;
+}
+
+const calculateX = (cardNumber, cardsCount) => {
+	const fullWidth = getWindowWidth() * 1
+	const half = fullWidth / 2;
+	console.log('card width', fullWidth,  cardsCount);
+	const x = (fullWidth / cardsCount) * cardNumber;
+	console.log(x)
+	return x
+}
+
+
+/*GEOMETRY*/
+const circleRadius = getWindowWidth()
+const circleX = 0
+const circleY = circleRadius - (getWindowHeight() * 0.06)
+
+const getDegDeg = (cardNumber, cardsCount, maxDeg) => {
+	const degDelta = maxDeg / cardsCount;
+	const currentDeg = (degDelta * cardNumber) - 90 - (maxDeg / 2) + (degDelta / 2);
+	return currentDeg;
+}
+
+const getCirclePoint = (radius, deg, centerX, centerY) => {
+	const currentRad = degToRag(deg);
+	const x = radius*Math.cos(currentRad) + centerX;
+	const y = radius*Math.sin(currentRad) + centerY;
+	return {x,y};
+}
+
+
+const calculateCardStypeProps = (cardNumber, cardsCount) => {
+	const maxCardDeg = 50;
+	const cardDeg = getDegDeg(cardNumber, cardsCount, maxCardDeg);
+	const cardRotationDeg = getDegDeg(cardNumber, cardsCount, maxCardDeg * 0.4);
+	const {x,y} = getCirclePoint(circleRadius, cardDeg, circleX,circleY);
+	const {x: rorationXPoint,y: rotationYPoint} = getCirclePoint(circleRadius, cardRotationDeg, circleX,circleY);
+	//const {ax, bx} = {x,y};
+	//var angleBetweenPointsDeg = Math.atan2(circleY - y, circleX - x) * 180 / Math.PI;
+	var angleBetweenPointsDeg = Math.atan2(rotationYPoint - circleY, rorationXPoint - circleX) * 180 / Math.PI;
+	return {x,y,rot:angleBetweenPointsDeg + 90,scale:1}
+}
+
+const calculateCardSelectedStypeProps = () => {
+	const scale = calculateScale();
+	return {x:0,y:-(getWindowHeight() / 2 / scale) * 1,rot:0,scale}
+}
+
 const Hand = observer(({controller} : IHandProps) => {
 
 	const [selectedCardIndex, selectCard] = useState(null);
@@ -89,60 +143,77 @@ const Hand = observer(({controller} : IHandProps) => {
 
 	const transitions = useTransition(hand, card=>card.uniqueId, {
 		from: {
-			transform: `rotate(-20deg) scale(0) translateY(0px)`,
-		},
-		enter: card => {
-			const isSelected = card.uniqueId === selectedCardIndex;
-			const rot = isSelected ? 0 : cardNumberInRow(card) * (180 / cardsCount) - 90 + (90/cardsCount);
-			const scale = isSelected ? 2.5 : 1;
-			const y = isSelected ? -90 : 0;
-			return {
-				transform: `rotate(${rot}deg) scale(${scale}) translateY(${y}px)`,
-			};
+				x:0,y:0,rot:0,scale:0
 		},
 		update: card => {
 			const isSelected = card.uniqueId === selectedCardIndex;
-			const rot = isSelected ? 0 : cardNumberInRow(card) * (180 / cardsCount) - 90 + (90/cardsCount);
-			const scale = isSelected ? 2.5 : 1;
-			const y = isSelected ? -90 : 0;
+			const cardNumber = cardNumberInRow(card);
+			//const rot = isSelected ? 0 : cardNumber * (30 / cardsCount) - 15 + (15/cardsCount);
+//
+			//const scale = isSelected ? calculateScale(playerCardWidthPix()) : 1;
+			//const y = isSelected ? -(getWindowHeight() * 0.03) : -(getWindowHeight() * 0.03);
+			//const x = calculateX(cardNumberInRow(card), cardsCount);
+
+			const {x,y,rot,scale} = isSelected ? calculateCardSelectedStypeProps() : calculateCardStypeProps(cardNumber, cardsCount)
 			return {
-				transform: `rotate(${rot}deg) scale(${scale}) translateY(${y}px)`,
+				x,y,rot,scale
+				//transform: `rotate(${rot}deg) scale(${scale}) translateY(${y}px) translateX(${x}px)`,
+				//transform: `rotate(${rot}deg) scale(1) translateY(${y}px)`,
+				//transformWrapper: `scale(${scale}) translateY(${y}px translateX(${x}px)`,
+				//transformCard: `rotate(${rot}deg)`,
 			};
 		},
 		leave: card => {
 			return {
-				transform: `rotate(90deg) scale(0) translateY(${-getWindowHeight()}px)`,
+				x:0,y:0,rot:0,scale:0
+				//transformWrapper: `rotate(90deg) scale(0) translateY(${-getWindowHeight()}px) translateX(0px)`,
+				//transformCard: `rotate(0deg)`,
 			};
 		},
 	} as any);
+
 	return (
 		<div className={"playerHand"} style={{height: playerHandHeight()}}>
-			{map(transitions, ({item: card, key, props: {transform}}) => {
-				const {id} = card;
-				const isSelected = selectedCardIndex === card.uniqueId;
-				const cardMenu = generateCardMenu(id, card.uniqueId, controller, onSelectCard, card);
-				return <animated.div
-					key={key}
-				    style={{
-				        transform,
-					    position: 'absolute',
-					    display:'flex',
-					    height: playerHandHeight(),
-					    width: playerCardWidthPix(),
-					    transformOrigin: '50% 110%',
-					    zIndex: isSelected ? 60 : 50,
-				    }}
-				>
-					<Card
-						key={card.id}
-						id={id}
-						onCardClick={() => cardSelection(card.uniqueId)}
-						canBeUsed={!!cardMenu}
-						menu={isSelected ? cardMenu : null}
-					/>
-				</animated.div>
-			})}
-			{selectedCardIndex !== null && <div onClick={() => cardSelection(null)} className={'cardsOverlay'}/>}
+			<div className={"playerHandInnerWrapper"} style={{height: playerHandHeight(), width: getWindowWidth()}}>
+				{map(transitions, ({item: card, key, props}) => {
+					const {x,y,rot,scale} = props as any;
+					const {id} = card;
+					const isSelected = selectedCardIndex === card.uniqueId;
+					const cardMenu = generateCardMenu(id, card.uniqueId, controller, onSelectCard, card);
+					return <animated.div
+						key={key}
+					    style={{
+						    transform: interpolate([x,y,scale], (x1,y1,s1) => `scale(${s1}) translateY(${y1}px) translateX(${x1}px)`),
+						    position: 'absolute',
+						    display:'flex',
+						    height: playerHandHeight(),
+						    width: playerCardWidthPix() * 1.1,
+						    zIndex: isSelected ? 60 : 50,
+						    transformOrigin: `50% 50%`,
+					    }}
+					>
+						<animated.div
+							className={'rotationCardWrapper'}
+						    style={{
+							    transform: interpolate([rot], (r1) => `rotate(${r1}deg)`),
+							    transformOrigin: `50% 50%`,
+						    }}
+						>
+							<Card
+								key={card.id}
+								id={id}
+								onCardClick={() => cardSelection(card.uniqueId)}
+								canBeUsed={!!cardMenu}
+								menu={isSelected ? cardMenu : null}
+							/>
+						</animated.div>
+					</animated.div>
+				})}
+				{selectedCardIndex !== null && <div onClick={() => cardSelection(null)} className={'cardsOverlay'}/>}
+			</div>
+{/*			<svg height={circleRadius * 2} width={circleRadius * 2} style={{top: playerHandHeight() - circleRadius + circleY}}>
+			  <circle cx={circleRadius} cy={circleRadius} r={circleRadius} stroke="black" stroke-width="0" fill="red" />
+			</svg>*/}
 		</div>
 	)
 });
