@@ -75,7 +75,7 @@ export default class GameController {
 
 	actionDecision = (action: string ) => {
 		this.playersToSelect = [];
-		this.socket.sendToServer(EClientEventType.actionDecision, {actionType: EPlayerActionType.actionDecision, action});
+		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.actionDecision, action});
 		this.hidENotificationAction();
 	};
 	toggleRoomLayout = () => {

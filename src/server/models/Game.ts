@@ -334,6 +334,9 @@ export class Game {
       const selectedPlayer = this.players[selectedPlayerId]
       debugLog(`Player ${player.nickname} выбирает игрока ${selectedPlayer.nickname}`);
     }
+    if (action) {
+      debugLog(`Player ${player.nickname} выбирает ${action}`);
+    }
     switch (actionType) {
       case EPlayerActionType.cardDiscard:
         discardCardAction({game: this, player, cardUniqueId});

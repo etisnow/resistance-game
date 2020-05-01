@@ -72,9 +72,7 @@ class GameServer {
   }) {
     player.game.cardAction({player, actionType, cardUniqueId, selectedPlayerId, action})
   }
-/*  actionDecision({player, action}) {
-    player.game.actionDecision({player, action})
-  }*/
+
 }
 
 const gameServer = new GameServer();

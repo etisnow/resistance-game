@@ -20,14 +20,15 @@ export const registerHandlers = (player: Player) => {
     actionType,
     cardUniqueId,
     selectedPlayerId,
-    actionContext
+    action
   }: {
     actionType: EPlayerActionType,
     cardUniqueId: string,
     selectedPlayerId: string,
-    actionContext: any
+    actionContext: any,
+    action: string,
   }) {
-    gameServer.playerAction({player, actionType, cardUniqueId, selectedPlayerId});
+    gameServer.playerAction({player, actionType, cardUniqueId, selectedPlayerId, action});
   });
   player.socket.on("disconnect", function () {
     player.makeOffline();
