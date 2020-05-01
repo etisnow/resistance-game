@@ -49,7 +49,7 @@ const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, on
 					{inTurn && <TurnBadge/>}
 					{isInjured && <InjureBadge/>}
 					{isThing && <ThingBadge/>}
-					{formatNickname(nickname)}
+					{isYou ? 'ТЫ' : formatNickname(nickname)}
 					<Quarantine quarantine={quarantine}/>
 				</React.Fragment>
 			)}
