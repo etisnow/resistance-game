@@ -2,6 +2,13 @@ import { Game } from "server/models/Game";
 import { Player } from "server/models/Player";
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {formatLobbyState} from 'server/formatters/formatOutgoingEvents';
+import {
+  isPlayerCanActCard,
+  isPlayerCanDiscardCard, isPlayerCanSelectCard, isPlayerCanSelectDesicion,
+  isPlayerCanSelectPlayer,
+  isPlayerCanTradeCard,
+} from 'server/helpers/validators';
+import {debugLog} from 'server/helpers/util';
 
 class GameServer {
   games: { [key: string]: Game } = {};
@@ -70,6 +77,47 @@ class GameServer {
     selectedPlayerId?:string,
     action?: string
   }) {
+    const game = player.game;
+    if (game) {
+      switch(actionType) {
+        case EPlayerActionType.cardAct:
+          if (!isPlayerCanActCard(game, player, cardUniqueId)) {
+            debugLog(`Игрок ${player.nickname} не может discard ${cardUniqueId}`);
+            return;
+          }
+          break;
+        case EPlayerActionType.cardDiscard:
+          if (!isPlayerCanDiscardCard(game, player, cardUniqueId)) {
+            debugLog(`Игрок ${player.nickname} не может act ${cardUniqueId}`);
+            return;
+          }
+          break;
+        case EPlayerActionType.cardTrade:
+          if (!isPlayerCanTradeCard(game, player, cardUniqueId)) {
+            debugLog(`Игрок ${player.nickname} не может торговать ${cardUniqueId}`);
+            return;
+          }
+          break;
+        case EPlayerActionType.playerSelect:
+          if (!isPlayerCanSelectPlayer(game, player, selectedPlayerId)) {
+            debugLog(`Игрок ${player.nickname} не выбрать игрока ${selectedPlayerId}`);
+            return;
+          }
+          break;
+        case EPlayerActionType.cardSelect:
+          if (!isPlayerCanSelectCard(game, player, cardUniqueId)) {
+            debugLog(`Игрок ${player.nickname} не выбрать карту ${cardUniqueId}`);
+            return;
+          }
+          break;
+        case EPlayerActionType.actionDecision:
+          if (!isPlayerCanSelectDesicion(game, player, action)) {
+            debugLog(`Игрок ${player.nickname} не решить ${action}`);
+            return;
+          }
+          break;
+      }
+    }
     player.game.cardAction({player, actionType, cardUniqueId, selectedPlayerId, action})
   }
 
