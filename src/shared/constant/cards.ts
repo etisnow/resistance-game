@@ -3,7 +3,7 @@ import {each, uniqueId} from 'lodash';
 import {ECardType, EEventID, EEventType, EPanicID} from 'shared/enum/cards';
 import {ICardEvent, ICardPanic} from 'shared/interfaces/cards';
 
-export const cardAspectRatio = 1.3957;
+export const cardAspectRatio = 1.46;
 
 const events: {[key: string]: ICardEvent} = {
   [EEventID.tenacity]: {
