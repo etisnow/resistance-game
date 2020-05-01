@@ -142,6 +142,7 @@ export class Game {
       pl.changeTurnState(ETurnState.idle);
     });
     this.gameInProcess = false;
+    gameServer.destroyGame(this.id)
   };
 
   start = () => {

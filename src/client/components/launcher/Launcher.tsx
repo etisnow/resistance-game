@@ -49,7 +49,6 @@ class Launcher extends React.Component<ILauncherProps> {
 						className={"nick-input"}
 						placeholder={'введи ник'}
 						value={this.props.controller.nickname}
-						maxLength={4}
 						onChange={(e) => this.props.controller.changeNickname(e.target.value)}
 						required={true}
 					/>

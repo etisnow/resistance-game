@@ -117,7 +117,9 @@ class GameServer {
     return this.games[id] || null;
   }
   destroyGame(id) {
-    this.games[id].destroy();
+    if (this.games[id]) {
+      delete this.games[id]
+    }
   }
 
   playerAction({
