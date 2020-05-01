@@ -12,6 +12,7 @@
     "@types/react-dom": "^16.9.0",
     "chroma-js": "^2.1.0",
     "classnames": "^2.2.6",
+    "cli-color": "^2.0.0",
     "express": "^4.17.1",
     "lodash-move": "^1.1.1",
     "mobx": "^5.15.4",
@@ -20,6 +21,7 @@
     "node-sass": "^4.13.1",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
+    "react-helmet": "^6.0.0",
     "react-scripts": "3.4.1",
     "react-scroll": "^1.7.16",
     "react-spring": "^8.0.27",
@@ -33,7 +35,11 @@
     "server-watch": "nodemon",
     "server": "ts-node --project server.tsconfig.json -r tsconfig-paths/register ./src/server/index.ts",
     "build": "react-scripts build",
-    "test": "react-scripts test",
+    "test": "yarn jest --bail --runInBand",
+    "testWatch": "yarn test",
+    "testBrutforce": "ts-node --project server.tsconfig.json -r tsconfig-paths/register ./src/_integration/brutforce.ts",
+    "testAll": "yarn jest",
+    "testCacheClear": "yarn jest --clearCache",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

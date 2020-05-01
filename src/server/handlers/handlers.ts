@@ -16,9 +16,6 @@ export const registerHandlers = (player: Player) => {
   player.socket.on(EClientEventType.startGame, function () {
     gameServer.startGame({player});
   });
-  player.socket.on(EClientEventType.actionDecision, function ({action}) {
-    gameServer.actionDecision({player, action});
-  });
   player.socket.on(EClientEventType.playerAction, function ({
     actionType,
     cardUniqueId,
@@ -30,7 +27,7 @@ export const registerHandlers = (player: Player) => {
     selectedPlayerId: string,
     actionContext: any
   }) {
-    gameServer.playerAction({player, actionType, cardUniqueId, selectedPlayerId, actionContext});
+    gameServer.playerAction({player, actionType, cardUniqueId, selectedPlayerId});
   });
   player.socket.on("disconnect", function () {
     player.makeOffline();
