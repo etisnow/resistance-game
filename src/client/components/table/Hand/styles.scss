@@ -38,14 +38,14 @@
     flex-direction: row;
     justify-content: space-between;
     position: absolute;
-    bottom: 2%;
+	bottom: 4%;
 	.cardMenuItem {
 		color: white;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 6px;
-		padding: 5px;
+		font-size: 18px;
+		padding: 8px;
 		font-weight: lighter;
 		flex: 1;
 		background: rgb(148,186,0);
@@ -56,4 +56,6 @@
 
 .rotationCardWrapper {
 	position: relative;
+	width:100%;
+	height:100%;
 }

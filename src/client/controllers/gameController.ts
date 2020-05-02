@@ -8,7 +8,7 @@ import {EGameState} from 'shared/enum/common';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {IFormatTradeContext} from 'shared/interfaces/common';
-
+import fscreen from 'fscreen';
 
 export default class GameController {
 	root: RootController;
@@ -24,12 +24,16 @@ export default class GameController {
 	@observable notifications: INotificationAction[] = [];
 	@observable playersToSelect: string[] = [];
 	@observable isLayoutSequential: boolean = false;
+	@observable isFullScreen: boolean = false;
 	@observable tradeContext: IFormatTradeContext[] | null = null;
 	@observable currentAction: INotificationAction | null = null;
 
 	constructor(root: RootController) {
 		this.root = root;
 		this.socket = root.socketController;
+		fscreen.addEventListener('fullscreenchange', () => {
+			this.isFullScreen = !!fscreen.fullscreenElement
+		});
 	}
 
 	@computed get currentPlayer(): Player | null {
@@ -84,5 +88,13 @@ export default class GameController {
 	toggleRoomLayout = () => {
 		this.isLayoutSequential = !this.isLayoutSequential;
 	}
-
+	toggleFullScreen = () => {
+		if (!fscreen.fullscreenEnabled) return;
+		if (!this.isFullScreen) {
+			fscreen.requestFullscreen(document.getElementById("root"));
+		} else {
+			fscreen.exitFullscreen();
+		}
+		//this.is = !this.isLayoutSequential;
+	}
 }

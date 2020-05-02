@@ -21,8 +21,8 @@ const Card = observer(({id, menu, onCardClick, canBeUsed}: ICardProps) => {
 	}
 
 	return (
-		<div className={`cardWrapper ${canBeUsed ? 'cardCanBeUsed' : ''}`}>
-			<img src={resources[card.id]} alt={card.description} onClick={onCardClick}/>
+		<div className={`cardWrapper ${canBeUsed ? 'cardCanBeUsed' : ''} ${card.id}`} >
+			<div onClick={onCardClick} className={'card-clickable-zone'}></div>
 			{menu && menu}
 		</div>
 	)

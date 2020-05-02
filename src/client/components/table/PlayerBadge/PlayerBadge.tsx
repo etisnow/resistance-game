@@ -43,7 +43,6 @@ const Quarantine = ({quarantine}) => {
 }
 
 const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, onSelect = null, id, isDoor, quarantine, isYou, isInjured, isThing, isConnected}: IPlayerBadgeProps) => {
-	console.log('isCONNECTED', isConnected)
 	return (
 		<div className={cx({playerBadge: true, canBeSelected, isDoor, onQuarantine: quarantine > 0, isYou, disconnected: !isConnected })} style={{background: color}} onClick={() => (onSelect && canBeSelected) ? onSelect(id) : null}>
 			{ !isDoor && (

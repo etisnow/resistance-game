@@ -2,7 +2,7 @@ import React, {useState} from 'react';
 import {clamp, map} from 'lodash';
 import './styles.scss';
 import {observer} from "mobx-react-lite";
-import {animated, interpolate, useTransition} from 'react-spring';
+import {animated, config, interpolate, useTransition} from 'react-spring';
 import GameController from 'client/controllers/gameController';
 import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
 import {cardAspectRatio} from 'shared/constant/cards';
@@ -65,19 +65,18 @@ const generateCardMenu = (id, cardUniqueId, gameController: GameController, onSe
 	)
 };
 
-const calculateScale = () => {
-	const cardHeight = getWindowHeight() / playerHandHeight() ;
-	const scale = cardHeight / cardAspectRatio;
-	//const scale = getWindowHeight() / playerHandHeight();
-	return Math.round(scale * 0.85);
-}
-
 /*GEOMETRY*/
 const circleRadius = getWindowWidth()
 const circleX = 0
 const circleY = circleRadius - (getWindowHeight() * 0.06)
 
-const getDegDeg = (cardNumber, cardsCount, maxDeg) => {
+const calculateSize = () => {
+	const width = Math.round(clamp(getWindowWidth() * 0.85, 0, 300));
+	const height = Math.round(width * cardAspectRatio);
+	return {width, height};
+}
+
+const getCardDeg = (cardNumber, cardsCount, maxDeg) => {
 	const degDelta = maxDeg / cardsCount;
 	const currentDeg = (degDelta * cardNumber) - 90 - (maxDeg / 2) + (degDelta / 2);
 	return currentDeg;
@@ -94,19 +93,26 @@ const getCirclePoint = (radius, deg, centerX, centerY) => {
 const calculateCardStypeProps = (cardNumber, cardsCount) => {
 	const degStep = 11;
 	const maxCardDeg = degStep * cardsCount;
-	const cardDeg = getDegDeg(cardNumber, cardsCount, maxCardDeg);
-	const cardRotationDeg = getDegDeg(cardNumber, cardsCount, maxCardDeg * 0.4);
+	const cardDeg = getCardDeg(cardNumber, cardsCount, maxCardDeg);
+	const cardRotationDeg = getCardDeg(cardNumber, cardsCount, maxCardDeg * 0.4);
 	const {x,y} = getCirclePoint(circleRadius, cardDeg, circleX,circleY);
 	const {x: rorationXPoint,y: rotationYPoint} = getCirclePoint(circleRadius, cardRotationDeg, circleX,circleY);
-	//const {ax, bx} = {x,y};
-	//var angleBetweenPointsDeg = Math.atan2(circleY - y, circleX - x) * 180 / Math.PI;
 	var angleBetweenPointsDeg = Math.atan2(rotationYPoint - circleY, rorationXPoint - circleX) * 180 / Math.PI;
-	return {x,y,rot:angleBetweenPointsDeg + 90,scale:1}
+	const width = playerCardWidthPix() * 1.1;
+	const height = width * cardAspectRatio;
+	return {x,y,rot:angleBetweenPointsDeg + 90, width, height}
+}
+
+const getCenterOffset = () => {
+	const topPoint = getWindowHeight() - playerHandHeight()
+	const YOffset = topPoint - (getWindowHeight() / 2)
+	return YOffset
 }
 
 const calculateCardSelectedStypeProps = () => {
-	const scale = calculateScale();
-	return {x:0,y:-(getWindowHeight() / 2 / scale) * 1,rot:0,scale}
+	const {width, height} = calculateSize();
+	const offset = getCenterOffset() + (getCenterOffset() * 0.25)
+	return {x:0,y:-(offset + (height/2) ),rot:0,width, height}
 }
 
 const Hand = observer(({controller} : IHandProps) => {
@@ -116,7 +122,6 @@ const Hand = observer(({controller} : IHandProps) => {
 	const player = controller.currentPlayer;
 	if (!player) return null;
 	const {hand} = player;
-	console.log('HAND', hand)
 	if (!hand) return null;
 
 	const cardsCount = hand.length;
@@ -134,44 +139,36 @@ const Hand = observer(({controller} : IHandProps) => {
 	};
 
 	const styleUpdater = (card) => {
-			const isSelected = card.uniqueId === selectedCardIndex;
-			const cardNumber = cardNumberInRow(card);
-
-			const {x,y,rot,scale} = isSelected ? calculateCardSelectedStypeProps() : calculateCardStypeProps(cardNumber, cardsCount)
-			return {
-				x,y,rot,scale
-			};
+		const isSelected = card.uniqueId === selectedCardIndex;
+		const cardNumber = cardNumberInRow(card);
+		return isSelected ? calculateCardSelectedStypeProps() : calculateCardStypeProps(cardNumber, cardsCount)
 	}
+	const defaultCardStyle = { x:0,y:-getCenterOffset(),rot:-90, width: 0, height: 0 };
 
 	const transitions = useTransition(hand, card=>card.uniqueId, {
-		from: {
-				x:0,y:0,rot:0,scale:0
-		},
+		from: defaultCardStyle,
 		enter: styleUpdater,
 		update: styleUpdater,
-		leave: card => {
-			return {
-				x:0,y:0,rot:0,scale:0
-			};
-		},
+		leave: card => defaultCardStyle,
+		config: config.gentle
 	} as any);
 
 	return (
 		<div className={"playerHand"} style={{height: playerHandHeight()}}>
 			<div className={"playerHandInnerWrapper"} style={{height: playerHandHeight(), width: getWindowWidth()}}>
 				{map(transitions, ({item: card, key, props}) => {
-					const {x,y,rot,scale} = props as any;
+					const {x,y,rot,width, height} = props as any;
 					const {id} = card;
 					const isSelected = selectedCardIndex === card.uniqueId;
 					const cardMenu = generateCardMenu(id, card.uniqueId, controller, onSelectCard, card);
 					return <animated.div
 						key={key}
 					    style={{
-						    transform: interpolate([x,y,scale], (x1,y1,s1) => `scale(${s1}) translateY(${y1}px) translateX(${x1}px)`),
+						    transform: interpolate([x,y], (x1,y1) => `translateY(${y1}px) translateX(${x1}px)`),
 						    position: 'absolute',
 						    display:'flex',
-						    height: playerHandHeight(),
-						    width: playerCardWidthPix() * 1.1,
+						    width,
+						    height,
 						    zIndex: isSelected ? 60 : 50,
 						    transformOrigin: `50% 50%`,
 					    }}

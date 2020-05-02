@@ -1,7 +1,7 @@
 import {clamp} from 'lodash';
 
 export const getWindowHeight = () => {
-	return clamp(window.innerHeight, 500, 700);
+	return clamp(window.innerHeight, 500, 1200);
 }
 
 export const getWindowWidth = () => {

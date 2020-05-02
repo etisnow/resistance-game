@@ -27,6 +27,9 @@ const Table = observer(({controller} : ITableProps) => {
 				<Hand controller={controller}/>
 				<Notifier controller={controller}/>
 				<ActionInteracter controller={controller}/>
+{/*				<button className={'fullscreenChangeButton'} onClick={() => {controller.toggleFullScreen()}}>
+					{controller.isFullScreen ? 'Обычный' : 'Полноэкранный'}
+				</button>*/}
 				<button className={'layoutChangeButton'} onClick={() => {controller.toggleRoomLayout()}}>
 					Вид: {controller.isLayoutSequential ? 'От игрока' : 'Сверху'}
 				</button>
