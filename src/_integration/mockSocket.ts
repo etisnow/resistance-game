@@ -36,7 +36,9 @@ class MockSocketServer {
 
 export const createPlayer = (isTestTag = false) => {
 	const socket = new MockSocket(isTestTag);
-	return new Player({ socket });
+	const pl = new Player({ socket });
+	pl.isReady = true;
+	return pl;
 }
 
 export const createDoor = (isTestTag = false) => {

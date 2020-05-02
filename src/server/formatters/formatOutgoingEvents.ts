@@ -92,7 +92,7 @@ const formatPlayer = (game: Game, viewer: Player) => (player: Player) => {
 	if (!player) return null;
 	const isViewer = viewer.id === player.id;
 	const isViewerThing = viewer.isThing;
-	const isViewerInjured = viewer.isThing;
+	const isViewerInfected = viewer.isThing;
 
 	return {
 		id: player.id,
@@ -103,10 +103,10 @@ const formatPlayer = (game: Game, viewer: Player) => (player: Player) => {
 		hand: isViewer ? formatHand(game, player) : null,
 		color: player.color,
 		turnState: player.turnState,
-		//isInjured: true,
-		isInjured: player.isThing ? null : (isViewerThing || isViewer ? player.isInjured : null),
+		//isInfected: true,
+		isInfected: player.isThing ? null : (isViewerThing || isViewer ? player.isInfected : null),
 		//isThing: true,
-		isThing: isViewerThing || isViewerInjured ? player.isThing : null,
+		isThing: isViewerThing || isViewerInfected ? player.isThing : null,
 		quarantine: player.quarantine,
 		isReady: player.isReady,
 		isConnected: player.isConnected,

@@ -46,16 +46,16 @@ export const getCardActions = (game: Game, player: Player, card: ICardEvent): IC
 	if (card.id === EEventID.thing) return [];
 	if (!game.gameInProcess) return [];
 
-	const isCurrentPlayerInjured = player.isInjured;
+	const isCurrentPlayerInfected = player.isInfected;
 	const isCurrentPlayerThing = player.isThing;
 
 	const targetPlayer = getTargetPlayer(game, player);
 
 	const isTargetPlayerThing = targetPlayer && targetPlayer.isThing;
 
-	//у инжуры дроп только если не заражен ИЛИ карт заражения больше 1 или игрок нечто
-	const canDiscardInjure = !isCurrentPlayerInjured || infectsCount(player) > 1 || isCurrentPlayerThing;
-	const canTradeInjure = isCurrentPlayerThing || (isCurrentPlayerInjured && isTargetPlayerThing);
+	//у инфекта дроп только если не заражен ИЛИ карт заражения больше 1 или игрок нечто
+	const canDiscardInfect = !isCurrentPlayerInfected || infectsCount(player) > 1 || isCurrentPlayerThing;
+	const canTradeInfect = isCurrentPlayerThing || (infectsCount(player) > 1 && isCurrentPlayerInfected && isTargetPlayerThing);
 
 
 
@@ -63,7 +63,7 @@ export const getCardActions = (game: Game, player: Player, card: ICardEvent): IC
 		case ETurnState.idle:
 			return actions;
 		case ETurnState.inCardAction:
-			if (card.id === EEventID.infect && !canDiscardInjure) {
+			if (card.id === EEventID.infect && !canDiscardInfect) {
 				return [];
 			}
 
@@ -77,14 +77,14 @@ export const getCardActions = (game: Game, player: Player, card: ICardEvent): IC
 			return actions;
 		case ETurnState.inOffenseTrade:
 			if (card.eventType === EEventType.infect) {
-				if (canTradeInjure)	actions.push({ menuType: EPlayerActionType.cardTrade});
+				if (canTradeInfect)	actions.push({ menuType: EPlayerActionType.cardTrade});
 				return actions;
 			}
 			actions.push({ menuType: EPlayerActionType.cardTrade});
 			return actions;
 		case ETurnState.inDefenseTrade:
 			if (card.id === EEventID.infect) {
-				if (canTradeInjure) {
+				if (canTradeInfect) {
 					actions.push({ menuType: EPlayerActionType.cardTrade});
 				}
 				return actions;

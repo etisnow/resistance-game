@@ -192,7 +192,7 @@ const printBruteforceReport = (counter, game:Game) => {
 	each(game.playersList, pId => {
 		const player = game.players[pId];
 		console.log(`
-			PLAYER:  ${player.nickname} ${player.turnState.toUpperCase()} injured: ${player.isInjured} thing: ${player.isThing}  quarantine: ${player.quarantine} 
+			PLAYER:  ${player.nickname} ${player.turnState.toUpperCase()} infected: ${player.isInfected} thing: ${player.isThing}  quarantine: ${player.quarantine} 
 			HAND`, player.hand && player.hand.map(c => c ? c.id : 'НЕ НАЙДЕНО'));
 	})
 	//console.log(lastLog, lastLog ==='Нечто победило', lastLog === 'Нечто проиграло')

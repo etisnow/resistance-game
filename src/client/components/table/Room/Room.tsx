@@ -211,7 +211,7 @@ const Room = observer(({controller} : IRoomProps) => {
 										id={player.id}
 										isConnected={player.isConnected}
 										isYou={player.isYou}
-										isInjured={player.isInjured}
+										isInfected={player.isInfected}
 										isThing={player.isThing}
 										quarantine={player.quarantine}
 										isDoor={state === EPlayerState.door}

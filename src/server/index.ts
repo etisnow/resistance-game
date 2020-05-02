@@ -19,9 +19,6 @@ class App {
     const app = express();
 
     this.server = new http.Server(app);
-    app.get('/', function(req, res) {
-      res.send('hello world');
-    });
     this.io = socketIO(this.server);
     gameServer.initialize(this.io);
     this.io.on("connection", (socket: socketIO.Socket) => {

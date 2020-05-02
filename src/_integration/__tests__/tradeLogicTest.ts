@@ -64,7 +64,7 @@ describe('trade logic',  () => {
 		const nextPlayer = offensePlayer.getNextPlayer();
 		offensePlayer.isThing = true;
 		offensePlayer.hand.splice(0,1);
-		nextPlayer.isInjured = false;
+		nextPlayer.isInfected = false;
 		offensePlayer.hand.splice(0,2, getCard(EEventID.analysis), getCard(EEventID.infect));
 		const discardCard = offensePlayer.hand[0];
 		const tradeCard = offensePlayer.hand[1];
@@ -83,7 +83,7 @@ describe('trade logic',  () => {
 		expect(game.turnContext.type).toBe(ETurnContextType.trade);
 
 
-		expect(nextPlayer.isInjured).toBe(false);
+		expect(nextPlayer.isInfected).toBe(false);
 
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
@@ -98,7 +98,7 @@ describe('trade logic',  () => {
 			cardUniqueId: randomNextPlayerCard.uniqueId,
 			actionType: EPlayerActionType.cardTrade
 		});
-		expect(nextPlayer.isInjured).toBe(true);
+		expect(nextPlayer.isInfected).toBe(true);
 		expect(nextPlayer.hand).toContainEqual(expect.objectContaining({id: tradeCard.id}));
 		expect(offensePlayer.hand).toContainEqual(expect.objectContaining({id: randomNextPlayerCard.id}));
 
@@ -115,10 +115,10 @@ describe('trade logic',  () => {
 
 	it('should game end if all infectd', () => {
 		const [gameServer, game, offensePlayer, nextPlayer, APlayer,BPlayer,CPlayer] = createMockGameServer();
-		APlayer.isInjured = true;
-		BPlayer.isInjured = true;
-		CPlayer.isInjured = true;
-		nextPlayer.isInjured = false;
+		APlayer.isInfected = true;
+		BPlayer.isInfected = true;
+		CPlayer.isInfected = true;
+		nextPlayer.isInfected = false;
 
 		offensePlayer.isThing = true;
 		offensePlayer.hand.splice(0,1);
@@ -140,7 +140,7 @@ describe('trade logic',  () => {
 		expect(game.turnContext.type).toBe(ETurnContextType.trade)
 
 
-		expect(nextPlayer.isInjured).toBe(false);
+		expect(nextPlayer.isInfected).toBe(false);
 
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
@@ -156,7 +156,7 @@ describe('trade logic',  () => {
 			actionType: EPlayerActionType.cardTrade
 		});
 
-		expect(nextPlayer.isInjured).toBe(true);
+		expect(nextPlayer.isInfected).toBe(true);
 		expect(nextPlayer.hand).toContainEqual(expect.objectContaining({id: tradeCard.id}));
 		expect(offensePlayer.hand).toContainEqual(expect.objectContaining({id: randomNextPlayerCard.id}));
 

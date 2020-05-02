@@ -94,7 +94,7 @@ export class Game {
     this.playersList = this.playersList.filter(pId => pId !== player.id);
     const alivePlayers = filter(clone(this.playersList), pId => this.players[pId].isAlive());
 
-    const cleanPlayers = filter(alivePlayers, pId => !this.players[pId].isInjured);
+    const cleanPlayers = filter(alivePlayers, pId => !this.players[pId].isInfected);
     if (cleanPlayers.length === 0) {
       return this.end('Нечто победило');
     }
@@ -217,8 +217,13 @@ export class Game {
 
     // Добавляем поднятую карту игроку на руку
     player.getCard(grabbedCard);
-
     player.changeTurnState(ETurnState.inCardAction);
+    if (player.quarantine > 0) {
+      player.quarantine = player.quarantine - 1;
+      if (player.quarantine === 0 ) {
+        this.addLog(`Игрок ${player.nickname} вышел из карантина`);
+      }
+    }
     this.addLog(`Игрок ${player.nickname} взял карту и ходит...`);
     this.updateGame();
   }
@@ -271,11 +276,11 @@ export class Game {
       console.error('Неудалось заразить игрока, т.к не было найдено его ID', playerId);
       return;
     }
-    this.players[playerId].isInjured = true;
+    this.players[playerId].isInfected = true;
 
     const cleanPlayerId = find(this.playersList, (pId) => {
       const pl = this.players[pId];
-      return pl.state === EPlayerState.dummy && !pl.isThing && !pl.isInjured
+      return pl.state === EPlayerState.dummy && !pl.isThing && !pl.isInfected
     });
     const notificationPlayer = this.players[playerId];
     if (!cleanPlayerId) {

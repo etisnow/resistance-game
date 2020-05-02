@@ -23,7 +23,7 @@ export class Player {
 	game: Game = null;
 	isYou: boolean;
 	hand: ICardEvent[];
-	isInjured: boolean = false;
+	isInfected: boolean = false;
 	isThing: boolean = false;
 	quarantine: number = 0;
 	isReady: boolean = false;

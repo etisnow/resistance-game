@@ -75,7 +75,7 @@ export const gameStarter = (game: Game) => {
 		currentPlayer.hand = currentPlayerHand;
 		each(currentPlayerHand, (card: ICardEvent) => {
 			if (card.id === EEventID.thing) {
-				currentPlayer.isInjured = true;
+				currentPlayer.isInfected = true;
 				currentPlayer.isThing = true;
 			}
 		});

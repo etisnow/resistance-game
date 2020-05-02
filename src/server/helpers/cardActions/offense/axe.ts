@@ -39,9 +39,9 @@ export const axeSelect = ({game, player, selectedPlayerId} : {game: Game, player
 			return playerId !== selectedPlayer.id
 		})
 	}
-	if (selectedPlayer.quarantine>0) {
-		selectedPlayer.quarantine = 0;
-	}
+
+	selectedPlayer.quarantine = 0;
+
 	game.addLog(`Игрок ${player.nickname} играет карту "Топор" на ${selectedPlayer.nickname}`);
 	player.changeTurnState(ETurnState.inOffenseTrade)
 };

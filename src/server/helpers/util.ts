@@ -22,7 +22,7 @@ export function shuffle<T extends any[]>(array: T): T {
   return array;
 }
 
-const silent = false;
+const silent = true;
 export let debugCache = [];
 export function clearDebugCache() {
   debugCache = [];
