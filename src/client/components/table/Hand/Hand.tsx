@@ -127,7 +127,11 @@ const Hand = observer(({controller} : IHandProps) => {
 	const cardsCount = hand.length;
 
 	const cardSelection = (index) => {
-		selectCard(index);
+		if (selectedCardIndex === index) {
+			selectCard(null)
+		} else {
+			selectCard(index);
+		}
 	};
 
 	const onSelectCard = () => {
@@ -150,7 +154,7 @@ const Hand = observer(({controller} : IHandProps) => {
 		enter: styleUpdater,
 		update: styleUpdater,
 		leave: card => defaultCardStyle,
-		config: config.gentle,
+		config: config.default,
 		native: true,
 	} as any);
 
