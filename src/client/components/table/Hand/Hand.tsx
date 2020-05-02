@@ -150,7 +150,8 @@ const Hand = observer(({controller} : IHandProps) => {
 		enter: styleUpdater,
 		update: styleUpdater,
 		leave: card => defaultCardStyle,
-		config: config.gentle
+		config: config.gentle,
+		native: true,
 	} as any);
 
 	return (
