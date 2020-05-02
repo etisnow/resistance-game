@@ -1,3 +1,10 @@
+.roomWrapper {
+    padding: 30px;
+    background: #848007;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #001f02 0%, #006616 100%);
+    box-shadow: 0 8px 0px 1px #00310a;
+}
 .playerRoom {
     position: absolute;
     justify-content: center;

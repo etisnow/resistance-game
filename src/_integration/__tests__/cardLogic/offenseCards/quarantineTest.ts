@@ -95,7 +95,6 @@ describe('quarantine test',  () => {
 			actionType: EPlayerActionType.cardAct
 		});
 
-		console.log('PREV PLAYER ID', prevPlayer.id)
 
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,

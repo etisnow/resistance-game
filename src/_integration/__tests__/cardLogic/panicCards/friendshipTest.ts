@@ -77,8 +77,6 @@ describe('friendship test',  () => {
 			expect.objectContaining({id: missCard.id})
 		)
 
-		//console.log('+=======================')
-		//printPlayersStatuses(game)
 		const nextPlayer = offensePlayer.getNextPlayer();
 		expect(nextPlayer.turnState).toBe(ETurnState.inCardAction);
 

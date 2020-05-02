@@ -71,9 +71,6 @@ describe('axe test',  () => {
 		expect(offensePlayer.hand.length).toBe(4);
 
 
-		//т.к теперь ходит нирон, у него 5 карт  на руке
-		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
-		console.log("OK2")
 	});
 
 	it('axe should break the quarantine', () => {

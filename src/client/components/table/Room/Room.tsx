@@ -180,7 +180,7 @@ const Room = observer(({controller} : IRoomProps) => {
 	}
 
 	return (
-		<React.Fragment>
+		<div className={'roomWrapper'}>
 			<div className={"playerRoom"} style={canvasHeightWidth}>
 				{map(transitions, ({item: playerId, key, props }) => {
 					const player = players[playerId];
@@ -255,7 +255,7 @@ const Room = observer(({controller} : IRoomProps) => {
 					)
 				})}
 			</svg>
-		</React.Fragment>
+		</div>
 	)
 });
 

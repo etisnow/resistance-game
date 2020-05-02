@@ -69,18 +69,8 @@ const calculateScale = () => {
 	const cardHeight = getWindowHeight() / playerHandHeight() ;
 	const scale = cardHeight / cardAspectRatio;
 	//const scale = getWindowHeight() / playerHandHeight();
-	return scale * 0.85;
+	return Math.round(scale * 0.85);
 }
-
-const calculateX = (cardNumber, cardsCount) => {
-	const fullWidth = getWindowWidth() * 1
-	const half = fullWidth / 2;
-	console.log('card width', fullWidth,  cardsCount);
-	const x = (fullWidth / cardsCount) * cardNumber;
-	console.log(x)
-	return x
-}
-
 
 /*GEOMETRY*/
 const circleRadius = getWindowWidth()
@@ -102,7 +92,8 @@ const getCirclePoint = (radius, deg, centerX, centerY) => {
 
 
 const calculateCardStypeProps = (cardNumber, cardsCount) => {
-	const maxCardDeg = 50;
+	const degStep = 11;
+	const maxCardDeg = degStep * cardsCount;
 	const cardDeg = getDegDeg(cardNumber, cardsCount, maxCardDeg);
 	const cardRotationDeg = getDegDeg(cardNumber, cardsCount, maxCardDeg * 0.4);
 	const {x,y} = getCirclePoint(circleRadius, cardDeg, circleX,circleY);
@@ -125,6 +116,7 @@ const Hand = observer(({controller} : IHandProps) => {
 	const player = controller.currentPlayer;
 	if (!player) return null;
 	const {hand} = player;
+	console.log('HAND', hand)
 	if (!hand) return null;
 
 	const cardsCount = hand.length;
@@ -141,33 +133,25 @@ const Hand = observer(({controller} : IHandProps) => {
 		return hand.indexOf(card)
 	};
 
-	const transitions = useTransition(hand, card=>card.uniqueId, {
-		from: {
-				x:0,y:0,rot:0,scale:0
-		},
-		update: card => {
+	const styleUpdater = (card) => {
 			const isSelected = card.uniqueId === selectedCardIndex;
 			const cardNumber = cardNumberInRow(card);
-			//const rot = isSelected ? 0 : cardNumber * (30 / cardsCount) - 15 + (15/cardsCount);
-//
-			//const scale = isSelected ? calculateScale(playerCardWidthPix()) : 1;
-			//const y = isSelected ? -(getWindowHeight() * 0.03) : -(getWindowHeight() * 0.03);
-			//const x = calculateX(cardNumberInRow(card), cardsCount);
 
 			const {x,y,rot,scale} = isSelected ? calculateCardSelectedStypeProps() : calculateCardStypeProps(cardNumber, cardsCount)
 			return {
 				x,y,rot,scale
-				//transform: `rotate(${rot}deg) scale(${scale}) translateY(${y}px) translateX(${x}px)`,
-				//transform: `rotate(${rot}deg) scale(1) translateY(${y}px)`,
-				//transformWrapper: `scale(${scale}) translateY(${y}px translateX(${x}px)`,
-				//transformCard: `rotate(${rot}deg)`,
 			};
+	}
+
+	const transitions = useTransition(hand, card=>card.uniqueId, {
+		from: {
+				x:0,y:0,rot:0,scale:0
 		},
+		enter: styleUpdater,
+		update: styleUpdater,
 		leave: card => {
 			return {
 				x:0,y:0,rot:0,scale:0
-				//transformWrapper: `rotate(90deg) scale(0) translateY(${-getWindowHeight()}px) translateX(0px)`,
-				//transformCard: `rotate(0deg)`,
 			};
 		},
 	} as any);
@@ -211,9 +195,6 @@ const Hand = observer(({controller} : IHandProps) => {
 				})}
 				{selectedCardIndex !== null && <div onClick={() => cardSelection(null)} className={'cardsOverlay'}/>}
 			</div>
-{/*			<svg height={circleRadius * 2} width={circleRadius * 2} style={{top: playerHandHeight() - circleRadius + circleY}}>
-			  <circle cx={circleRadius} cy={circleRadius} r={circleRadius} stroke="black" stroke-width="0" fill="red" />
-			</svg>*/}
 		</div>
 	)
 });

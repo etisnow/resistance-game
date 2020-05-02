@@ -6,7 +6,7 @@ import GameScreen from 'client/components/game/GameScreen';
 import Launcher from 'client/components/launcher/Launcher';
 import {EAppState} from 'shared/enum/common';
 import RootController from 'client/controllers/rootController';
-var socket = io.connect('http://localhost:30');
+var socket = io.connect('http://95.37.255.173:30');
 
 
 @observer

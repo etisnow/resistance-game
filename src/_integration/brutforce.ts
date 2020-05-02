@@ -189,7 +189,6 @@ const startBrutforce = () => {
 const printBruteforceReport = (counter, game:Game) => {
 	const lastLog = game.gameLog[game.gameLog.length-1];
 	printDebugCache();
-	console.log(`PLAYERS INFO over ${counter} iterations - ${lastLog}`, lastLog === 'Нечто победило', lastLog === 'Нечто проиграло')
 	each(game.playersList, pId => {
 		const player = game.players[pId];
 		console.log(`

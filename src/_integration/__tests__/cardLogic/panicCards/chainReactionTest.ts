@@ -40,7 +40,6 @@ describe('chainReaction test',  () => {
 			expect(pl.turnState).toBe(ETurnState.inOffenseTrade);
 			expect(game.turnContext.type).toBe(ETurnContextType.chainReaction);
 
-			//console.log('DIFF', difference((game.turnContext as any).playersPick, tradedCards));
 			testPlayerAction(gameServer, game, {
 				player:pl,
 				cardUniqueId: card.uniqueId,
@@ -58,7 +57,6 @@ describe('chainReaction test',  () => {
 					)
 				})
 
-				//each(game.players, (pl) => {console.log('PLAYER STATE', pl.nickname, pl.turnState)})
 
 				//Два некста, потому что была дверь
 				const nextPlayerAfterStarter = startPlayer.getNextPlayer().getNextPlayer();
@@ -95,11 +93,9 @@ describe('chainReaction test',  () => {
 			if (pl.state === EPlayerState.door) return;
 			const card = pl.getRandomPlayableCard();
 			tradedCards.push({player: pl, card});
-			console.log(pl.nickname)
 			expect(pl.turnState).toBe(ETurnState.inOffenseTrade);
 			expect(game.turnContext.type).toBe(ETurnContextType.chainReaction);
 
-			//console.log('DIFF', difference((game.turnContext as any).playersPick, tradedCards));
 			testPlayerAction(gameServer, game, {
 				player:pl,
 				cardUniqueId: card.uniqueId,

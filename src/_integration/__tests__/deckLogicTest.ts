@@ -31,7 +31,6 @@ const testPlayerLogic = (gameServer, game, player) => {
 	});
 
 	counter ++;
-	console.log('COUNTER=================', counter)
 	if (counter === 70) return;
 	const nextPlayer = player.getNextPlayer();
 	return testPlayerLogic(gameServer, game, nextPlayer)
