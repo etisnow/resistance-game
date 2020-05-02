@@ -114,10 +114,19 @@ export class Game {
     //this.notifyAllPlayers(formatPlayerConnectedEvent({viewer: player, game: this}))
   }
 
-  disconnectPlayer({ player }: {player: Player}) {
+  kickPlayer = ({ player }: {player: Player}) => {
     delete this.players[player.id];
-    //player.socket.leave(this.id);
     this.updateGame();
+  }
+
+  disconnectPlayer({ player }: {player: Player}) {
+    this.addLog(`Игрок ${player.nickname} отключился от игры. Ждем его возвращения`)
+    player.isReady = false;
+    const activePlayer = find(this.players, {isConnected: true});
+    if (activePlayer) {
+      return this.updateGame();
+    }
+    this.destroy();
   }
 
   updateGame = () => {
@@ -378,6 +387,6 @@ export class Game {
   };
 
   destroy() {
-    //flush logic
+    gameServer.destroyGame(this.id);
   }
 }

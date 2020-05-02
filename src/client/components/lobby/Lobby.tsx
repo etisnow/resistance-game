@@ -36,8 +36,9 @@ export class Lobby extends React.Component<ILobbyProps, any> {
 		return map(players, (player : Player | null) => {
 			const isReady = player.isReady;
 			if (!player) return null;
+			const state = !player.isConnected ? 'Отключился' : player.isReady ? 'Готов' : '';
 			return <div key={player.id} className={cx({'player-lobby-item': true, isReady})}>
-				<span>{player.nickname} {isReady ? ' - Готов' : ''}</span>
+				<span>{player.nickname} {` - ${state}`}</span>
 				<span>{player.isHost && 'Хост'}</span>
 				{ !player.isHost && kickButton(player.id) }
 			</div>

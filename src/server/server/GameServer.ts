@@ -42,12 +42,16 @@ class GameServer {
     player.isReady = true;
     player.register({ nickname, game });
     this.games[game.id] = game;
+    this.updateLobby();
+    return game;
+  }
+
+  updateLobby = () => {
     each(this.players, pl => {
       if (!pl.game) {
         pl.notify(formatLobbyState(gameServer));
       }
     })
-    return game;
   }
 
   reconnectPlayer = (connectedPlayer, player: Player) => {
@@ -109,8 +113,9 @@ class GameServer {
 
   kickPlayer({playerId}) {
     const player = this.getPlayerById(playerId);
+    if (!player) return;
     const game = player.game;
-    game.disconnectPlayer({player});
+    game.kickPlayer({player});
     player.notify(formatCommonError(`Тебя исключили из игры`))
   }
   getGameById(id) {
@@ -120,6 +125,7 @@ class GameServer {
     if (this.games[id]) {
       delete this.games[id]
     }
+    this.updateLobby();
   }
 
   playerAction({

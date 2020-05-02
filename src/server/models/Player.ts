@@ -147,8 +147,7 @@ export class Player {
 	makeOffline = () => {
 		this.isConnected = false;
 		if (this.game) {
-			this.game.addLog(`Игрок ${this.nickname} отключился от игры. Ждем его возвращения`)
-			this.game.updateGame();
+			this.game.disconnectPlayer({player: this})
 		}
 	};
 

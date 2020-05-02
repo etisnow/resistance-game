@@ -12,6 +12,9 @@
     transition: all 0.3s ease;
     border: 2px solid transparent;
     flex-direction: column;
+	&.inTurn {
+		box-shadow: 0px 8px 0px -1px #005a0a;
+	}
 	.turnBadge {
 		position: absolute;
 		top: -7%;

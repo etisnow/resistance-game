@@ -12,7 +12,8 @@ export default class LauncherController {
 	socket: SocketController;
 
 	@observable state : EAsyncState = EAsyncState.idle;
-	@observable nickname: string = Math.ceil(Math.random() * 100) + '_neerone';
+	//@observable nickname: string = Math.ceil(Math.random() * 100) + '_neerone';
+	@observable nickname: string = '';
 	@observable gameId: string = '5';
 	@observable games: {gameId: string, hostName: string}[] = [];
 	constructor(root: RootController, parent) {
