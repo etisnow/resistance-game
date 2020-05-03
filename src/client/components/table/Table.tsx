@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect, useRef} from 'react';
 import './style.scss';
 import {observer} from 'mobx-react-lite';
 import GameController from 'client/controllers/gameController';
@@ -16,17 +16,22 @@ interface ITableProps {
 
 const Table = observer(({controller} : ITableProps) => {
 		const player = controller.currentPlayer;
+		const canvasWrapperEl = useRef(null);
+		useEffect(() => {
+			controller.root.pixiController.init(canvasWrapperEl.current)
+		});
 		if (!player) return null;
 		const {hand} = player;
 		if (!hand) return null;
 		return (
 			<div className={"gameTable"}>
 				<GameLog controller={controller}/>
-				<Deck controller={controller}/>
+				<div ref={canvasWrapperEl} className={'canvasWrapper'}></div>
+{/*				<Deck controller={controller}/>
 				<Room controller={controller}/>
 				<Hand controller={controller}/>
 				<Notifier controller={controller}/>
-				<ActionInteracter controller={controller}/>
+				<ActionInteracter controller={controller}/>*/}
 {/*				<button className={'fullscreenChangeButton'} onClick={() => {controller.toggleFullScreen()}}>
 					{controller.isFullScreen ? 'Обычный' : 'Полноэкранный'}
 				</button>*/}

@@ -20,6 +20,7 @@
     "mobx-react": "^6.1.8",
     "mobx-react-lite": "^1.5.2",
     "node-sass": "^4.13.1",
+    "pixi.js": "^5.2.3",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-helmet": "^6.0.0",
