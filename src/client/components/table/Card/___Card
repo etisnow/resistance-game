@@ -4,6 +4,8 @@ import { observer } from "mobx-react-lite"
 import {fulldeck, thingCard} from 'shared/constant/cards';
 import {resources} from 'client/resources/resources';
 import {EEventID} from 'shared/enum/cards';
+import { Container, Sprite } from 'react-pixi-fiber';
+import * as PIXI from 'pixi.js'
 
 
 interface ICardProps {
@@ -11,22 +13,29 @@ interface ICardProps {
 	menu?: React.ReactNode;
 	onCardClick?: any;
 	canBeUsed? :boolean;
+	width?: number;
+	height?: number;
 }
 
-const Card = observer(({id, menu, onCardClick, canBeUsed}: ICardProps) => {
+const Card = observer(({id, menu, onCardClick, canBeUsed, width, height}: ICardProps) => {
 	const card = fulldeck[id] || (id === EEventID.thing ? thingCard : null);
+	const cardTexture = PIXI.Texture.from(resources[id]);
 	if (!card) {
 		console.error('Карты', id, 'не добавлено!');
 		return null;
 	}
-
 	return (
+		<Container>
+			<Sprite texture={cardTexture}/>
+		</Container>
+	)
+/*	return (
 		<div className={`cardWrapper ${canBeUsed ? 'cardCanBeUsed' : ''} ${card.id}`} >
 			<img src={resources[card.id]} onClick={onCardClick}/>
-			{/*<div onClick={onCardClick} className={'card-clickable-zone'}></div>*/}
+			{/!*<div onClick={onCardClick} className={'card-clickable-zone'}></div>*!/}
 			{menu && menu}
 		</div>
-	)
+	)*/
 });
 
 export default Card;

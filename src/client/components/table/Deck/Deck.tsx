@@ -25,12 +25,12 @@ const Deck = observer(({controller}: IDeckProps) => {
 				const rotation = index ? index / 5 : 0;
 				return (
 					<div key={index} className={'deckCardWrapperMap'} style={{zIndex: index, transform: `rotate(${rotation}deg)`}}>
-						<DeckCard type={ECardType.event}/>
+						<DeckCard type={ECardType.event} width={100} height={100}/>
 					</div>
 				)
 			})}
 			<div className={'deckCardWrapperMap'} style={{zIndex: cardsCount + 1}}>
-				<DeckCard type={topCardType}/>
+				<DeckCard type={topCardType} width={100} height={100}/>
 			</div>
 		</div>
 	)

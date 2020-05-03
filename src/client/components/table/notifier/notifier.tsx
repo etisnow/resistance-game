@@ -5,7 +5,7 @@ import {map} from 'lodash';
 import INotificationAction from 'shared/interfaces/notification';
 import GameController from 'client/controllers/gameController';
 import {ICardAny} from 'shared/interfaces/cards';
-import Card from 'client/components/table/Card/Card';
+//import Card from 'client/components/table/Card/___Card';
 import {ENotificationAction} from 'shared/enum/notifications';
 
 interface INotifierProps {
@@ -60,7 +60,8 @@ const generateCardMenuByNotificationType = (controller: GameController, notifica
 const CardsViewer = ({cards, menu}: {cards: ICardAny[], menu: (a?:any) => React.ReactNode}) => {
 	return <div className={'cardsViewer'}>
 		{map(cards, (card: ICardAny, index) => {
-			return <Card key={index} {...card} menu={menu(card.uniqueId)}/>
+			return null;
+			//return <Card key={index} {...card} menu={menu(card.uniqueId)}/>
 		})}
 	</div>
 };

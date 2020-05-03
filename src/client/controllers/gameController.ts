@@ -23,7 +23,7 @@ export default class GameController {
 	@observable deck: {count: number, topCardType: ECardType} = {count: 0, topCardType: ECardType.event};
 	@observable notifications: INotificationAction[] = [];
 	@observable playersToSelect: string[] = [];
-	@observable isLayoutSequential: boolean = false;
+	@observable isLayoutSequential: boolean = true;
 	@observable isFullScreen: boolean = false;
 	@observable tradeContext: IFormatTradeContext[] | null = null;
 	@observable currentAction: INotificationAction | null = null;

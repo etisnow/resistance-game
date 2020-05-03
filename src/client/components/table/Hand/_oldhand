@@ -1,3 +1,4 @@
+/*
 import React, {useState} from 'react';
 import {clamp, map} from 'lodash';
 import './styles.scss';
@@ -65,7 +66,6 @@ const generateCardMenu = (id, cardUniqueId, gameController: GameController, onSe
 	)
 };
 
-/*GEOMETRY*/
 const circleRadius = getWindowWidth()
 const circleX = 0
 const circleY = circleRadius - (getWindowHeight() * 0.06)
@@ -115,7 +115,7 @@ const calculateCardSelectedStypeProps = () => {
 	return {x:0,y:-(offset + (height/2) ),rot:0,width, height}
 }
 
-const Hand = observer(({controller} : IHandProps) => {
+const ___Hand = observer(({controller} : IHandProps) => {
 
 	const [selectedCardIndex, selectCard] = useState(null);
 
@@ -201,5 +201,6 @@ const Hand = observer(({controller} : IHandProps) => {
 	)
 });
 
-export default Hand;
+export default ___Hand;
 
+*/
