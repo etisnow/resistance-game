@@ -2,9 +2,10 @@ import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
-import {ENotification} from 'shared/enum/notifications';
+import {ENotificationAction} from 'shared/enum/notifications';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {filter, find} from 'lodash';
+import {debugLog} from 'server/helpers/util';
 
 export const getPlayerByStep = ({game, currentPlayer, isNext, step}: {game:Game, currentPlayer:Player, step: number, isNext: boolean}) => {
 	const nextPlayer = game.getPlayerByPosition({playerId: currentPlayer.id,isNext})
@@ -19,7 +20,7 @@ export const getPlayerByStep = ({game, currentPlayer, isNext, step}: {game:Game,
 
 export const oneTwoAct = ({game, player}: {game:Game, player:Player}) => {
 	player.changeTurnState(ETurnState.inCardActionProgress);
-
+	game.addLog(`Паника: раз-два: игрок ${player.nickname} меняется местами с третьим игроком по часовой или против часовой стрелке`);
 	const left = getPlayerByStep({game, currentPlayer:player, isNext: true, step:2});
 	const right = getPlayerByStep({game, currentPlayer:player, isNext: false, step:2});
 
@@ -36,7 +37,7 @@ export const oneTwoAct = ({game, player}: {game:Game, player:Player}) => {
 	player.notify(formatPlayerNotification({
 		player,
 		notification: {
-			type: ENotification.playerSelect,
+			type: ENotificationAction.playerSelect,
 			playersToSelect: selectPlayersId,
 			text:'Выбери игрока для смены мест'
 		}
@@ -49,9 +50,10 @@ export const oneTwoAct = ({game, player}: {game:Game, player:Player}) => {
 
 
 export const oneTwoPlayerSelect = ({game, selectedPlayerId, player}: {game:Game, player: Player, selectedPlayerId: string}) => {
+	debugLog('SELECTED PLAYER ID', selectedPlayerId)
 	const selectedPlayer = find(game.players, {id:selectedPlayerId});
 	game.addLog(`Игрок ${player.nickname} меняется местами с ${selectedPlayer.nickname}`);
 	game.swapPlayers(selectedPlayerId, player.id);
-	player.changeTurnState(ETurnState.inOffenseTrade);
 	game.turnContext = null;
+	player.changeTurnState(ETurnState.inOffenseTrade);
 };

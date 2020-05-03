@@ -1,9 +1,11 @@
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
-import {createMockGameServer} from 'server/_playground/createGameServer';
+import {createMockGameServer} from '_integration/createGameServer';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {checkAllDeckCards} from '_integration/helpers';
+import {checkAllDeckCardsTestEdition} from '_integration/helpers';
+import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
+import {ETurnContextType} from 'shared/enum/turnContextType';
 
 describe('axe test',  () => {
 
@@ -21,18 +23,18 @@ describe('axe test',  () => {
 		expect(offensePlayer.turnState).toBe(ETurnState.inCardAction);
 		let barricade = offensePlayer.hand[0];
 		expect(barricade).not.toBe(undefined);
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			cardUniqueId: barricade.uniqueId,
 			actionType: EPlayerActionType.cardAct
 		});
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			selectedPlayerId: defensePlayer.id,
 			actionType: EPlayerActionType.playerSelect
 		});
 		//Должна поставиться стена
-		const door = game.getPlayerByPosition({playerId: offensePlayer.id, isNext:true});
+		const door = offensePlayer.getNextPlayer();
 		expect(door.state).toBe(EPlayerState.door);
 		//Не должно быть старой картой barricade, но должна быть новая
 		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: barricade.uniqueId}));
@@ -47,12 +49,12 @@ describe('axe test',  () => {
 
 		let axe = defensePlayer.hand[0];
 
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:defensePlayer,
 			cardUniqueId: axe.uniqueId,
 			actionType: EPlayerActionType.cardAct
 		});
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:defensePlayer,
 			selectedPlayerId: door.id,
 			actionType: EPlayerActionType.playerSelect
@@ -65,11 +67,9 @@ describe('axe test',  () => {
 
 
 		expect(defensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
+		expect(game.turnContext.type).toBe(ETurnContextType.trade)
 		expect(offensePlayer.hand.length).toBe(4);
 
-
-		//т.к теперь ходит нирон, у него 5 карт  на руке
-		expect(checkAllDeckCards(game, false)).toBe(true);
 
 	});
 
@@ -93,23 +93,24 @@ describe('axe test',  () => {
 		expect(offensePlayer.turnState).toBe(ETurnState.inCardAction);
 		let axe = offensePlayer.hand[0];
 		expect(axe).not.toBe(undefined);
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			cardUniqueId: axe.uniqueId,
 			actionType: EPlayerActionType.cardAct
 		});
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			selectedPlayerId: offensePlayer.id,
 			actionType: EPlayerActionType.playerSelect
 		});
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
+		expect(game.turnContext.type).toBe(ETurnContextType.trade)
 		expect(offensePlayer.hand.length).toBe(4);
 		expect(offensePlayer.quarantine).toBe(0);
 
-		expect(checkAllDeckCards(game, false)).toBe(true);
-
+		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
+		console.log("OK3")
 	});
 
 });

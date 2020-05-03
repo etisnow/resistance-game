@@ -1,11 +1,13 @@
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
-import {createMockGameServer} from 'server/_playground/createGameServer';
+import {createMockGameServer} from '_integration/createGameServer';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {find} from 'lodash';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {checkAllDeckCards} from '_integration/helpers';
-import {ENotification} from 'shared/enum/notifications';
+import {checkAllDeckCardsTestEdition} from '_integration/helpers';
+import {ENotificationAction} from 'shared/enum/notifications';
+import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
+import {ETurnContextType} from 'shared/enum/turnContextType';
 
 
 describe('seduction test',  () => {
@@ -23,19 +25,20 @@ describe('seduction test',  () => {
 		let miss = offensePlayer.hand[1];
 
 		expect(seduction).not.toBe(undefined);
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			cardUniqueId: seduction.uniqueId,
 			actionType: EPlayerActionType.cardAct
 		});
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			selectedPlayerId: BPlayer.id,
 			actionType: EPlayerActionType.playerSelect
 		});
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
+		expect(game.turnContext.type).toBe(ETurnContextType.trade)
 
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			actionType: EPlayerActionType.cardTrade,
 			cardUniqueId: miss.uniqueId,
@@ -43,18 +46,18 @@ describe('seduction test',  () => {
 
 		expect(BPlayer.turnState).toBe(ETurnState.inDefenseTrade);
 
-		const firstBPlayerCard = BPlayer.hand[0];
+		const BPlayerCard = BPlayer.getRandomPlayableCard();
 
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:BPlayer,
 			actionType: EPlayerActionType.cardTrade,
-			cardUniqueId: firstBPlayerCard.uniqueId,
+			cardUniqueId: BPlayerCard.uniqueId,
 		});
 
 		const nextPlayer = game.getPlayerByPosition({playerId:offensePlayer.id, isNext:true});
 		expect(nextPlayer.turnState).toBe(ETurnState.inCardAction);
 
-		expect(checkAllDeckCards(game, false)).toBe(true);
+		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 
 	});
 

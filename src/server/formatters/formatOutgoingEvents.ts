@@ -3,11 +3,11 @@ import {Player} from 'server/models/Player';
 import {Game} from 'server/models/Game';
 import {find, map, mapValues, reduce, remove, filter} from 'lodash';
 import {GameServer} from 'server/server/GameServer';
-import INotification from 'shared/interfaces/notification';
+import INotificationAction from 'shared/interfaces/notification';
 import {formatHand} from 'server/formatters/formatHand';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {IFormatTradeContext} from 'shared/interfaces/common';
-import {ETurnState} from 'shared/enum/player';
+import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {getNextChainReactionPlayer} from 'server/helpers/cardActions/panic/chainReaction';
 
 function formatEvent(type, payload) {
@@ -31,46 +31,23 @@ export const formatUpdateGameEvent = ({ game, viewer }: {game: Game, viewer: Pla
 	return formatEvent(EServerEventType.updateGame, formatUpdatePlayerPayload({ game, viewer }))
 };
 
-export const formatPlayerConnectedEvent = ({ game, viewer }: {game: Game, viewer: Player}) => {
+/*export const formatPlayerConnectedEvent = ({ game, viewer }: {game: Game, viewer: Player}) => {
 	return formatEvent(EServerEventType.playerConnected, formatUpdatePlayerPayload({ game, viewer }))
-};
+};*/
 
 const formatTradeContext = (game: Game) : IFormatTradeContext[] => {
-	/* TEST AREA */
-/*	if (!game.playersList) return;
-	let test= reduce(game.playersList, (acc, pId) => {
-		const player = game.players[pId];
-		const defensePlayer = game.getPlayerByPosition({playerId:pId, isNext:true});
-		acc.push({
-			offensePlayerId: pId,
-			defensePlayerId: defensePlayer.id,
-			isCardPicked: false
-		})
-		return acc;
-	}, [])
-	const host = find(game.players, {nickname:"хост"});
-	const igrogriv = find(game.players, {nickname:"Генадий Игрогрив3"});
-	test = filter(test, (trade) => { return trade.offensePlayerId !== host.id})
-	if (host && igrogriv) {
-		test.push({
-			offensePlayerId: host.id,
-			defensePlayerId: igrogriv.id,
-			isCardPicked: false
-		})
-	}
-	return test;*/
-	/*test area*/
-
 	if (!game.turnContext) return;
 	const ctx: any = game.turnContext;
 	switch (game.turnContext.type) {
 		case ETurnContextType.chainReaction:
 			return reduce(game.playersList, (acc, pId) => {
 				const player = game.players[pId];
-				if (player.turnState === ETurnState.inOffenseTrade) {
+				if (player.turnState === ETurnState.inOffenseTrade && player.state !== EPlayerState.door) {
+
+					const defensePlayer = getNextChainReactionPlayer({currentPlayer: player, game})
 					acc.push({
 						offensePlayerId: pId,
-						defensePlayerId: getNextChainReactionPlayer({currentPlayer: player, game}),
+						defensePlayerId: defensePlayer.id,
 						isCardPicked: false,
 						type: game.turnContext.type,
 					})
@@ -96,13 +73,16 @@ const formatTradeContext = (game: Game) : IFormatTradeContext[] => {
 
 const formatUpdatePlayerPayload = ({ game, viewer }: {game: Game, viewer: Player}) => {
 	return {
+		state: game.state,
+		currentPlayer: formatPlayer(game, viewer)(viewer),
 		players: formatPlayers(game, viewer),
 		turnPlayerId:  game.turnPlayerId,
 		playersList:  game.playersList,
 		isClockwise:  game.isClockwise,
 		gameLog: game.gameLog,
 		tradeContext: formatTradeContext(game),
-		deck: formatDeck(game)
+		deck: formatDeck(game),
+		currentAction: viewer.currentAction,
 	}
 };
 
@@ -112,7 +92,7 @@ const formatPlayer = (game: Game, viewer: Player) => (player: Player) => {
 	if (!player) return null;
 	const isViewer = viewer.id === player.id;
 	const isViewerThing = viewer.isThing;
-	const isViewerInjured = viewer.isThing;
+	const isViewerInfected = viewer.isThing;
 
 	return {
 		id: player.id,
@@ -123,11 +103,13 @@ const formatPlayer = (game: Game, viewer: Player) => (player: Player) => {
 		hand: isViewer ? formatHand(game, player) : null,
 		color: player.color,
 		turnState: player.turnState,
-		//isInjured: true,
-		isInjured: player.isThing ? null : (isViewerThing || isViewer ? player.isInjured : null),
+		//isInfected: true,
+		isInfected: player.isThing ? null : (isViewerThing || isViewer ? player.isInfected : null),
 		//isThing: true,
-		isThing: isViewerThing || isViewerInjured ? player.isThing : null,
+		isThing: isViewerThing || isViewerInfected ? player.isThing : null,
 		quarantine: player.quarantine,
+		isReady: player.isReady,
+		isConnected: player.isConnected,
 	}
 };
 
@@ -135,15 +117,18 @@ const formatPlayers = (game: Game, viewer: Player) => {
 	return mapValues(game.players, formatPlayer(game, viewer))
 };
 
-export const formatPlayerConnectionSuccessEvent = ({player, game, players}: {player: Player, game: Game, players: { [key:string]: Player } }) => {
+/*export const formatPlayerConnectionSuccessEvent = ({player, game, players}: {player: Player, game: Game, players: { [key:string]: Player } }) => {
+	return formatEvent(EServerEventType.updateGame, formatUpdatePlayerPayload({ game, viewer:player }))
 	return formatEvent(EServerEventType.gameConnectionSuccess, {
+		currentPlayer: formatPlayer(game, player)(player),
+		state: game.state,
 		game: {
 			id: game.id
 		},
 		player: formatPlayer(game, player)(player),
 		players: formatPlayers(game, player),
 	})
-}
+}*/
 
 const findGameHost = (game: Game) => {
 	const hostPlayer = find(game.players, player => { return player.isHost });
@@ -162,6 +147,13 @@ export const formatLobbyState = (gameServer: GameServer) => {
 	})
 };
 
-export const formatPlayerNotification = ({player, notification} : {player: Player, notification: INotification}) => {
+
+export const formatPlayerNotification = ({player, notification} : {player: Player, notification: INotificationAction}) => {
 	return formatEvent(EServerEventType.notification, notification)
 }
+
+export const formatCommonError = (errorMessage: string) => {
+	return formatEvent(EServerEventType.commonError, {
+		error: errorMessage,
+	})
+};

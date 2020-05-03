@@ -2,30 +2,33 @@ import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
 import {ETurnState} from 'shared/enum/player';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
-import {ENotification} from 'shared/enum/notifications';
-import {clone, find} from 'lodash';
-import {formatCardActions} from 'server/formatters/formatCardActions';
+import {ENotificationAction} from 'shared/enum/notifications';
+import {clone, each, find} from 'lodash';
+import {getCardActions} from 'server/formatters/formatCardActions';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {discardCard} from 'server/helpers/discardCard';
-import {ETurnContextType} from 'shared/enum/turnContextType';
 
-export const notifyPlayerDiscardCards = ({game, player}: {game:Game, player:Player}) => {
+import {ETurnContextType} from 'shared/enum/turnContextType';
+import INotificationAction from 'shared/interfaces/notification';
+
+export const notifyPlayerDiscardCards = ({game, player}: {game:Game, player:Player}) : INotificationAction => {
 	const clonedPlayer = clone(player);
 	clonedPlayer.turnState = ETurnState.inCardAction;
 	const filteredCards = clonedPlayer.hand.filter(card => {
-		const cardActions = formatCardActions(game, clonedPlayer, card);
+		const cardActions = getCardActions(game, clonedPlayer, card);
 		const cardTrade = find(cardActions, { menuType: EPlayerActionType.cardDiscard});
 		return !!cardTrade;
 	});
+
+
 	return {
-		type: ENotification.selectCard,
+		type: ENotificationAction.selectCard,
 		cards: filteredCards,
-		text:'Выбери одну из свои карт, чтобы поменять её на карту из колоды'
+		text:'Выбери одну из своих карт, чтобы поменять её на карту из колоды'
 	}
 };
 
 export const forgetfullnessAct = ({game, player}: {game:Game, player:Player}) => {
-	game.addLog('Игрок меняет три карты с руки на три из колоды');
+	game.addLog('Паника! Забывчивость: Игрок меняет три карты с руки на три из колоды');
 	player.changeTurnState(ETurnState.inCardActionProgress);
 
 
@@ -33,6 +36,7 @@ export const forgetfullnessAct = ({game, player}: {game:Game, player:Player}) =>
 		player,
 		notification: notifyPlayerDiscardCards({game, player})
 	}));
+
 
 	game.turnContext = {
 		type: ETurnContextType.forgetfullnessSelect,
@@ -46,7 +50,8 @@ export const forgetfullnessSelect = ({game, cardUniqueId, player}: {game:Game, p
 	if (!game.turnContext || game.turnContext.type !== ETurnContextType.forgetfullnessSelect) {
 		throw new Error('Забывчивость зафакапилась')
 	}
-	discardCard({game, player, cardUniqueId: cardUniqueId});
+	//discardCard({game, player, cardUniqueId: cardUniqueId});
+	player.discardCard(cardUniqueId)
 	game.turnContext.cards.push(cardUniqueId);
 
 	if (game.turnContext.cards.length < 3) {
@@ -60,9 +65,9 @@ export const forgetfullnessSelect = ({game, cardUniqueId, player}: {game:Game, p
 	const first = game.pickFirstEventCard();
 	const second = game.pickFirstEventCard();
 	const third = game.pickFirstEventCard();
-	player.hand.push(first);
-	player.hand.push(second);
-	player.hand.push(third);
+	player.getCard(first);
+	player.getCard(second);
+	player.getCard(third);
 	game.turnContext = null;
 	player.changeTurnState(ETurnState.inOffenseTrade)
 }

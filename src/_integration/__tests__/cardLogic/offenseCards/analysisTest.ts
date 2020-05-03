@@ -1,11 +1,13 @@
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
-import {createMockGameServer} from 'server/_playground/createGameServer';
+import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
 import {find} from 'lodash';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {checkAllDeckCards} from '_integration/helpers';
-import {ENotification} from 'shared/enum/notifications';
+import {checkAllDeckCardsTestEdition, expectOkayCard} from '_integration/helpers';
+import {ENotificationAction} from 'shared/enum/notifications';
+import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
+import {ETurnContextType} from 'shared/enum/turnContextType';
 
 
 describe('analysis test',  () => {
@@ -30,12 +32,12 @@ describe('analysis test',  () => {
 		let analysis = offensePlayer.hand[0];
 
 		expect(analysis).not.toBe(undefined);
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			cardUniqueId: analysis.uniqueId,
 			actionType: EPlayerActionType.cardAct
 		});
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			selectedPlayerId: defensePlayer.id,
 			actionType: EPlayerActionType.playerSelect
@@ -43,27 +45,25 @@ describe('analysis test',  () => {
 
 
 		//Игрок показывает карты Гене
-		expect(offensePlayer.socket.spy.mock.calls).toContainEqual(
-			expect.arrayContaining(['notification', expect.objectContaining({
-				type: ENotification.okayCard, cards: expect.arrayContaining([
-					expect.objectContaining({id: EEventID.fear}),
-					expect.objectContaining({id: EEventID.flamethrower}),
-					expect.objectContaining({id: EEventID.noFire}),
-					expect.objectContaining({id: EEventID.leaveMeAlone}),
-				])
-			})])
-		);
+		expectOkayCard(offensePlayer, expect.arrayContaining([
+			expect.objectContaining({id: EEventID.fear}),
+			expect.objectContaining({id: EEventID.flamethrower}),
+			expect.objectContaining({id: EEventID.noFire}),
+			expect.objectContaining({id: EEventID.leaveMeAlone}),
+		]))
 
 		//Не должно быть старой картой анализа, но должна быть новая
 		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: analysis.uniqueId}));
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
+		expect(game.turnContext.type).toBe(ETurnContextType.trade)
+
 		expect(defensePlayer.turnState).toBe(ETurnState.idle);
 		expect(offensePlayer.hand.length).toBe(4);
 
 		//т.к теперь ходит нирон, у него 5 карт  на руке
 		expect(defensePlayer.hand.length).toBe(4);
-		expect(checkAllDeckCards(game, false)).toBe(true);
+		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 
 	});
 

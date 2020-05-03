@@ -1,13 +1,14 @@
 import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
-import {ENotification} from 'shared/enum/notifications';
+import {ENotificationAction} from 'shared/enum/notifications';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
-import {discardCard} from 'server/helpers/discardCard';
+
 import {EEventID} from 'shared/enum/cards';
 import {find} from 'lodash';
+import {debugLog} from 'server/helpers/util';
 
 export const positionswapAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	game.turnContext = {
@@ -15,12 +16,12 @@ export const positionswapAct = ({card, game, player} : {card:ICardEvent, game: G
 		offensePlayer: player,
 		defensePlayer: null,
 	};
-	discardCard({game, player, cardUniqueId: card.uniqueId});
+	player.discardCard(card.uniqueId);
 	player.changeTurnState(ETurnState.inCardActionProgress);
     player.notify(formatPlayerNotification({
       player: player,
       notification: {
-		type: ENotification.playerSelect,
+		type: ENotificationAction.playerSelect,
 		playersToSelect: player.getPlayabeNeighbours(),
 		text: 'Выбери с кем хочешь поменяться местами'
       },
@@ -53,7 +54,7 @@ export const positionswapSelect = ({game, player, selectedPlayerId} : {game: Gam
     defensePlayer.notify(formatPlayerNotification({
 		player: player,
 		notification: {
-			type: ENotification.actionDecision,
+			type: ENotificationAction.actionDecision,
 			text,
 			menu: decisionMenu
 		},
@@ -67,17 +68,22 @@ export const positionswapFinish = ({game, player, action}: {game:Game, player:Pl
 	if (game.turnContext.type !== ETurnContextType.positionswap) {
 		throw new Error('Смена места произошла без контекста positionswap');
 	}
-	console.log('position swap finish!!')
 	const {offensePlayer, defensePlayer} = game.turnContext;
-	offensePlayer.changeTurnState(ETurnState.inOffenseTrade);
+	game.turnContext = null;
+
 	const leaveMeAloneCard = find(player.hand, {id:EEventID.leaveMeAlone});
 	if (action === 'swap' || !leaveMeAloneCard) {
 		game.addLog(`Игроки ${offensePlayer.nickname} и ${defensePlayer.nickname} меняются местами`);
 		game.swapPlayers(offensePlayer.id, defensePlayer.id);
+		offensePlayer.changeTurnState(ETurnState.inOffenseTrade);
 		return;
 	}
+	//КЕЙС КОГДА ИГРОК ПРИМЕНИЛ КАРТУ LEAVEME ALONE
 	game.addLog(`Игрок ${defensePlayer.nickname} применил "Мне и здесь неплохо" и остался на месте`);
-	discardCard({game, player, cardUniqueId: leaveMeAloneCard.uniqueId});
+	//discardCard({game, player, cardUniqueId: leaveMeAloneCard.uniqueId});
+	player.discardCard(leaveMeAloneCard.uniqueId)
+
 	game.grabEventCardFromDeck({player});
+	offensePlayer.changeTurnState(ETurnState.inOffenseTrade);
 
 }

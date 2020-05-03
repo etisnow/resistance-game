@@ -1,11 +1,14 @@
 import {Game} from 'server/models/Game';
 import {fullDeckObject, getCard, getPanic, handCardsCount, thingCard} from 'shared/constant/cards';
-import {concat, each, find, range, reduce} from 'lodash';
+import {concat, each, find, range, reduce, clone} from 'lodash';
 import {ICardAny, ICardEvent} from 'shared/interfaces/cards';
 import {shuffle} from 'server/helpers/util';
 import * as chroma from 'chroma-js';
 import {gameServer} from 'server/server/GameServer';
 import {ECardType, EEventID, EPanicID} from 'shared/enum/cards';
+import {checkAllDeckCards} from '_integration/helpers';
+
+export let initialDeck = [];
 
 export const gameStarter = (game: Game) => {
 	const players = game.players;
@@ -27,7 +30,7 @@ export const gameStarter = (game: Game) => {
 	const shuffledDeck = shuffle(filteredDeck);
 
 	const [playableCards, otherCards] = reduce(shuffledDeck, ([events, other], card) => {
-		if (card.type === ECardType.event && card.id !== EEventID.injure && card.id !== EEventID.thing) {
+		if (card.type === ECardType.event && card.id !== EEventID.infect && card.id !== EEventID.thing) {
 			events.push(card);
 		} else {
 			if (gameServer.isMock && card.type === ECardType.panic) {
@@ -72,12 +75,11 @@ export const gameStarter = (game: Game) => {
 		currentPlayer.hand = currentPlayerHand;
 		each(currentPlayerHand, (card: ICardEvent) => {
 			if (card.id === EEventID.thing) {
-				currentPlayer.isInjured = true;
+				currentPlayer.isInfected = true;
 				currentPlayer.isThing = true;
 			}
 		});
 	});
-	game.changeTurn(game.playersList[0]);
 
 	const playerColors = chroma.cubehelix()
 		.start(200)
@@ -86,26 +88,13 @@ export const gameStarter = (game: Game) => {
 		.scale()
 		.colors(playersIdsArray.length);
 
+	initialDeck = clone(game.deck);
+
 	each(playersIdsArray, (playerId, index) => {
 		const color = playerColors[index];
 		const secondColor = chroma.mix(color, '00a70c').hex();
+		initialDeck = concat([], clone(initialDeck), clone(game.players[playerId].hand))
 		game.players[playerId].color = `linear-gradient(${color}, ${secondColor})`
 	});
-
-	//if (gameServer.isMock) {
-	//	let neerone = find(game.players, {nickname: 'хост'});
-	//	if (!neerone) neerone = game.players[0];
-	//	//neerone.quarantine = 3;
-	//	neerone.hand.splice(0,4);
-	//	neerone.hand.push(getCard(EEventID.axe));
-	//	neerone.hand.push(getCard(EEventID.fear));
-	//	neerone.hand.push(getCard(EEventID.lookaround));
-	//	neerone.hand.push(getCard(EEventID.analysis));
-//
-	//	game.deck.splice(0,1, getPanic(EPanicID.chainReaction));
-	//	//console.log(neerone);
-	//	//game.turnPlayerId = neerone.id;
-	//	//game.players['player_1']
-	//}
 
 };

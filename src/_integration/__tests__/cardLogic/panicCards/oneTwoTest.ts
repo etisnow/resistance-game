@@ -2,13 +2,15 @@ import { getPlayerByStep } from 'server/helpers/cardActions/panic/oneTwo';
 
 import {getCard, getPanic} from 'shared/constant/cards';
 import {EEventID, EPanicID} from 'shared/enum/cards';
-import {createMockGameServer} from 'server/_playground/createGameServer';
+import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
 import {find, map, each, filter} from 'lodash';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {checkAllDeckCards, printPlayersStatuses} from '_integration/helpers';
-import {ENotification} from 'shared/enum/notifications';
+import {checkAllDeckCardsTestEdition, printPlayersStatuses} from '_integration/helpers';
+import {ENotificationAction} from 'shared/enum/notifications';
 import {Simulate} from 'react-dom/test-utils';
+import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
+import {ETurnContextType} from 'shared/enum/turnContextType';
 
 
 
@@ -31,17 +33,16 @@ describe('one two test',  () => {
 
 
 		//У Offense player есть смена мест
-		expect(offensePlayer.socket.spy.mock.calls).toContainEqual(
-			expect.arrayContaining(['notification', expect.objectContaining({
-				type: ENotification.playerSelect,
+		expect(offensePlayer.currentAction).toEqual(
+			expect.objectContaining({
+				type: ENotificationAction.playerSelect,
 				playersToSelect: expect.arrayContaining(selectPlayersId)
-			})])
+			})
 		);
-
 		const initialDefensePosition = game.playersList.indexOf(selectPlayersId[0]);
 		const initialOffensePosition = game.playersList.indexOf(offensePlayer.id);
 
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			selectedPlayerId: selectPlayersId[0],
 			actionType: EPlayerActionType.playerSelect
@@ -54,9 +55,10 @@ describe('one two test',  () => {
 		expect(initialOffensePosition).toBe(afterDefensePosition);
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
+		expect(game.turnContext.type).toBe(ETurnContextType.trade)
 
 
-		expect(checkAllDeckCards(game, false)).toBe(true);
+		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 
 	});
 

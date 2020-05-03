@@ -1,4 +1,4 @@
-import {filter} from 'lodash';
+import {filter, each} from 'lodash';
 import {ICardEventMenuItem} from 'shared/interfaces/cardMenu';
 import {ETurnState} from 'shared/enum/player';
 import {EEventID, EEventType} from 'shared/enum/cards';
@@ -8,9 +8,16 @@ import {ICardEvent} from 'shared/interfaces/cards';
 import {Player} from 'server/models/Player';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 
-const injuresCount = (player: Player) => {
-	const injures = filter(player.hand, { id: EEventID.injure});
-	return injures.length;
+const infectsCount = (player: Player) => {
+	let infects = 0
+	each(player.hand, card => {
+		if (card.id === EEventID.infect) {
+			infects = infects+1
+		}
+	})
+	return  infects;
+	//const infects = filter(player.hand, { id: EEventID.infect});
+	//return infects.length;
 };
 
 const getTargetPlayer = (game:Game, player: Player): Player | null => {
@@ -32,21 +39,23 @@ const getTargetPlayer = (game:Game, player: Player): Player | null => {
 	return null;
 };
 
-export const formatCardActions = (game: Game, player: Player, card: ICardEvent): ICardEventMenuItem[] => {
+export const getCardActions = (game: Game, player: Player, card: ICardEvent): ICardEventMenuItem[] => {
 	let actions : ICardEventMenuItem[] = [];
+	if (!player.isAlive()) return [];
 	if (!card.eventType) return actions;
 	if (card.id === EEventID.thing) return [];
+	if (!game.gameInProcess) return [];
 
-	const isCurrentPlayerInjured = player.isInjured;
+	const isCurrentPlayerInfected = player.isInfected;
 	const isCurrentPlayerThing = player.isThing;
 
 	const targetPlayer = getTargetPlayer(game, player);
 
 	const isTargetPlayerThing = targetPlayer && targetPlayer.isThing;
 
-	//у инжуры дроп только если не заражен ИЛИ карт заражения больше 1 или игрок нечто
-	const canDiscardInjure = !isCurrentPlayerInjured || injuresCount(player) > 1 || isCurrentPlayerThing;
-	const canTradeInjure = isCurrentPlayerThing || (isCurrentPlayerInjured && isTargetPlayerThing);
+	//у инфекта дроп только если не заражен ИЛИ карт заражения больше 1 или игрок нечто
+	const canDiscardInfect = !isCurrentPlayerInfected || infectsCount(player) > 1 || isCurrentPlayerThing;
+	const canTradeInfect = isCurrentPlayerThing || (infectsCount(player) > 1 && isCurrentPlayerInfected && isTargetPlayerThing);
 
 
 
@@ -54,7 +63,7 @@ export const formatCardActions = (game: Game, player: Player, card: ICardEvent):
 		case ETurnState.idle:
 			return actions;
 		case ETurnState.inCardAction:
-			if (card.id === EEventID.injure && !canDiscardInjure) {
+			if (card.id === EEventID.infect && !canDiscardInfect) {
 				return [];
 			}
 
@@ -67,15 +76,15 @@ export const formatCardActions = (game: Game, player: Player, card: ICardEvent):
 			actions.push({ menuType: EPlayerActionType.cardDiscard});
 			return actions;
 		case ETurnState.inOffenseTrade:
-			if (card.eventType === EEventType.injure) {
-				if (canTradeInjure)	actions.push({ menuType: EPlayerActionType.cardTrade});
+			if (card.eventType === EEventType.infect) {
+				if (canTradeInfect)	actions.push({ menuType: EPlayerActionType.cardTrade});
 				return actions;
 			}
 			actions.push({ menuType: EPlayerActionType.cardTrade});
 			return actions;
 		case ETurnState.inDefenseTrade:
-			if (card.id === EEventID.injure) {
-				if (canTradeInjure) {
+			if (card.id === EEventID.infect) {
+				if (canTradeInfect) {
 					actions.push({ menuType: EPlayerActionType.cardTrade});
 				}
 				return actions;

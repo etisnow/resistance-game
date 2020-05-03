@@ -1,11 +1,14 @@
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
-import {createMockGameServer} from 'server/_playground/createGameServer';
+import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
 import {find, map} from 'lodash';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {checkAllDeckCards} from '_integration/helpers';
-import {ENotification} from 'shared/enum/notifications';
+import {checkAllDeckCardsTestEdition} from '_integration/helpers';
+import {ENotificationAction} from 'shared/enum/notifications';
+import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
+import {ETurnContextType} from 'shared/enum/turnContextType';
+import {getMissNextPlayer} from 'server/helpers/cardActions/defense/miss';
 
 
 describe('miss test',  () => {
@@ -25,7 +28,7 @@ describe('miss test',  () => {
 		let barricade = find(offensePlayer.hand, {id: EEventID.barricade});
 
 		expect(barricade).not.toBe(undefined);
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			cardUniqueId: barricade.uniqueId,
 			actionType: EPlayerActionType.cardDiscard
@@ -34,8 +37,9 @@ describe('miss test',  () => {
 
 		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: barricade.uniqueId}));
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
+		expect(game.turnContext.type).toBe(ETurnContextType.trade)
 		let analysis = find(offensePlayer.hand, {id: EEventID.analysis});
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			cardUniqueId: analysis.uniqueId,
 			actionType: EPlayerActionType.cardTrade
@@ -46,7 +50,7 @@ describe('miss test',  () => {
 		expect(offensePlayer.turnState).toBe(ETurnState.idle);
 
 		expect(defensePlayer.turnState).toBe(ETurnState.inDefenseTrade);
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:defensePlayer,
 			cardUniqueId: missCard.uniqueId,
 			actionType: EPlayerActionType.cardAct
@@ -56,7 +60,7 @@ describe('miss test',  () => {
 		expect(defensePlayer.hand).not.toContainEqual(expect.objectContaining({ uniqueId: missCard.uniqueId }));
 		//expect(offensePlayer.hand).toContainEqual(expect.objectContaining({uniqueId: analysis.uniqueId}));
 
-		const nextDefensePlayer = game.getPlayerByPosition({playerId: defensePlayer.id, isNext:true});
+		const nextDefensePlayer = getMissNextPlayer(game, defensePlayer);
 
 		expect(defensePlayer.turnState).toBe(ETurnState.idle);
 		expect(offensePlayer.turnState).toBe(ETurnState.idle);
@@ -72,7 +76,7 @@ describe('miss test',  () => {
 		const firstCard = nextDefensePlayer.hand[0];
 		expect(firstCard).not.toBe(undefined);
 
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:nextDefensePlayer,
 			cardUniqueId: firstCard.uniqueId,
 			actionType: EPlayerActionType.cardTrade
@@ -87,7 +91,7 @@ describe('miss test',  () => {
 		expect(nextTurnPlayer).toBe(defensePlayer)
 
 
-		expect(checkAllDeckCards(game, false)).toBe(true);
+		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 
 	});
 

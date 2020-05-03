@@ -1,5 +1,5 @@
 import React from 'react';
-import {clone, map} from 'lodash';
+import {clamp, clone, map} from 'lodash';
 import './styles.scss';
 import {observer} from "mobx-react-lite";
 import {animated, config, interpolate, useTransition} from 'react-spring';
@@ -8,6 +8,7 @@ import GameController from 'client/controllers/gameController';
 import PlayerBadge from 'client/components/table/PlayerBadge/PlayerBadge';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {ETurnContextType} from 'shared/enum/turnContextType';
+import {ENotificationAction} from 'shared/enum/notifications';
 
 interface IRoomProps {
 	controller: GameController
@@ -46,8 +47,12 @@ const midpoint = (x1,y1,x2,y2) => {
 	}
 }
 
-const arrowHeight = 20;
+//const arrowHeight = 0.05;
 const arrowWidth = 10;
+
+const getDistanceBetweenPoints = (x1,y1,x2,y2) => {
+	return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
+}
 
 const lineAnimation = ({newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players, tradeLineCenterOffset}) => {
 	const biggerBadgeRad = badgeRadius + 5;
@@ -68,12 +73,14 @@ const lineAnimation = ({newPlayerList, badgeRadius, offensePlayerId, defensePlay
 
 	const {y:newAY,x:newAX} = getCirclePoint(biggerBadgeRad, APlayerDegree, ax, ay);
 	const {y:arrowY,x:arrowX} = getCirclePoint(biggerBadgeRad, BPlayerDegree, bx, by);
-	const {y:newBY,x:newBX} = getCirclePoint(biggerBadgeRad + 20, BPlayerDegree, bx, by);
+	const distanceBetweenArrow = getDistanceBetweenPoints(newAX,newAY,arrowX,arrowY);
+	const arrowHeight = clamp(distanceBetweenArrow * 0.35, 3, 15);
+	const {y:newBY,x:newBX} = getCirclePoint(biggerBadgeRad + arrowHeight, BPlayerDegree, bx, by);
 
 	const {x: midX, y:midY} = midpoint(newAX, newAY, newBX, newBY);
 
-	const {x: offsettedMid1X, y: offsettedMid1Y} = getCirclePoint(biggerBadgeRad/3, angleBetweenPointsDeg - 90, midX, midY);
-	const {x: offsettedMid2X, y: offsettedMid2Y} = getCirclePoint(biggerBadgeRad/3, angleBetweenPointsDeg + 90, midX, midY);
+	const {x: offsettedMid1X, y: offsettedMid1Y} = getCirclePoint(biggerBadgeRad/4, angleBetweenPointsDeg - 90, midX, midY);
+	const {x: offsettedMid2X, y: offsettedMid2Y} = getCirclePoint(biggerBadgeRad/4, angleBetweenPointsDeg + 90, midX, midY);
 
 
 	return {
@@ -88,6 +95,7 @@ const lineAnimation = ({newPlayerList, badgeRadius, offensePlayerId, defensePlay
 		arrowX: arrowX + tradeLineCenterOffset,
 		arrowY: arrowY + tradeLineCenterOffset,
 		arrowRotation: angleBetweenPointsDeg + 90,
+		arrowHeight: arrowHeight,
 	} as any
 }
 
@@ -153,6 +161,7 @@ const Room = observer(({controller} : IRoomProps) => {
 				arrowX: ax,
 				arrowY: ay,
 				arrowRotation,
+				arrowHeight: 0,
 			} as any
 		},
 		update: ({offensePlayerId, defensePlayerId}) => {
@@ -163,19 +172,22 @@ const Room = observer(({controller} : IRoomProps) => {
 
 
 
-
+	const canPlayerBeSelected = (player) => {
+		if (controller.currentAction && controller.currentAction.type === ENotificationAction.playerSelect) {
+			return controller.currentAction.playersToSelect.includes(player.id)
+		}
+		return false;
+	}
 
 	return (
-		<React.Fragment>
+		<div className={'roomWrapper'}>
 			<div className={"playerRoom"} style={canvasHeightWidth}>
 				{map(transitions, ({item: playerId, key, props }) => {
-					const { tradeLineStartX, tradeLineStartY, tradeLineEndX, tradeLineEndY } = props as any;
 					const player = players[playerId];
 					if (!player || !player.id) return null;
 					const {nickname, color, state} = player;
 					const inTurn = player.turnState !== ETurnState.idle;
-					const canBeSelected = controller.playersToSelect && controller.playersToSelect.includes(player.id);
-					const tradeLineCenterOffset = playerRoomHeight / 2;
+					const canBeSelected = canPlayerBeSelected(player);
 					return (
 						<React.Fragment key={key}>
 							<animated.div
@@ -197,8 +209,9 @@ const Room = observer(({controller} : IRoomProps) => {
 										inTurn={inTurn}
 										canBeSelected={canBeSelected}
 										id={player.id}
+										isConnected={player.isConnected}
 										isYou={player.isYou}
-										isInjured={player.isInjured}
+										isInfected={player.isInfected}
 										isThing={player.isThing}
 										quarantine={player.quarantine}
 										isDoor={state === EPlayerState.door}
@@ -212,7 +225,7 @@ const Room = observer(({controller} : IRoomProps) => {
 			</div>
 			<svg className={'svg-room'} viewBox={`0 0 ${playerRoomHeight} ${playerRoomHeight}`} xmlns="http://www.w3.org/2000/svg" style={canvasHeightWidth}>
 				{map(tradeArrows, ({item: arrow, key, props }) => {
-					const { ax, ay, bx, by, mid1X, mid1Y, mid2X, mid2Y, arrowRotation, arrowX, arrowY  } = props as any;
+					const { ax, ay, bx, by, mid1X, mid1Y, mid2X, mid2Y, arrowRotation, arrowX, arrowY, arrowHeight  } = props as any;
 					let color = "yellow";
 					switch (arrow.type) {
 						case ETurnContextType.burn: { color = "#ff3c3c"; break; }
@@ -225,13 +238,14 @@ const Room = observer(({controller} : IRoomProps) => {
 								transform={interpolate([arrowX, arrowY, arrowRotation], (x4,y4, rot) => {
 									return `rotate(${rot} ${x4} ${y4})`
 								})}
-								d={interpolate([arrowX, arrowY], (x,y) => {
-									return `M ${x},${y} ${x + 4},${y + arrowHeight} ${x-4},${y +arrowHeight} z `
+								d={interpolate([arrowX, arrowY, arrowHeight], (x,y, height) => {
+									const width = (height / 3)
+									return `M ${x},${y} ${x + width},${y + height} ${x-width},${y +height} z `
 								})}
 							/>
 							<animated.path
 								fill="transparent"
-								strokeWidth={2}
+								strokeWidth={interpolate([arrowHeight], (h) => h/8)}
 								d={interpolate([ax, ay, mid1X, mid1Y, mid2X, mid2Y, bx, by], (x1,y1,x2,y2,x3,y3,x4,y4) => {
 									return `M${x1},${y1} C${x2},${y2} ${x3},${y3} ${x4},${y4}`
 								})}
@@ -241,7 +255,7 @@ const Room = observer(({controller} : IRoomProps) => {
 					)
 				})}
 			</svg>
-		</React.Fragment>
+		</div>
 	)
 });
 

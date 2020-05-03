@@ -1,11 +1,13 @@
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
-import {createMockGameServer} from 'server/_playground/createGameServer';
+import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
 import {find} from 'lodash';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {checkAllDeckCards} from '_integration/helpers';
-import {ENotification} from 'shared/enum/notifications';
+import {checkAllDeckCardsTestEdition} from '_integration/helpers';
+import {ENotificationAction} from 'shared/enum/notifications';
+import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
+import {ETurnContextType} from 'shared/enum/turnContextType';
 
 
 describe('suspicion test',  () => {
@@ -22,12 +24,12 @@ describe('suspicion test',  () => {
 		let suspicion = offensePlayer.hand[0];
 
 		expect(suspicion).not.toBe(undefined);
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			cardUniqueId: suspicion.uniqueId,
 			actionType: EPlayerActionType.cardAct
 		});
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			selectedPlayerId: nextPlayer.id,
 			actionType: EPlayerActionType.playerSelect
@@ -36,7 +38,7 @@ describe('suspicion test',  () => {
 
 		const suspicionNotification = find(offensePlayer.socket.spy.mock.calls, ([type, event]) => {
 			if (type !== 'notification') return false;
-			if (event.type !== ENotification.okayCard) return false;
+			if (event.type !== ENotificationAction.okayCard) return false;
 			const {cards} = event;
 			if (cards) return true;
 			return false;
@@ -55,9 +57,10 @@ describe('suspicion test',  () => {
 		);
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
+		expect(game.turnContext.type).toBe(ETurnContextType.trade)
 		expect(offensePlayer.hand.length).toBe(4);
 
-		expect(checkAllDeckCards(game, false)).toBe(true);
+		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 
 	});
 

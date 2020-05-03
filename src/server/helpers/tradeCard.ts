@@ -1,82 +1,96 @@
 import {Player} from 'server/models/Player';
-import {EPlayerState, ETurnState} from 'shared/enum/player';
-import {ENotification} from 'shared/enum/notifications';
-import {getCard} from 'shared/constant/cards';
+import {ETurnState} from 'shared/enum/player';
+import {ENotificationAction} from 'shared/enum/notifications';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ECardType, EEventID} from 'shared/enum/cards';
 import {Game} from 'server/models/Game';
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import { remove } from 'lodash';
-import {seductionTradeFinish} from 'server/helpers/cardActions/offense/seduction';
+import {filter} from 'lodash';
+import {debugLog} from 'server/helpers/util';
 
 export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Player, cardUniqueId: string}) => {
+
   const tradingCard = player.getCardByUniqueId(cardUniqueId);
   if (tradingCard.type !== ECardType.event) {
-    throw new Error(`Попытка обменяться НЕ картой эвента ${tradingCard}`);
+    throw new Error(`Попытка обменяться НЕ картой эвента ${JSON.stringify(tradingCard)}`);
   }
   const context = game.turnContext;
   if (!context || context.type !== ETurnContextType.trade) {
     throw new Error('Торговля произошла без контекста trade');
   }
   const isOffenseTrade = player.turnState === ETurnState.inOffenseTrade;
+
   let playerToTrade: Player = context.defensePlayer;
 
+  if (game.turnContext && game.turnContext.type === ETurnContextType.trade && game.turnContext.defensePlayer === player && game.turnContext.offensePlayer === player) {
+    debugLog('Трейд против себя')
+    return
+  }
   if (isOffenseTrade) {
-    remove(player.hand, (card) => { return card.uniqueId === cardUniqueId});
-    playerToTrade.changeTurnState(ETurnState.inDefenseTrade);
+    //remove(player.hand, (card) => { return card.uniqueId === cardUniqueId});
+    player.hand = filter(player.hand, (card) => card !== tradingCard);
     player.changeTurnState(ETurnState.idle);
+
     game.addLog(`Игрок ${player.nickname} передает карту для обмена игроку ${playerToTrade.nickname}`);
     game.turnContext = {
       type: ETurnContextType.trade,
       defensePlayer: playerToTrade,
       offensePlayer: player,
-      offenseCardId: tradingCard.id,
+      offenseCard: tradingCard,
+      defenseCard: null,
     };
+    playerToTrade.changeTurnState(ETurnState.inDefenseTrade);
     return;
   }
-  remove(player.hand, (card) => { return card.uniqueId === cardUniqueId});
+
+
+
+  player.hand = filter(player.hand, (card) => card !== tradingCard);
+  //remove(player.hand, (card) => { return card.uniqueId === cardUniqueId});
   //isDefense trade
   if (context.type !== ETurnContextType.trade) {
     console.error('Нет выбранной карты для обмена у игрока', player.id);
     return;
   }
   let offensePlayer = context.offensePlayer;
-  let defensePlayer = context.defensePlayer;
+  //let defensePlayer = context.defensePlayer;
   offensePlayer.changeTurnState(ETurnState.idle);
   game.addLog(`Игроки ${player.nickname} и ${offensePlayer.nickname} обменялись картами`);
 
 
 
-  const offensePlayerCard = getCard(context.offenseCardId);
+  const offensePlayerCard = context.offenseCard;
   const defensePlayerCard = tradingCard;
   /* OFFENSE CARD PUSH */
-  offensePlayer.hand.push(defensePlayerCard);
+  offensePlayer.getCard(defensePlayerCard);
   offensePlayer.notify(formatPlayerNotification({
     player: player,
     notification: {
-      type: ENotification.okayCard,
+      type: ENotificationAction.okayCard,
       cards: [defensePlayerCard],
       text: `Игрок ${player.nickname} дал эту карту`,
     },
   }));
-  if (defensePlayerCard.id=== EEventID.injure) {
-    game.injurePlayer(offensePlayer.id);
+  if (defensePlayerCard.id=== EEventID.infect) {
+    game.infectPlayer(offensePlayer.id);
+    if (!game.gameInProcess) return;
   }
 
   /* DEFENSE CARD PUSH */
-  defensePlayer.hand.push(offensePlayerCard);
-  defensePlayer.notify(formatPlayerNotification({
-    player: defensePlayer,
+  player.getCard(offensePlayerCard);
+  player.notify(formatPlayerNotification({
+    player: player,
     notification: {
-      type: ENotification.okayCard,
+      type: ENotificationAction.okayCard,
       cards: [offensePlayerCard],
       text: `Игрок ${offensePlayer.nickname} дал эту карту`,
     },
   }));
-  if (offensePlayerCard.id=== EEventID.injure) {
-    game.injurePlayer(defensePlayer.id);
+  if (offensePlayerCard.id=== EEventID.infect) {
+    game.infectPlayer(player.id);
+    if (!game.gameInProcess) return;
   }
-  defensePlayer.changeTurnState(ETurnState.idle)
+  player.changeTurnState(ETurnState.idle)
 
   //if (game.turnContext && game.turnContext.type === ETurnContextType.seduction) {
   //  return seductionTradeFinish({game})

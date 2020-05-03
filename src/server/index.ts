@@ -3,12 +3,9 @@ import http from "http";
 import socketIO from "socket.io";
 import { registerHandlers } from "server/handlers/handlers";
 import { gameServer } from "server/server/GameServer";
-import {mockGameProcess} from 'server/_playground/mockGameProcess';
+import {mockGameProcess} from '_integration/mockGameProcess';
 
 const port: number = 30;
-
-
-
 
 class App {
   private server: http.Server;
@@ -30,10 +27,11 @@ class App {
       registerHandlers(player);
       mockGameProcess(player);
     });
+
   }
 
   public Start() {
-    this.server.listen(this.port);
+    this.server.listen(this.port, '192.168.0.101');
     console.log(`Server listening on port ${this.port}.`);
   }
 }

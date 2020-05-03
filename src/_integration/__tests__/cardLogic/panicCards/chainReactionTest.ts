@@ -1,6 +1,6 @@
 import {getPanic} from 'shared/constant/cards';
 import {EPanicID} from 'shared/enum/cards';
-import {createMockGameServer} from 'server/_playground/createGameServer';
+import {createMockGameServer} from '_integration/createGameServer';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {each, isEqual} from 'lodash';
 import {EPlayerActionType} from 'shared/enum/playerActions';
@@ -8,7 +8,8 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 import {Player} from 'server/models/Player';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {getNextChainReactionPlayer} from 'server/helpers/cardActions/panic/chainReaction';
-import {checkAllDeckCards} from '_integration/helpers';
+import {checkAllDeckCardsTestEdition} from '_integration/helpers';
+import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 
 
 describe('chainReaction test',  () => {
@@ -39,8 +40,7 @@ describe('chainReaction test',  () => {
 			expect(pl.turnState).toBe(ETurnState.inOffenseTrade);
 			expect(game.turnContext.type).toBe(ETurnContextType.chainReaction);
 
-			//console.log('DIFF', difference((game.turnContext as any).playersPick, tradedCards));
-			gameServer.playerAction({
+			testPlayerAction(gameServer, game, {
 				player:pl,
 				cardUniqueId: card.uniqueId,
 				actionType: EPlayerActionType.cardTrade
@@ -57,7 +57,6 @@ describe('chainReaction test',  () => {
 					)
 				})
 
-				//each(game.players, (pl) => {console.log('PLAYER STATE', pl.nickname, pl.turnState)})
 
 				//Два некста, потому что была дверь
 				const nextPlayerAfterStarter = startPlayer.getNextPlayer().getNextPlayer();
@@ -69,7 +68,7 @@ describe('chainReaction test',  () => {
 
 
 		//Не проверяем, потому что цифра не сойдется. Мы дверь зафейкали
-		//expect(checkAllDeckCards(game, false)).toBe(true);
+		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 	});
 
 
@@ -94,12 +93,10 @@ describe('chainReaction test',  () => {
 			if (pl.state === EPlayerState.door) return;
 			const card = pl.getRandomPlayableCard();
 			tradedCards.push({player: pl, card});
-			console.log(pl.nickname)
 			expect(pl.turnState).toBe(ETurnState.inOffenseTrade);
 			expect(game.turnContext.type).toBe(ETurnContextType.chainReaction);
 
-			//console.log('DIFF', difference((game.turnContext as any).playersPick, tradedCards));
-			gameServer.playerAction({
+			testPlayerAction(gameServer, game, {
 				player:pl,
 				cardUniqueId: card.uniqueId,
 				actionType: EPlayerActionType.cardTrade
@@ -122,7 +119,7 @@ describe('chainReaction test',  () => {
 			}
 		})
 
-		expect(checkAllDeckCards(game, false)).toBe(true);
+		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 	});
 
 

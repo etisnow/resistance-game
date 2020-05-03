@@ -1,23 +1,25 @@
 import {getCard, getPanic} from 'shared/constant/cards';
 import {EEventID, EPanicID} from 'shared/enum/cards';
-import {createMockGameServer} from 'server/_playground/createGameServer';
+import {createMockGameServer} from '_integration/createGameServer';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {find, findLast} from 'lodash';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {checkAllDeckCards, printPlayersStatuses} from '_integration/helpers';
-import {ENotification} from 'shared/enum/notifications';
+import {checkAllDeckCardsTestEdition, printPlayersStatuses} from '_integration/helpers';
+import {ENotificationAction} from 'shared/enum/notifications';
 import {ETurnContextType} from 'shared/enum/turnContextType';
+import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 
 
 const getLastFriendshipNotificaiton = (offensePlayer) => {
-	const forgetfulnessNotification = findLast(offensePlayer.socket.spy.mock.calls, ([type, event]) => {
+	return offensePlayer.currentAction;
+/*	const forgetfulnessNotification = findLast(offensePlayer.socket.spy.mock.calls, ([type, event]) => {
 		if (type !== 'notification') return false;
-		if (event.type !== ENotification.playerSelect) return false;
+		if (event.type !== ENotificationAction.playerSelect) return false;
 		const {playersToSelect} = event;
 		if (playersToSelect) return true;
 		return false;
 	})
-	return forgetfulnessNotification[1]
+	return forgetfulnessNotification[1]*/
 }
 
 describe('friendship test',  () => {
@@ -41,7 +43,7 @@ describe('friendship test',  () => {
 		expect(game.turnContext).not.toBe(undefined);
 		expect(game.turnContext.type).toBe(ETurnContextType.seduction);
 
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			selectedPlayerId: APlayer.id,
 			actionType: EPlayerActionType.playerSelect
@@ -52,7 +54,7 @@ describe('friendship test',  () => {
 		expect((game.turnContext as any).offensePlayer).toBe(offensePlayer);
 		expect((game.turnContext as any).defensePlayer).toBe(APlayer);
 
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			cardUniqueId: missCard.uniqueId,
 			actionType: EPlayerActionType.cardTrade
@@ -62,7 +64,7 @@ describe('friendship test',  () => {
 		expect(APlayer.turnState).toBe(ETurnState.inDefenseTrade);
 
 		const randomDefenseCard = APlayer.getRandomPlayableCard();
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:APlayer,
 			cardUniqueId: randomDefenseCard.uniqueId,
 			actionType: EPlayerActionType.cardTrade
@@ -75,12 +77,10 @@ describe('friendship test',  () => {
 			expect.objectContaining({id: missCard.id})
 		)
 
-		//console.log('+=======================')
-		//printPlayersStatuses(game)
 		const nextPlayer = offensePlayer.getNextPlayer();
 		expect(nextPlayer.turnState).toBe(ETurnState.inCardAction);
 
-		expect(checkAllDeckCards(game, false)).toBe(true);
+		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 	});
 
 

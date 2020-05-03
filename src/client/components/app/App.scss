@@ -1,47 +1,58 @@
-.App {
-    text-align: center;
+* {
+    user-select: none;
+    outline:none;
+}
+
+input {
+    user-select: auto;
+}
+
+html,
+body {
+    position: fixed;
+    overflow: hidden;
+    width: 100%;
     height:100%;
 }
 
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
-}
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
-}
 
-.App-header {
-    background-color: #282c34;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
+h1 {
     color: white;
+    font-size: 30px;
+    font-weight: 500;
 }
 
-.App-link {
-    color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.nechto-wrapper {
+    display: flex;
+    position: relative;
+    width:100%;
+    height:100%;
+    background-image: url("../../resources/images/thing_bg.png");
+    background-repeat: no-repeat;
+    justify-content: center;
+    align-items: center;
+    background-color: black;
+    background-position: center;
+    background-size: contain;
 }
 
 
 .layoutChangeButton {
     position: fixed;
     top: 0;
+    right: 0;
+    width: 100px;
+    background: #000000bf;
+    border: 0px;
+    padding: 6px;
+    color: white;
+    width: 117px;
+    border-radius: 0px 0px 0px 10px;
+}
+.fullscreenChangeButton {
+    position: fixed;
+    top: 20px;
     right: 0;
     width: 100px;
     background: #000000bf;

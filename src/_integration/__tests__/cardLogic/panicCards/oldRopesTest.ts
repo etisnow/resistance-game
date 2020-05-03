@@ -1,8 +1,8 @@
 import {getPanic} from 'shared/constant/cards';
 import {EPanicID} from 'shared/enum/cards';
-import {createMockGameServer} from 'server/_playground/createGameServer';
+import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
-import {checkAllDeckCards} from '_integration/helpers';
+import {checkAllDeckCardsTestEdition} from '_integration/helpers';
 import {Simulate} from 'react-dom/test-utils';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 
@@ -19,8 +19,9 @@ describe('oldRopes test',  () => {
 		expect(APlayer.quarantine).toBe(0);
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
+		expect(game.turnContext.type).toBe(ETurnContextType.trade)
 		expect(game.turnContext.type).toBe(ETurnContextType.trade);
-		expect(checkAllDeckCards(game, false)).toBe(true);
+		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 
 	});
 

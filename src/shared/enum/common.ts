@@ -3,7 +3,8 @@ enum EAppState {
 	game = "game",
 }
 enum EGameState {
-	lobby = "lobby",
-	process = "process",
+  lobby = "lobby",
+  sarted = "sarted",
 }
+
 export { EAppState, EGameState }

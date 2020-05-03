@@ -1,11 +1,12 @@
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
-import {createMockGameServer} from 'server/_playground/createGameServer';
+import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
 import {find} from 'lodash';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {checkAllDeckCards} from '_integration/helpers';
-import {ENotification} from 'shared/enum/notifications';
+import {checkAllDeckCardsTestEdition} from '_integration/helpers';
+import {ENotificationAction} from 'shared/enum/notifications';
+import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 
 
 describe('tenacity test',  () => {
@@ -22,22 +23,15 @@ describe('tenacity test',  () => {
 		let tenacity = offensePlayer.hand[0];
 
 		expect(tenacity).not.toBe(undefined);
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			cardUniqueId: tenacity.uniqueId,
 			actionType: EPlayerActionType.cardAct
 		});
 
-		const tenacityCards = find(offensePlayer.socket.spy.mock.calls, ([type, event]) => {
-			if (type !== 'notification') return false;
-			if (event.type !== ENotification.selectCard) return false;
-			const {cards} = event;
-			if (cards) return true;
-			return false;
-		})
 
-		const [_, {cards: [firstTenacityCard]}] = tenacityCards;
-		gameServer.playerAction({
+		const {cards: [firstTenacityCard]} = offensePlayer.currentAction as any;
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			cardUniqueId: firstTenacityCard.uniqueId,
 			actionType: EPlayerActionType.cardSelect
@@ -54,7 +48,7 @@ describe('tenacity test',  () => {
 		expect(offensePlayer.turnState).toBe(ETurnState.inCardAction);
 		expect(offensePlayer.hand.length).toBe(5);
 
-		expect(checkAllDeckCards(game, false)).toBe(true);
+		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 
 	});
 

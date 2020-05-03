@@ -2,13 +2,14 @@ import React, {useState} from 'react';
 import {clamp, map} from 'lodash';
 import './styles.scss';
 import {observer} from "mobx-react-lite";
-import {animated, interpolate, useTransition} from 'react-spring';
+import {animated, config, interpolate, useTransition} from 'react-spring';
 import GameController from 'client/controllers/gameController';
 import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
 import {cardAspectRatio} from 'shared/constant/cards';
 import Card from 'client/components/table/Card/Card';
 import {ETurnState} from 'shared/enum/player';
 import {EPlayerActionType} from 'shared/enum/playerActions';
+import {degToRag} from 'client/helpers/roomHelpers';
 
 interface IHandProps {
 	controller: GameController
@@ -64,6 +65,56 @@ const generateCardMenu = (id, cardUniqueId, gameController: GameController, onSe
 	)
 };
 
+/*GEOMETRY*/
+const circleRadius = getWindowWidth()
+const circleX = 0
+const circleY = circleRadius - (getWindowHeight() * 0.06)
+
+const calculateSize = () => {
+	const width = Math.round(clamp(getWindowWidth() * 0.85, 0, 300));
+	const height = Math.round(width * cardAspectRatio);
+	return {width, height};
+}
+
+const getCardDeg = (cardNumber, cardsCount, maxDeg) => {
+	const degDelta = maxDeg / cardsCount;
+	const currentDeg = (degDelta * cardNumber) - 90 - (maxDeg / 2) + (degDelta / 2);
+	return currentDeg;
+}
+
+const getCirclePoint = (radius, deg, centerX, centerY) => {
+	const currentRad = degToRag(deg);
+	const x = radius*Math.cos(currentRad) + centerX;
+	const y = radius*Math.sin(currentRad) + centerY;
+	return {x,y};
+}
+
+
+const calculateCardStypeProps = (cardNumber, cardsCount) => {
+	const degStep = 11;
+	const maxCardDeg = degStep * cardsCount;
+	const cardDeg = getCardDeg(cardNumber, cardsCount, maxCardDeg);
+	const cardRotationDeg = getCardDeg(cardNumber, cardsCount, maxCardDeg * 0.4);
+	const {x,y} = getCirclePoint(circleRadius, cardDeg, circleX,circleY);
+	const {x: rorationXPoint,y: rotationYPoint} = getCirclePoint(circleRadius, cardRotationDeg, circleX,circleY);
+	var angleBetweenPointsDeg = Math.atan2(rotationYPoint - circleY, rorationXPoint - circleX) * 180 / Math.PI;
+	const width = playerCardWidthPix() * 1.1;
+	const height = width * cardAspectRatio;
+	return {x,y,rot:angleBetweenPointsDeg + 90, width, height}
+}
+
+const getCenterOffset = () => {
+	const topPoint = getWindowHeight() - playerHandHeight()
+	const YOffset = topPoint - (getWindowHeight() / 2)
+	return YOffset
+}
+
+const calculateCardSelectedStypeProps = () => {
+	const {width, height} = calculateSize();
+	const offset = getCenterOffset() + (getCenterOffset() * 0.25)
+	return {x:0,y:-(offset + (height/2) ),rot:0,width, height}
+}
+
 const Hand = observer(({controller} : IHandProps) => {
 
 	const [selectedCardIndex, selectCard] = useState(null);
@@ -76,7 +127,11 @@ const Hand = observer(({controller} : IHandProps) => {
 	const cardsCount = hand.length;
 
 	const cardSelection = (index) => {
-		selectCard(index);
+		if (selectedCardIndex === index) {
+			selectCard(null)
+		} else {
+			selectCard(index);
+		}
 	};
 
 	const onSelectCard = () => {
@@ -87,62 +142,61 @@ const Hand = observer(({controller} : IHandProps) => {
 		return hand.indexOf(card)
 	};
 
+	const styleUpdater = (card) => {
+		const isSelected = card.uniqueId === selectedCardIndex;
+		const cardNumber = cardNumberInRow(card);
+		return isSelected ? calculateCardSelectedStypeProps() : calculateCardStypeProps(cardNumber, cardsCount)
+	}
+	const defaultCardStyle = { x:0,y:-getCenterOffset(),rot:-90, width: 0, height: 0 };
+
 	const transitions = useTransition(hand, card=>card.uniqueId, {
-		from: {
-			transform: `rotate(-20deg) scale(0) translateY(0px)`,
-		},
-		enter: card => {
-			const isSelected = card.uniqueId === selectedCardIndex;
-			const rot = isSelected ? 0 : cardNumberInRow(card) * (180 / cardsCount) - 90 + (90/cardsCount);
-			const scale = isSelected ? 2.5 : 1;
-			const y = isSelected ? -90 : 0;
-			return {
-				transform: `rotate(${rot}deg) scale(${scale}) translateY(${y}px)`,
-			};
-		},
-		update: card => {
-			const isSelected = card.uniqueId === selectedCardIndex;
-			const rot = isSelected ? 0 : cardNumberInRow(card) * (180 / cardsCount) - 90 + (90/cardsCount);
-			const scale = isSelected ? 2.5 : 1;
-			const y = isSelected ? -90 : 0;
-			return {
-				transform: `rotate(${rot}deg) scale(${scale}) translateY(${y}px)`,
-			};
-		},
-		leave: card => {
-			return {
-				transform: `rotate(90deg) scale(0) translateY(${-getWindowHeight()}px)`,
-			};
-		},
+		from: defaultCardStyle,
+		enter: styleUpdater,
+		update: styleUpdater,
+		leave: card => defaultCardStyle,
+		config: config.default,
+		native: true,
 	} as any);
+
 	return (
 		<div className={"playerHand"} style={{height: playerHandHeight()}}>
-			{map(transitions, ({item: card, key, props: {transform}}) => {
-				const {id} = card;
-				const isSelected = selectedCardIndex === card.uniqueId;
-				const cardMenu = generateCardMenu(id, card.uniqueId, controller, onSelectCard, card);
-				return <animated.div
-					key={key}
-				    style={{
-				        transform,
-					    position: 'absolute',
-					    display:'flex',
-					    height: playerHandHeight(),
-					    width: playerCardWidthPix(),
-					    transformOrigin: '50% 110%',
-					    zIndex: isSelected ? 60 : 50,
-				    }}
-				>
-					<Card
-						key={card.id}
-						id={id}
-						onCardClick={() => cardSelection(card.uniqueId)}
-						canBeUsed={!!cardMenu}
-						menu={isSelected ? cardMenu : null}
-					/>
-				</animated.div>
-			})}
-			{selectedCardIndex !== null && <div onClick={() => cardSelection(null)} className={'cardsOverlay'}/>}
+			<div className={"playerHandInnerWrapper"} style={{height: playerHandHeight(), width: getWindowWidth()}}>
+				{map(transitions, ({item: card, key, props}) => {
+					const {x,y,rot,width, height} = props as any;
+					const {id} = card;
+					const isSelected = selectedCardIndex === card.uniqueId;
+					const cardMenu = generateCardMenu(id, card.uniqueId, controller, onSelectCard, card);
+					return <animated.div
+						key={key}
+					    style={{
+						    transform: interpolate([x,y], (x1,y1) => `translateY(${y1}px) translateX(${x1}px)`),
+						    position: 'absolute',
+						    display:'flex',
+						    width,
+						    height,
+						    zIndex: isSelected ? 60 : 50,
+						    transformOrigin: `50% 50%`,
+					    }}
+					>
+						<animated.div
+							className={'rotationCardWrapper'}
+						    style={{
+							    transform: interpolate([rot], (r1) => `rotate(${r1}deg)`),
+							    transformOrigin: `50% 50%`,
+						    }}
+						>
+							<Card
+								key={card.id}
+								id={id}
+								onCardClick={() => cardSelection(card.uniqueId)}
+								canBeUsed={!!cardMenu}
+								menu={isSelected ? cardMenu : null}
+							/>
+						</animated.div>
+					</animated.div>
+				})}
+				{selectedCardIndex !== null && <div onClick={() => cardSelection(null)} className={'cardsOverlay'}/>}
+			</div>
 		</div>
 	)
 });

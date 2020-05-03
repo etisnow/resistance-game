@@ -1,25 +1,23 @@
 import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
-import {ENotification} from 'shared/enum/notifications';
+import {ENotificationAction} from 'shared/enum/notifications';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {uniqueId} from 'lodash';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
-import {discardCard} from 'server/helpers/discardCard';
-import {checkAllDeckCards} from '_integration/helpers';
 
 export const barricadeAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	game.turnContext = {
 		type: ETurnContextType.barricadePersonSelect,
 		playerId: player.id,
 	};
-	discardCard({game, player, cardUniqueId: card.uniqueId});
+	player.discardCard(card.uniqueId);
 	player.changeTurnState(ETurnState.inCardActionProgress);
     player.notify(formatPlayerNotification({
       player: player,
       notification: {
-		type: ENotification.playerSelect,
+		type: ENotificationAction.playerSelect,
 		playersToSelect: player.getPlayabeNeighbours(),
 		text: 'Выбери между кем ты хочешь поставить дверь'
       },
@@ -32,6 +30,7 @@ export const barricadeSelect = ({game, player, selectedPlayerId} : {game: Game, 
 	}
 	game.turnContext = null;
 	const doorPlayer = new Player({socket: null, playerState: EPlayerState.door});
+	doorPlayer.game = game;
 	doorPlayer.id = uniqueId('dver_');
 	doorPlayer.nickname = 'Дверь';
 	game.players[doorPlayer.id]= doorPlayer;

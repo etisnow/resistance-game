@@ -1,13 +1,12 @@
 import {getCard, getPanic} from 'shared/constant/cards';
 import {EEventID, EPanicID} from 'shared/enum/cards';
-import {createMockGameServer} from 'server/_playground/createGameServer';
+import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
-import {find, map, each} from 'lodash';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {checkAllDeckCards, printPlayersStatuses} from '_integration/helpers';
-import {ENotification} from 'shared/enum/notifications';
-import {Simulate} from 'react-dom/test-utils';
-import play = Simulate.play;
+import {checkAllDeckCardsTestEdition, printPlayersStatuses} from '_integration/helpers';
+import {ENotificationAction} from 'shared/enum/notifications';
+import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
+import {ETurnContextType} from 'shared/enum/turnContextType';
 
 
 describe('goAway test',  () => {
@@ -20,33 +19,34 @@ describe('goAway test',  () => {
 		game.changeTurn(offensePlayer.id);
 
 		//У Offense player нет возможности поменяться со всеми кроме карантина
-		expect(offensePlayer.socket.spy.mock.calls).toContainEqual(
-			expect.arrayContaining(['notification', expect.objectContaining({
-				type: ENotification.playerSelect,
+
+		expect(offensePlayer.currentAction).toEqual(
+			expect.objectContaining({
+				type: ENotificationAction.playerSelect,
 				playersToSelect: expect.arrayContaining([
 					defensePlayer.id, CPlayer.id
 				])
-			})])
+			})
 		);
-		expect(offensePlayer.socket.spy.mock.calls).toContainEqual(
-			expect.arrayContaining(['notification', expect.objectContaining({
-				type: ENotification.playerSelect,
+
+		expect(offensePlayer.currentAction).toEqual(
+			expect.objectContaining({
+				type: ENotificationAction.playerSelect,
 				playersToSelect: expect.not.arrayContaining([
 					APlayer.id
 				])
-			})])
+			})
 		);
-
 		expect(offensePlayer.turnState).toBe(ETurnState.inCardActionProgress);
 		const initialDefensePosition = game.playersList.indexOf(defensePlayer.id);
 		const initialOffensePosition = game.playersList.indexOf(offensePlayer.id);
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			selectedPlayerId: defensePlayer.id,
 			actionType: EPlayerActionType.playerSelect
 		});
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
-
+		expect(game.turnContext.type).toBe(ETurnContextType.trade)
 
 		const afterDefensePosition = game.playersList.indexOf(defensePlayer.id);
 		const afterOffensePosition = game.playersList.indexOf(offensePlayer.id);
@@ -57,11 +57,12 @@ describe('goAway test',  () => {
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
 		expect(defensePlayer.turnState).toBe(ETurnState.idle);
+		expect(game.turnContext.type).toBe(ETurnContextType.trade)
 
 		expect(offensePlayer.hand.length).toBe(4);
 		expect(defensePlayer.hand.length).toBe(4);
 
-		expect(checkAllDeckCards(game, false)).toBe(true);
+		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 
 	});
 

@@ -1,0 +1,58 @@
+.launcher-wrapper {
+    max-width: 220px;
+	width:100%;
+	label {
+		display: flex;
+		color: white;
+		font-size:16px;
+		margin: 5px;
+		margin-bottom:5px;
+	}
+	.or-label {
+		width:100%;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		color: rgba(255, 255, 255, 0.85);
+		font-size: 12px;
+		&:before, &:after {
+			content: '';
+			height: 1px;
+			background: rgba(255, 255, 255, 0.85);
+			display: flex;
+			flex:1;
+			margin: 10px;
+		}
+	}
+	.gameLobby {
+		margin-top: 20px;
+	}
+}
+
+.nick-input {
+    border: 1px solid #007b0c;
+	padding:5px;
+	width:100%;
+	border-radius: 5px;
+	background: rgba(0, 0, 0, 0.38);
+	color:white;
+	&::placeholder {
+	  color: white;
+	}
+}
+
+.launcher-button {
+    width: 100%;
+    padding: 7px;
+    border-radius: 5px;
+    border: 0px;
+    background: #009408;
+    background: linear-gradient(180deg, #6c920e 0%, #005213 100%);
+    color: white;
+    box-shadow: 0px 4px 7px black;
+	cursor: pointer;
+	margin-bottom: 10px;
+	&:disabled {
+		opacity: 0.25;
+	}
+}

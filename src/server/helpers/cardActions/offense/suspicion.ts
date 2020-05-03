@@ -1,11 +1,11 @@
 import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
-import {ENotification} from 'shared/enum/notifications';
+import {ENotificationAction} from 'shared/enum/notifications';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
-import {discardCard} from 'server/helpers/discardCard';
+
 
 export const suspicionAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	game.turnContext = {
@@ -13,12 +13,12 @@ export const suspicionAct = ({card, game, player} : {card:ICardEvent, game: Game
 		playerId: player.id,
 	};
 
-	discardCard({game, player, cardUniqueId: card.uniqueId});
+	player.discardCard(card.uniqueId);
 	player.changeTurnState(ETurnState.inCardActionProgress);
     player.notify(formatPlayerNotification({
       player: player,
       notification: {
-		type: ENotification.playerSelect,
+		type: ENotificationAction.playerSelect,
 		playersToSelect: player.getPlayabeNeighbours(),
 		text: 'Выбри на кого хочешь применить подозрение'
       },
@@ -35,7 +35,7 @@ export const suspicionSelect = ({game, player, selectedPlayerId} : {game: Game, 
     player.notify(formatPlayerNotification({
       player: player,
       notification: {
-		type: ENotification.okayCard,
+		type: ENotificationAction.okayCard,
 		text: `Ты подсмотрел у игрока ${playerToView.nickname} эту карту`,
 		cards: [cardToView]
       },

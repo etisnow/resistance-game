@@ -1,6 +1,9 @@
-import {uniqueId} from 'lodash';
+import {uniqueId, each} from 'lodash';
 
 export function shuffle<T extends any[]>(array: T): T {
+
+  if (array.length === 0 || array.length === 1) return array
+
   var currentIndex = array.length, temporaryValue, randomIndex;
 
   // While there remain elements to shuffle...
@@ -17,4 +20,19 @@ export function shuffle<T extends any[]>(array: T): T {
   }
 
   return array;
+}
+
+const silent = true;
+export let debugCache = [];
+export function clearDebugCache() {
+  debugCache = [];
+}
+export function printDebugCache() {
+  each(debugCache, log => {console.log(...log)})
+}
+export function debugLog(...log) {
+  debugCache.push([...log]);
+  if (!silent) {
+    console.log(...log)
+  }
 }

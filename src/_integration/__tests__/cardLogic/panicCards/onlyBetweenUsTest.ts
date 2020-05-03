@@ -1,11 +1,12 @@
 import {getPanic} from 'shared/constant/cards';
-import {EPanicID} from 'shared/enum/cards';
-import {createMockGameServer} from 'server/_playground/createGameServer';
+import {EEventID, EPanicID} from 'shared/enum/cards';
+import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
-import {checkAllDeckCards, printNotifications} from '_integration/helpers';
+import {checkAllDeckCardsTestEdition, expectOkayCard, printNotifications} from '_integration/helpers';
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import {ENotification} from 'shared/enum/notifications';
+import {ENotificationAction} from 'shared/enum/notifications';
 import {EPlayerActionType} from 'shared/enum/playerActions';
+import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 
 
 describe('onlyBetweenUs test',  () => {
@@ -16,34 +17,26 @@ describe('onlyBetweenUs test',  () => {
 		game.deck.splice(0,1, getPanic(EPanicID.onlyBetweenUs));
 		game.changeTurn(offensePlayer.id);
 
-
-		expect(offensePlayer.socket.spy.mock.calls).toContainEqual(
-			expect.arrayContaining(['notification', expect.objectContaining({
-				type: ENotification.playerSelect,
+		expect(offensePlayer.currentAction).toEqual(
+			expect.objectContaining({
+				type: ENotificationAction.playerSelect,
 				playersToSelect: expect.arrayContaining(offensePlayer.getPlayabeNeighbours())
-			})])
+			})
 		);
-
 		const selectedPlayer = game.players[offensePlayer.getPlayabeNeighbours()[0]];
 
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			selectedPlayerId: selectedPlayer.id,
 			actionType: EPlayerActionType.playerSelect
 		});
 
-
-		expect(selectedPlayer.socket.spy.mock.calls).toContainEqual(
-			expect.arrayContaining(['notification', expect.objectContaining({
-				type: ENotification.okayCard,
-				cards: expect.arrayContaining(offensePlayer.hand)
-			})])
-		);
+		expectOkayCard(selectedPlayer, expect.arrayContaining(offensePlayer.hand))
 
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
 		expect(game.turnContext.type).toBe(ETurnContextType.trade);
-		expect(checkAllDeckCards(game, false)).toBe(true);
+		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 
 	});
 

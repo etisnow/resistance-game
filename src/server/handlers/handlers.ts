@@ -16,21 +16,22 @@ export const registerHandlers = (player: Player) => {
   player.socket.on(EClientEventType.startGame, function () {
     gameServer.startGame({player});
   });
-  player.socket.on(EClientEventType.actionDecision, function ({action}) {
-    gameServer.actionDecision({player, action});
+  player.socket.on(EClientEventType.toggleReadyGame, function () {
+    gameServer.toggleReady({player});
   });
   player.socket.on(EClientEventType.playerAction, function ({
     actionType,
     cardUniqueId,
     selectedPlayerId,
-    actionContext
+    action
   }: {
     actionType: EPlayerActionType,
     cardUniqueId: string,
     selectedPlayerId: string,
-    actionContext: any
+    actionContext: any,
+    action: string,
   }) {
-    gameServer.playerAction({player, actionType, cardUniqueId, selectedPlayerId, actionContext});
+    gameServer.playerAction({player, actionType, cardUniqueId, selectedPlayerId, action});
   });
   player.socket.on("disconnect", function () {
     player.makeOffline();

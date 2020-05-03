@@ -1,13 +1,12 @@
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
-import {createMockGameServer} from 'server/_playground/createGameServer';
+import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
 import {find, map} from 'lodash';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {checkAllDeckCards} from '_integration/helpers';
-import {ENotification} from 'shared/enum/notifications';
-import {Simulate} from 'react-dom/test-utils';
-import play = Simulate.play;
+import {checkAllDeckCardsTestEdition, expectOkayCard} from '_integration/helpers';
+import {ETurnContextType} from 'shared/enum/turnContextType';
+import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 
 
 describe('whiskey test',  () => {
@@ -24,7 +23,7 @@ describe('whiskey test',  () => {
 		let whiskey = offensePlayer.hand[0];
 
 		expect(whiskey).not.toBe(undefined);
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			cardUniqueId: whiskey.uniqueId,
 			actionType: EPlayerActionType.cardAct
@@ -33,25 +32,25 @@ describe('whiskey test',  () => {
 
 
 		//Игрок показывает все карты всем
-		expect(nextPlayer.socket.spy.mock.calls).toContainEqual(
-			expect.arrayContaining(
-				[
-					'notification',
-					expect.objectContaining({
-						type: ENotification.okayCard,
-						cards: expect.arrayContaining(
-							map(offensePlayer.hand, (card) => expect.objectContaining({id: card.id}))
-						)
-					})
-				]
-			)
-		);
 
+		expectOkayCard(nextPlayer, expect.arrayContaining(
+			map(offensePlayer.hand, (card) => expect.objectContaining({id: card.id}))
+		))
+
+/*		expect(nextPlayer.currentAction).toEqual(
+			expect.objectContaining({
+				type: ENotificationAction.okayCard,
+				cards: expect.arrayContaining(
+					map(offensePlayer.hand, (card) => expect.objectContaining({id: card.id}))
+				)
+			})
+		);*/
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
+		expect(game.turnContext.type).toBe(ETurnContextType.trade)
 		expect(offensePlayer.hand.length).toBe(4);
 
-		expect(checkAllDeckCards(game, false)).toBe(true);
+		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 
 	});
 

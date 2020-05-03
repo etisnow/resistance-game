@@ -1,9 +1,17 @@
 .gameTable {
-	background: rgb(0,88,5);
-    background: linear-gradient(180deg, #001f02 0%, #006616 100%);
 	display: flex;
 	width: 100%;
 	height: 100%;
     align-items: center;
     justify-content: center;
+	overflow: hidden;
+}
+
+
+.canvasWrapper {
+	position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0px;
+    left: 0px;
 }

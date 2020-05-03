@@ -1,11 +1,13 @@
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
-import {createMockGameServer} from 'server/_playground/createGameServer';
+import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
 import {find} from 'lodash';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {checkAllDeckCards} from '_integration/helpers';
-import {ENotification} from 'shared/enum/notifications';
+import {checkAllDeckCardsTestEdition, expectOkayCard} from '_integration/helpers';
+import {ENotificationAction} from 'shared/enum/notifications';
+import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
+import {ETurnContextType} from 'shared/enum/turnContextType';
 
 
 describe('fear test',  () => {
@@ -25,7 +27,7 @@ describe('fear test',  () => {
 		let barricade = find(offensePlayer.hand, {id: EEventID.barricade});
 
 		expect(barricade).not.toBe(undefined);
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			cardUniqueId: barricade.uniqueId,
 			actionType: EPlayerActionType.cardDiscard
@@ -34,9 +36,10 @@ describe('fear test',  () => {
 
 		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: barricade.uniqueId}));
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
+		expect(game.turnContext.type).toBe(ETurnContextType.trade)
 		let analysis = find(offensePlayer.hand, {id: EEventID.analysis});
 		const analysisId = analysis.uniqueId;
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			cardUniqueId: analysis.uniqueId,
 			selectedPlayerId:defensePlayer.id,
@@ -48,7 +51,7 @@ describe('fear test',  () => {
 		expect(offensePlayer.turnState).toBe(ETurnState.idle);
 
 		expect(defensePlayer.turnState).toBe(ETurnState.inDefenseTrade);
-		gameServer.playerAction({
+		testPlayerAction(gameServer, game, {
 			player:defensePlayer,
 			cardUniqueId: neeronesFear.uniqueId,
 			selectedPlayerId:offensePlayer.id,
@@ -56,18 +59,14 @@ describe('fear test',  () => {
 		});
 
 		//Игрок показывает карту нирону
-		expect(defensePlayer.socket.spy.mock.calls).toContainEqual(
-			expect.arrayContaining(['notification', expect.objectContaining({
-				type: ENotification.okayCard, cards: expect.arrayContaining([
-					expect.objectContaining({id: EEventID.analysis})
-				])
-			})])
-		);
+		expectOkayCard(defensePlayer, expect.arrayContaining([
+			expect.objectContaining({id: EEventID.analysis})
+		]))
 
 
 		expect(defensePlayer.hand).not.toContainEqual(expect.objectContaining({ uniqueId: neeronesFear.uniqueId }));
-		//Не должно быть старой картой анализа, но должна быть новая
-		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: analysisId}));
+		//У игрока должна быть старая карта анализа
+		expect(offensePlayer.hand).toContainEqual(expect.objectContaining({uniqueId: analysisId}));
 		expect(offensePlayer.hand).toContainEqual(expect.objectContaining({id: EEventID.analysis}));
 
 		expect(defensePlayer.turnState).toBe(ETurnState.inCardAction);
@@ -76,7 +75,7 @@ describe('fear test',  () => {
 
 		//т.к теперь ходит нирон, у него 5 карт  на руке
 		expect(defensePlayer.hand.length).toBe(5);
-		expect(checkAllDeckCards(game, false)).toBe(true);
+		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 
 	});
 
