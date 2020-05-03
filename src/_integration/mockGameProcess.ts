@@ -111,6 +111,7 @@ const interfaceTest = ({player, card}: {player:Player, card: ICardPanic}) => {
 	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'1'});
 	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'2'});
 	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'4'});
+	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'5'});
 
 	each(game.players, pl => pl.isReady = true);
 	gameServer.startGame({player});

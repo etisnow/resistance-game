@@ -43,8 +43,9 @@ export const quarantineSelect = ({game, player, selectedPlayerId} : {game: Game,
       },
     }));
 	game.addLog(`Игрок ${selectedPlayer.nickname} теперь на карантине`);
-	player.changeTurnState(ETurnState.idle);
+	player.changeTurnState(ETurnState.inOffenseTrade)
+	//player.changeTurnState(ETurnState.idle);
 	//const nextPlayer = player.getNextAlivePlayer();
-	game.endTurn(player.id)
+	//game.endTurn(player.id)
 	//game.changeTurn(nextPlayer.id)
 };
