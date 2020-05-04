@@ -26,7 +26,7 @@ const Card = observer(({id, menu, onCardClick, canBeUsed, width, height}: ICardP
 	}
 	return (
 		<Container>
-			<Sprite texture={cardTexture}/>
+			<Sprite texture={cardTexture} interactive pointerdown={onCardClick} buttonMode/>
 		</Container>
 	)
 /*	return (

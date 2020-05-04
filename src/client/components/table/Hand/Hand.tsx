@@ -1,18 +1,18 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import { Container, Graphics, CustomPIXIComponent } from 'react-pixi-fiber';
 import {clamp, map} from 'lodash';
 import './styles.scss';
 import {observer} from "mobx-react-lite";
-import {animated, config, interpolate, useTransition} from 'react-spring';
+import {config, interpolate, useTransition} from 'react-spring';
 import GameController from 'client/controllers/gameController';
 import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
 import {cardAspectRatio} from 'shared/constant/cards';
-import Card from 'client/components/table/Card/___Card';
 import {ETurnState} from 'shared/enum/player';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {degToRag} from 'client/helpers/roomHelpers';
-//import Sprite = PIXI.Sprite;
 import * as PIXI from 'pixi.js'
+import Card from '../Card/Card';
+import {AnimatedPixi} from 'client/components/table/pixiInjected';
 interface IHandProps {
 	controller: GameController
 }
@@ -114,7 +114,7 @@ const calculateCardStypeProps = (cardNumber, cardsCount) => {
 	const {x,y} = getCirclePoint(circleRadius, cardDeg, circleX,circleY);
 	const {x: rorationXPoint,y: rotationYPoint} = getCirclePoint(circleRadius, cardRotationDeg, circleX,circleY);
 	var angleBetweenPointsDeg = Math.atan2(rotationYPoint - circleY, rorationXPoint - circleX) * 180 / Math.PI;
-	const width = playerCardWidthPix() * 1.1;
+	const width = (playerCardWidthPix() * 1.1 );
 	const height = width * cardAspectRatio;
 	return {x,y,rot:angleBetweenPointsDeg + 90, width, height}
 }
@@ -131,7 +131,7 @@ const calculateCardSelectedStypeProps = () => {
 	return {x:0,y:-(offset + (height/2) ),rot:0,width, height}
 }
 
-const AnimatedContainer = animated(Container)
+//const AnimatedContainer = animated(Container)
 	//const centerAnchor = new PIXI.Circle(getWindowWidth()/2, getWindowHeight()/2, 200);
 
 const Hand = observer(({controller} : IHandProps) => {
@@ -146,6 +146,7 @@ const Hand = observer(({controller} : IHandProps) => {
 	const cardsCount = hand.length;
 
 	const cardSelection = (index) => {
+		console.log('selection')
 		if (selectedCardIndex === index) {
 			selectCard(null)
 		} else {
@@ -174,7 +175,7 @@ const Hand = observer(({controller} : IHandProps) => {
 		update: styleUpdater,
 		leave: card => defaultCardStyle,
 		config: config.default,
-		native: true,
+		native: false,
 	} as any);
 
 	const pivotAtCenter = {x:-getWindowWidth() / 2 + (playerCardWidthPix() /2), y: 0}
@@ -186,20 +187,23 @@ const Hand = observer(({controller} : IHandProps) => {
 			x={0}
 			y={getWindowHeight() - playerHandHeight()}
 			pivot={pivotAtCenter}
+			mouseover={() => {console.log('test over')}}
 		>
 			{map(transitions, ({item: card, key, props}) => {
 				const {x,y,rot,width, height} = props as any;
+				const isSelected = selectedCardIndex === card.uniqueId;
 				return (
-					<AnimatedContainer
+					<AnimatedPixi.Container
 						key={key}
 						x={x}
 						y={y}
 						width={width}
 						height={height}
 						angle={rot}
+						zIndex={isSelected ? 60 : 50}
 					>
-						{/*<Card id={card.id} canBeUsed={true}/>*/}
-					</AnimatedContainer>
+						<Card id={card.id} canBeUsed={true} onCardClick={() => cardSelection(card.uniqueId)}/>
+					</AnimatedPixi.Container>
 				)
 
 			})}
