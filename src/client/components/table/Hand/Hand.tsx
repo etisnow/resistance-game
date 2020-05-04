@@ -82,7 +82,7 @@ const generateCardMenu = (id, cardUniqueId, gameController: GameController, onSe
 	)
 };
 
-const circleRadius = getWindowWidth()
+const circleRadius = clamp(getWindowWidth(), 200, 500)
 const circleX = 0
 const circleY = circleRadius - (getWindowHeight() * 0.06)
 
@@ -110,13 +110,12 @@ const calculateCardStypeProps = (cardNumber, cardsCount) => {
 	const degStep = 11;
 	const maxCardDeg = degStep * cardsCount;
 	const cardDeg = getCardDeg(cardNumber, cardsCount, maxCardDeg);
-	const cardRotationDeg = getCardDeg(cardNumber, cardsCount, maxCardDeg * 0.4);
+	const cardRotationDeg = getCardDeg(cardNumber, cardsCount, maxCardDeg * 0.5);
 	const {x,y} = getCirclePoint(circleRadius, cardDeg, circleX,circleY);
-	const {x: rorationXPoint,y: rotationYPoint} = getCirclePoint(circleRadius, cardRotationDeg, circleX,circleY);
-	var angleBetweenPointsDeg = Math.atan2(rotationYPoint - circleY, rorationXPoint - circleX) * 180 / Math.PI;
+	const {x: rotationXPoint,y: rotationYPoint} = getCirclePoint(circleRadius, cardRotationDeg, circleX,circleY);
+	var angleBetweenPointsDeg = Math.atan2(rotationYPoint - circleY, rotationXPoint - circleX) * 180 / Math.PI;
 	const width = (playerCardWidthPix() * 1.1 );
-	const height = width * cardAspectRatio;
-	return {x: x - width/2,y,angle:angleBetweenPointsDeg + 90, width, height}
+	return {x: x - width/2,y,angle:angleBetweenPointsDeg + 90, width}
 }
 
 const getCenterOffset = () => {
@@ -128,7 +127,7 @@ const getCenterOffset = () => {
 const calculateCardSelectedStypeProps = () => {
 	const {width, height} = calculateSize();
 	const offset = getCenterOffset() + (getCenterOffset() * 0.25)
-	return {x:-width/2,y:-(offset + (height/2) ),angle:0,width, height}
+	return {x:-width/2,y:-(offset + (height/2) ), angle:0, width}
 }
 
 const Hand = observer(({controller} : IHandProps) => {
@@ -163,7 +162,7 @@ const Hand = observer(({controller} : IHandProps) => {
 		const cardNumber = cardNumberInRow(card);
 		return isSelected ? calculateCardSelectedStypeProps() : calculateCardStypeProps(cardNumber, cardsCount)
 	}
-	const defaultCardStyle = { x:0,y:-getCenterOffset(),angle:-90, width: 0, height: 0 };
+	const defaultCardStyle = { x:0,y:-getCenterOffset(),angle:-90, width: 0 };
 
 	const transitions = useTransition(hand, card=>card.uniqueId, {
 		from: defaultCardStyle,

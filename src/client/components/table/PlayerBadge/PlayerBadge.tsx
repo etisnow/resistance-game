@@ -2,6 +2,8 @@ import React from 'react';
 import './styles.scss';
 import cx from 'classnames';
 import {range, map} from 'lodash';
+import { Container, Text, Graphics } from 'react-pixi-fiber';
+import Circle from 'client/components/pixiPrimitives/Circle';
 
 
 interface IPlayerBadgeProps {
@@ -17,6 +19,10 @@ interface IPlayerBadgeProps {
 	isInfected: boolean;
 	isThing: boolean;
 	isConnected: boolean;
+	style: {
+		width:number;
+		height: number;
+	}
 }
 
 const formatNickname = (nickname) => {
@@ -42,20 +48,16 @@ const Quarantine = ({quarantine}) => {
 	) :  null;
 }
 
-const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, onSelect = null, id, isDoor, quarantine, isYou, isInfected, isThing, isConnected}: IPlayerBadgeProps) => {
+const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, onSelect = null, id, isDoor, quarantine, isYou, isInfected, isThing, isConnected, style}: IPlayerBadgeProps) => {
+	const nick = isYou ? 'ТЫ' : formatNickname(nickname)
 	return (
-		<div className={cx({playerBadge: true, canBeSelected, isDoor, onQuarantine: quarantine > 0, isYou, inTurn, disconnected: !isConnected })} style={{background: color}} onClick={() => (onSelect && canBeSelected) ? onSelect(id) : null}>
-			{ !isDoor && (
-				<React.Fragment>
-					{inTurn && <TurnBadge/>}
-					{isInfected && <InfectBadge/>}
-					{isThing && <ThingBadge/>}
-					{isYou ? 'ТЫ' : formatNickname(nickname)}
-					<Quarantine quarantine={quarantine}/>
-				</React.Fragment>
-			)}
-
-		</div>
+		<Container
+			pointerdown={() => (onSelect && canBeSelected) ? onSelect(id) : null}
+		>
+			<Circle x={0} y={0} fill={0xFFFFFF} radius={style.height/2}>
+				<Text text={nick} anchor={0.5} style={{fontFamily : 'Arial', fontSize: 18, fill : 0xff1010, align : 'center'}}/>
+			</Circle>
+		</Container>
 	)
 };
 

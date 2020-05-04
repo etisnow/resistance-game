@@ -1,7 +1,7 @@
 import React from 'react';
 import './styles.scss';
 import { observer } from "mobx-react-lite"
-import {fulldeck, thingCard} from 'shared/constant/cards';
+import {cardAspectRatio, fulldeck, thingCard} from 'shared/constant/cards';
 import {resources} from 'client/resources/resources';
 import {EEventID} from 'shared/enum/cards';
 import { Container, Sprite } from 'react-pixi-fiber';
@@ -15,11 +15,10 @@ interface ICardProps {
 	onCardClick?: any;
 	canBeUsed? :boolean;
 	style: {
-		width?: number;
-		height?: number;
-		x?: number;
-		y?: number;
-		angle?: number;
+		width?: any;
+		x?: any;
+		y?: any;
+		angle?: any;
 	}
 }
 
@@ -39,6 +38,7 @@ const Card = observer(({id, menu, onCardClick, canBeUsed, style}: ICardProps) =>
 				pointerdown={onCardClick}
 				buttonMode
 				{...style}
+				height={style.width.interpolate(w=> w * cardAspectRatio)}
 			/>
 		</Container>
 	)

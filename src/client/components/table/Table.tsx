@@ -54,13 +54,13 @@ const Table = observer(({controller} : ITableProps) => {
 				{ wrapperRef.current && (
 					<Stage className={"pixi-canvas"} options={{width:getWindowWidth(), height:getWindowHeight(), resolution:3, transparent:true}}>
 						<Hand controller={controller}/>
+						<Room controller={controller}/>
 					</Stage>
 				)}
 				<div className={"debug-div"}><div></div></div>
 				<GameLog controller={controller}/>
 {/*
 				<Deck controller={controller}/>
-				<Room controller={controller}/>
 				<Notifier controller={controller}/>
 				<ActionInteracter controller={controller}/>
 				<button className={'layoutChangeButton'} onClick={() => {controller.toggleRoomLayout()}}>

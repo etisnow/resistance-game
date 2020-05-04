@@ -2,13 +2,16 @@ import React from 'react';
 import {clamp, clone, map} from 'lodash';
 import './styles.scss';
 import {observer} from "mobx-react-lite";
-import {animated, config, interpolate, useTransition} from 'react-spring';
+import {animated, config, interpolate, useTransition} from 'react-spring/universal';
 import {circRadius, degToRag, playerRoomDiag} from 'client/helpers/roomHelpers';
 import GameController from 'client/controllers/gameController';
 import PlayerBadge from 'client/components/table/PlayerBadge/PlayerBadge';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ENotificationAction} from 'shared/enum/notifications';
+import {AnimatedPixi} from 'client/components/table/pixiInjected';
+import { Container, Text } from 'react-pixi-fiber';
+import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
 
 interface IRoomProps {
 	controller: GameController
@@ -120,24 +123,18 @@ const Room = observer(({controller} : IRoomProps) => {
 
 	const transitions = useTransition(newPlayerList, playerId=>playerId, {
 		from: {
-			transform: `translate(0px, 0px)`,
-		},
+			x:0, y:0
+		} as any,
 		enter: playerId => {
-			const {x,y} = getPositionFromPlayerList({players, playerId, playerList: newPlayerList});
-			return {
-				transform: `translate(${x}px, ${y}px)`,
-			}
+			return getPositionFromPlayerList({players, playerId, playerList: newPlayerList}) as any;
 		},
 		update: playerId => {
-			const {x,y} = getPositionFromPlayerList({players, playerId, playerList: newPlayerList});
-			return {
-				transform: `translate(${x}px, ${y}px)`,
-			} as any
+			return getPositionFromPlayerList({players, playerId, playerList: newPlayerList}) as any;
 		},
 		leave: player => {
 			return {
-				transform: `translate(0px, 0px)`,
-			}
+				x:0, y:0
+			} as any
 		},
 	} as any);
 
@@ -180,82 +177,38 @@ const Room = observer(({controller} : IRoomProps) => {
 	}
 
 	return (
-		<div className={'roomWrapper'}>
-			<div className={"playerRoom"} style={canvasHeightWidth}>
-				{map(transitions, ({item: playerId, key, props }) => {
-					const player = players[playerId];
-					if (!player || !player.id) return null;
-					const {nickname, color, state} = player;
-					const inTurn = player.turnState !== ETurnState.idle;
-					const canBeSelected = canPlayerBeSelected(player);
-					return (
-						<React.Fragment key={key}>
-							<animated.div
-								className={'badge-wrapper'}
-								key={key}
-							    style={{
-							        transform: props.transform,
-								    position: 'absolute',
-								    width: `${badgeDiagonal}px`,
-								    height: `${badgeDiagonal}px`,
-								    transformOrigin: '50% 50%',
-								    zIndex: 50,
-							    }}
-							>
-								<div style={{width: `${badgeDiagonal}px`, height: `${badgeDiagonal}px`}}>
-									<PlayerBadge
-										nickname={nickname}
-										color={color}
-										inTurn={inTurn}
-										canBeSelected={canBeSelected}
-										id={player.id}
-										isConnected={player.isConnected}
-										isYou={player.isYou}
-										isInfected={player.isInfected}
-										isThing={player.isThing}
-										quarantine={player.quarantine}
-										isDoor={state === EPlayerState.door}
-										onSelect={controller.selectPlayer}
-									/>
-								</div>
-							</animated.div>
-						</React.Fragment>
-					)
-				})}
-			</div>
-			<svg className={'svg-room'} viewBox={`0 0 ${playerRoomHeight} ${playerRoomHeight}`} xmlns="http://www.w3.org/2000/svg" style={canvasHeightWidth}>
-				{map(tradeArrows, ({item: arrow, key, props }) => {
-					const { ax, ay, bx, by, mid1X, mid1Y, mid2X, mid2Y, arrowRotation, arrowX, arrowY, arrowHeight  } = props as any;
-					let color = "yellow";
-					switch (arrow.type) {
-						case ETurnContextType.burn: { color = "#ff3c3c"; break; }
-						case ETurnContextType.positionswap: { color = "#3cd2ff"; break; }
-					}
-					return (
-						<React.Fragment key={key}>
-							<animated.path
-								fill={color}
-								transform={interpolate([arrowX, arrowY, arrowRotation], (x4,y4, rot) => {
-									return `rotate(${rot} ${x4} ${y4})`
-								})}
-								d={interpolate([arrowX, arrowY, arrowHeight], (x,y, height) => {
-									const width = (height / 3)
-									return `M ${x},${y} ${x + width},${y + height} ${x-width},${y +height} z `
-								})}
-							/>
-							<animated.path
-								fill="transparent"
-								strokeWidth={interpolate([arrowHeight], (h) => h/8)}
-								d={interpolate([ax, ay, mid1X, mid1Y, mid2X, mid2Y, bx, by], (x1,y1,x2,y2,x3,y3,x4,y4) => {
-									return `M${x1},${y1} C${x2},${y2} ${x3},${y3} ${x4},${y4}`
-								})}
-								stroke={color}
-							/>
-						</React.Fragment>
-					)
-				})}
-			</svg>
-		</div>
+		<Container x={getWindowWidth()/2} y={getWindowHeight()/2}>
+			{map(transitions, ({item: playerId, key, props:{x, y} }) => {
+				const player = players[playerId];
+				if (!player || !player.id) return null;
+				const {nickname, color, state} = player;
+				const inTurn = player.turnState !== ETurnState.idle;
+				const canBeSelected = canPlayerBeSelected(player);
+				return (
+					<AnimatedPixi.Container
+						key={key}
+						x={x}
+						y={y}
+					>
+						<PlayerBadge
+							style={{width:badgeDiagonal, height:badgeDiagonal}}
+							nickname={nickname}
+							color={color}
+							inTurn={inTurn}
+							canBeSelected={canBeSelected}
+							id={player.id}
+							isConnected={player.isConnected}
+							isYou={player.isYou}
+							isInfected={player.isInfected}
+							isThing={player.isThing}
+							quarantine={player.quarantine}
+							isDoor={state === EPlayerState.door}
+							onSelect={controller.selectPlayer}
+						/>
+					</AnimatedPixi.Container>
+				)
+			})}
+		</Container>
 	)
 });
 
