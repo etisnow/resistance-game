@@ -56,6 +56,7 @@ const Table = observer(({controller} : ITableProps) => {
 						<Hand controller={controller}/>
 					</Stage>
 				)}
+				<div className={"debug-div"}><div></div></div>
 				<GameLog controller={controller}/>
 {/*
 				<Deck controller={controller}/>

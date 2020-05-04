@@ -116,7 +116,7 @@ const calculateCardStypeProps = (cardNumber, cardsCount) => {
 	var angleBetweenPointsDeg = Math.atan2(rotationYPoint - circleY, rorationXPoint - circleX) * 180 / Math.PI;
 	const width = (playerCardWidthPix() * 1.1 );
 	const height = width * cardAspectRatio;
-	return {x,y,angle:angleBetweenPointsDeg + 90, width, height}
+	return {x: x - width/2,y,angle:angleBetweenPointsDeg + 90, width, height}
 }
 
 const getCenterOffset = () => {
@@ -128,11 +128,8 @@ const getCenterOffset = () => {
 const calculateCardSelectedStypeProps = () => {
 	const {width, height} = calculateSize();
 	const offset = getCenterOffset() + (getCenterOffset() * 0.25)
-	return {x:0,y:-(offset + (height/2) ),angle:0,width, height}
+	return {x:-width/2,y:-(offset + (height/2) ),angle:0,width, height}
 }
-
-//const AnimatedContainer = animated(Container)
-	//const centerAnchor = new PIXI.Circle(getWindowWidth()/2, getWindowHeight()/2, 200);
 
 const Hand = observer(({controller} : IHandProps) => {
 
@@ -146,7 +143,6 @@ const Hand = observer(({controller} : IHandProps) => {
 	const cardsCount = hand.length;
 
 	const cardSelection = (index) => {
-		console.log('selection')
 		if (selectedCardIndex === index) {
 			selectCard(null)
 		} else {
@@ -178,7 +174,7 @@ const Hand = observer(({controller} : IHandProps) => {
 		native: true,
 	} as any);
 
-	const pivotAtCenter = {x:-getWindowWidth() / 2 + (playerCardWidthPix() /2), y: 0}
+	const pivotAtCenter = {x:-getWindowWidth() / 2 , y: 0}
 
 	return (
 		<Container
