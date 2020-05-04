@@ -19,16 +19,14 @@ PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
 interface ITableProps {
 	controller: GameController
 }
-
-Globals.injectApplyAnimatedValues((instance, { scale, ...props }) => {
-  if (instance.pluginName) {
-    for (let prop in props) instance[prop] = props[prop]
-    if (scale) instance.scale.set(scale)
-  } else return false
-}, style => style)
-// injectFrame teaches react-spring the tools it needs to construct a game-loop, although
-// we use a custom renderer (pixi), we're still in the web, so RAF is available
-Globals.injectFrame(cb => (global as any).requestAnimationFrame(cb), cb => (global as any).cancelAnimationFrame(cb))
+//Globals.injectApplyAnimatedValues(
+//  (instance, props) => {
+//  	console.log('test')
+//    return instance.setNativeProps ? instance.setNativeProps(props) : false
+//  },
+//  style => style
+//)
+//Globals.injectFrame(cb => (global as any).requestAnimationFrame(cb), cb => (global as any).cancelAnimationFrame(cb))
 
 /*
 
@@ -56,7 +54,6 @@ const Table = observer(({controller} : ITableProps) => {
 				{ wrapperRef.current && (
 					<Stage className={"pixi-canvas"} options={{width:getWindowWidth(), height:getWindowHeight(), resolution:3, transparent:true}}>
 						<Hand controller={controller}/>
-						<Text text={"Привет"} x={300} y={300} width={300} height={300} buttonMode interactive pointerdown={() => {console.log('hello')}}/>
 					</Stage>
 				)}
 				<GameLog controller={controller}/>

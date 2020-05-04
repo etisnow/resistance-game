@@ -1,9 +1,10 @@
+import {AnimatedPixi} from 'client/components/table/pixiInjected';
 import React, {useEffect, useState} from 'react';
-import { Container, Graphics, CustomPIXIComponent } from 'react-pixi-fiber';
+import { Container, Graphics, CustomPIXIComponent, Text } from 'react-pixi-fiber';
 import {clamp, map} from 'lodash';
 import './styles.scss';
 import {observer} from "mobx-react-lite";
-import {config, interpolate, useTransition} from 'react-spring';
+import {config, useTransition, interpolate} from 'react-spring/universal';
 import GameController from 'client/controllers/gameController';
 import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
 import {cardAspectRatio} from 'shared/constant/cards';
@@ -12,7 +13,6 @@ import {EPlayerActionType} from 'shared/enum/playerActions';
 import {degToRag} from 'client/helpers/roomHelpers';
 import * as PIXI from 'pixi.js'
 import Card from '../Card/Card';
-import {AnimatedPixi} from 'client/components/table/pixiInjected';
 interface IHandProps {
 	controller: GameController
 }
@@ -116,7 +116,7 @@ const calculateCardStypeProps = (cardNumber, cardsCount) => {
 	var angleBetweenPointsDeg = Math.atan2(rotationYPoint - circleY, rorationXPoint - circleX) * 180 / Math.PI;
 	const width = (playerCardWidthPix() * 1.1 );
 	const height = width * cardAspectRatio;
-	return {x,y,rot:angleBetweenPointsDeg + 90, width, height}
+	return {x,y,angle:angleBetweenPointsDeg + 90, width, height}
 }
 
 const getCenterOffset = () => {
@@ -128,7 +128,7 @@ const getCenterOffset = () => {
 const calculateCardSelectedStypeProps = () => {
 	const {width, height} = calculateSize();
 	const offset = getCenterOffset() + (getCenterOffset() * 0.25)
-	return {x:0,y:-(offset + (height/2) ),rot:0,width, height}
+	return {x:0,y:-(offset + (height/2) ),angle:0,width, height}
 }
 
 //const AnimatedContainer = animated(Container)
@@ -167,7 +167,7 @@ const Hand = observer(({controller} : IHandProps) => {
 		const cardNumber = cardNumberInRow(card);
 		return isSelected ? calculateCardSelectedStypeProps() : calculateCardStypeProps(cardNumber, cardsCount)
 	}
-	const defaultCardStyle = { x:0,y:-getCenterOffset(),rot:-90, width: 0, height: 0 };
+	const defaultCardStyle = { x:0,y:-getCenterOffset(),angle:-90, width: 0, height: 0 };
 
 	const transitions = useTransition(hand, card=>card.uniqueId, {
 		from: defaultCardStyle,
@@ -175,7 +175,7 @@ const Hand = observer(({controller} : IHandProps) => {
 		update: styleUpdater,
 		leave: card => defaultCardStyle,
 		config: config.default,
-		native: false,
+		native: true,
 	} as any);
 
 	const pivotAtCenter = {x:-getWindowWidth() / 2 + (playerCardWidthPix() /2), y: 0}
@@ -190,19 +190,18 @@ const Hand = observer(({controller} : IHandProps) => {
 			mouseover={() => {console.log('test over')}}
 		>
 			{map(transitions, ({item: card, key, props}) => {
-				const {x,y,rot,width, height} = props as any;
 				const isSelected = selectedCardIndex === card.uniqueId;
 				return (
 					<AnimatedPixi.Container
 						key={key}
-						x={x}
-						y={y}
-						width={width}
-						height={height}
-						angle={rot}
 						zIndex={isSelected ? 60 : 50}
 					>
-						<Card id={card.id} canBeUsed={true} onCardClick={() => cardSelection(card.uniqueId)}/>
+						<Card
+							id={card.id}
+							canBeUsed={true}
+							onCardClick={() => cardSelection(card.uniqueId)}
+							style={props}
+						/>
 					</AnimatedPixi.Container>
 				)
 
@@ -215,7 +214,7 @@ const Hand = observer(({controller} : IHandProps) => {
 		<div className={"playerHand"} style={{height: playerHandHeight()}}>
 			<div className={"playerHandInnerWrapper"} style={{height: playerHandHeight(), width: getWindowWidth()}}>
 				{map(transitions, ({item: card, key, props}) => {
-					const {x,y,rot,width, height} = props as any;
+					const {x,y,angle,width, height} = props as any;
 					const {id} = card;
 					const isSelected = selectedCardIndex === card.uniqueId;
 					const cardMenu = generateCardMenu(id, card.uniqueId, controller, onSelectCard, card);
@@ -234,7 +233,7 @@ const Hand = observer(({controller} : IHandProps) => {
 						<animated.div
 							className={'rotationCardWrapper'}
 						    style={{
-							    transform: interpolate([rot], (r1) => `rotate(${r1}deg)`),
+							    transform: interpolate([angle], (r1) => `rotate(${r1}deg)`),
 							    transformOrigin: `50% 50%`,
 						    }}
 						>

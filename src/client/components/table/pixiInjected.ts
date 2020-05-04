@@ -1,10 +1,13 @@
-import { Container, Sprite } from "react-pixi-fiber";
+import { Container, Sprite, applyProps } from "react-pixi-fiber";
 import { Globals, animated } from 'react-spring/universal'
 //import { animated } from 'react-spring'
+import * as PIXI from 'pixi.js'
 Globals.injectApplyAnimatedValues(
-  (instance, props) => {
-  	console.log('test')
-    return instance.setNativeProps ? instance.setNativeProps(props) : false
+  (instance, {scale, ...props}) => {
+	for (let prop in props) {
+		instance[prop] = props[prop]
+	}
+	if (scale) instance.scale.set(scale)
   },
   style => style
 )
@@ -22,6 +25,7 @@ Globals.injectApplyAnimatedValues((instance, { scale, ...props }) => {
 
 const AnimatedPixi = {
   Container: animated(Container),
+  Sprite: animated(Sprite),
 };
 
 

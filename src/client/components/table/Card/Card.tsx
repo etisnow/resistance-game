@@ -6,6 +6,7 @@ import {resources} from 'client/resources/resources';
 import {EEventID} from 'shared/enum/cards';
 import { Container, Sprite } from 'react-pixi-fiber';
 import * as PIXI from 'pixi.js'
+import { AnimatedPixi } from '../pixiInjected';
 
 
 interface ICardProps {
@@ -13,20 +14,32 @@ interface ICardProps {
 	menu?: React.ReactNode;
 	onCardClick?: any;
 	canBeUsed? :boolean;
-	width?: number;
-	height?: number;
+	style: {
+		width?: number;
+		height?: number;
+		x?: number;
+		y?: number;
+		angle?: number;
+	}
 }
 
-const Card = observer(({id, menu, onCardClick, canBeUsed, width, height}: ICardProps) => {
+const Card = observer(({id, menu, onCardClick, canBeUsed, style}: ICardProps) => {
 	const card = fulldeck[id] || (id === EEventID.thing ? thingCard : null);
 	const cardTexture = PIXI.Texture.from(resources[id]);
 	if (!card) {
 		console.error('Карты', id, 'не добавлено!');
 		return null;
 	}
+
 	return (
-		<Container>
-			<Sprite texture={cardTexture} interactive pointerdown={onCardClick} buttonMode/>
+		<Container >
+			<AnimatedPixi.Sprite
+				texture={cardTexture}
+				interactive
+				pointerdown={onCardClick}
+				buttonMode
+				{...style}
+			/>
 		</Container>
 	)
 /*	return (
