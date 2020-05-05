@@ -177,8 +177,6 @@ const Hand = observer(({controller} : IHandProps) => {
 
 	return (
 		<Container
-			height={playerHandHeight()}
-			width={getWindowWidth()}
 			x={0}
 			y={getWindowHeight() - playerHandHeight()}
 			pivot={pivotAtCenter}
@@ -187,17 +185,14 @@ const Hand = observer(({controller} : IHandProps) => {
 			{map(transitions, ({item: card, key, props}) => {
 				const isSelected = selectedCardIndex === card.uniqueId;
 				return (
-					<AnimatedPixi.Container
-						key={key}
-						zIndex={isSelected ? 60 : 50}
-					>
+
 						<Card
+							key={key}
 							id={card.id}
 							canBeUsed={true}
 							onCardClick={() => cardSelection(card.uniqueId)}
 							style={props}
 						/>
-					</AnimatedPixi.Container>
 				)
 
 			})}

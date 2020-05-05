@@ -1,5 +1,5 @@
 import {clamp} from 'lodash';
-import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
+import {getConstrainedWindowWidth, getWindowHeight, getWindowWidth} from 'client/helpers/window';
 
 
 export const circRadius = (count) => {
@@ -8,4 +8,4 @@ export const circRadius = (count) => {
 };
 export const degToRag = (deg) => (deg * (Math.PI/180));
 export const playerWidth = (count) => clamp((100 / count), 10, 15);
-export const playerRoomDiag = (count) => (getWindowWidth() / (100/playerWidth(count)));
+export const playerRoomDiag = (count) => (getConstrainedWindowWidth() / (100/playerWidth(count)));

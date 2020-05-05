@@ -15,7 +15,7 @@ import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
 import * as PIXI from 'pixi.js'
 //import * as Animated from "animated";
 
-PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
+
 interface ITableProps {
 	controller: GameController
 }
@@ -52,9 +52,9 @@ const Table = observer(({controller} : ITableProps) => {
 		return (
 			<div className={"gameTable"} ref={wrapperRef}>
 				{ wrapperRef.current && (
-					<Stage className={"pixi-canvas"} options={{width:getWindowWidth(), height:getWindowHeight(), resolution:3, transparent:true}}>
-						<Hand controller={controller}/>
+					<Stage className={"pixi-canvas"} options={{width:getWindowWidth(), height:getWindowHeight(), resolution:window.devicePixelRatio, transparent:true, antialias:true}}>
 						<Room controller={controller}/>
+						<Hand controller={controller}/>
 					</Stage>
 				)}
 				<div className={"debug-div"}><div></div></div>
