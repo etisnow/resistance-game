@@ -29,28 +29,32 @@ const Card = observer(({id, menu, onCardClick, canBeUsed, style}: ICardProps) =>
 	const [cached, setCached] = useState(false);
 	const card = fulldeck[id] || (id === EEventID.thing ? thingCard : null);
 	const cardTexture = PIXI.Texture.from(resources[id]);
+	const glowTexture = PIXI.Texture.from(resources['glowEffect']);
 	if (!card) {
 		console.error('Карты', id, 'не добавлено!');
 		return null;
 	}
-	console.log(new OutlineFilter())
-
-	const filter = new GlowFilter();
-	filter.resolution = window.devicePixelRatio || 1;
 
 
 	return (
 		<Container  >
-
+			{canBeUsed && (
+				<AnimatedPixi.Sprite
+					texture={glowTexture}
+					{...style}
+					width={style.width.interpolate(w=> w * 1.15)}
+					height={style.width.interpolate(w=> w * cardAspectRatio * 1.1)}
+					anchor={0.5}
+				/>
+			)}
 			<AnimatedPixi.Sprite
 				buttonMode
 				interactive
-				filters={[filter]}
-				
 				texture={cardTexture}
 				pointerdown={onCardClick}
 				{...style}
 				height={style.width.interpolate(w=> w * cardAspectRatio)}
+				anchor={0.5}
 			/>
 		</Container>
 	)

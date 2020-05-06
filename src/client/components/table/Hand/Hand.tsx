@@ -115,19 +115,19 @@ const calculateCardStypeProps = (cardNumber, cardsCount) => {
 	const {x: rotationXPoint,y: rotationYPoint} = getCirclePoint(circleRadius, cardRotationDeg, circleX,circleY);
 	var angleBetweenPointsDeg = Math.atan2(rotationYPoint - circleY, rotationXPoint - circleX) * 180 / Math.PI;
 	const width = (playerCardWidthPix() * 1.1 );
-	return {x: x - width/2,y,angle:angleBetweenPointsDeg + 90, width}
+	return {x,y: y + playerHandHeight() / 2,angle:angleBetweenPointsDeg + 90, width}
 }
 
 const getCenterOffset = () => {
 	const topPoint = getWindowHeight() - playerHandHeight()
 	const YOffset = topPoint - (getWindowHeight() / 2)
-	return YOffset
+	return YOffset - playerHandHeight() / 2
 }
 
 const calculateCardSelectedStypeProps = () => {
 	const {width, height} = calculateSize();
 	const offset = getCenterOffset() + (getCenterOffset() * 0.25)
-	return {x:-width/2,y:-(offset + (height/2) ), angle:0, width}
+	return {x:0,y: -offset - (playerHandHeight() / 2), angle:0, width}
 }
 
 const Hand = observer(({controller} : IHandProps) => {
@@ -184,15 +184,15 @@ const Hand = observer(({controller} : IHandProps) => {
 		>
 			{map(transitions, ({item: card, key, props}) => {
 				const isSelected = selectedCardIndex === card.uniqueId;
+				const cardMenu = generateCardMenu(card.id, card.uniqueId, controller, onSelectCard, card);
 				return (
-
-						<Card
-							key={key}
-							id={card.id}
-							canBeUsed={true}
-							onCardClick={() => cardSelection(card.uniqueId)}
-							style={props}
-						/>
+					<Card
+						key={key}
+						id={card.id}
+						canBeUsed={!!cardMenu}
+						onCardClick={() => cardSelection(card.uniqueId)}
+						style={props}
+					/>
 				)
 
 			})}
