@@ -5,7 +5,9 @@ import {EAppState, EGameState} from 'shared/enum/common';
 import {EServerEventType} from 'shared/enum/enumServerEvents';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {EAsyncState} from 'shared/enum/async';
-
+import { difference } from 'lodash';
+import * as mobx from 'mobx'
+let tempGameController = null;
 
 function handleGlobalEvents(socket, root: RootController) {
 	socket.on(EServerEventType.gameConnectionSuccess, ({players, player, game, currentPlayer}) => {
@@ -33,7 +35,6 @@ function handleGlobalEvents(socket, root: RootController) {
 		root.launcherController.state = EAsyncState.idle;
 	});
 	socket.on(EServerEventType.updateGame, updateGame);
-	//socket.on(EServerEventType.playerConnected, updateGame);
 	socket.on(EServerEventType.gameStarted, () => {
 		root.state = EAppState.game;
 		root.gameController.state = EGameState.sarted;

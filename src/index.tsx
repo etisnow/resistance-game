@@ -4,10 +4,7 @@ import './client/index.css';
 import App from './client/components/app/App';
 import * as serviceWorker from './client/serviceWorker';
 
-ReactDOM.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
+ReactDOM.render(<App />,
   document.getElementById('root')
 );
 

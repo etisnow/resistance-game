@@ -1275,6 +1275,11 @@
   dependencies:
     "@pixi/core" "5.2.3"
 
+"@pixi/filter-convolution@^3.1.1":
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/@pixi/filter-convolution/-/filter-convolution-3.1.1.tgz#f80137aed1e08e2b27d2ef641de6847e155642a9"
+  integrity sha512-9PNtOqT74cdeh2FT9gM4XKkYL9odPSxwOKplv1Iioq8P/udDl3z4J2jwCRiRpL1Do7wZGVqEBBb3OpscOlHtrw==
+
 "@pixi/filter-displacement@5.2.3":
   version "5.2.3"
   resolved "https://registry.yarnpkg.com/@pixi/filter-displacement/-/filter-displacement-5.2.3.tgz#bfe7a41347a8b431396ef6bd0de29e31b287ab49"
@@ -1297,6 +1302,11 @@
   dependencies:
     "@pixi/core" "^5.0.0"
     "@pixi/utils" "^5.0.0"
+
+"@pixi/filter-godray@^3.1.1":
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/@pixi/filter-godray/-/filter-godray-3.1.1.tgz#4e9f68cacbc4c330b7727e61f1d1085d5933d488"
+  integrity sha512-fKKUOAxN6iy6eFflz08fCanMOnqrcML98ODGA71pzvwmwxNiamsvaWyBm9PdCgrFOTrKwnpX544jR6hCaNMaTg==
 
 "@pixi/filter-kawase-blur@3.1.1":
   version "3.1.1"

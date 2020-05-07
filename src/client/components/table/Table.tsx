@@ -12,7 +12,7 @@ import ActionInteracter from 'client/components/table/ActionInteracter/ActionInt
 import { Stage, Text, applyProps, Sprite, Container  } from "react-pixi-fiber";
 import { Globals, createAnimatedComponent, Animated, animated } from 'react-spring/universal';
 import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
-import * as PIXI from 'pixi.js'
+//import * as PIXI from 'pixi.js'
 //import * as Animated from "animated";
 
 
@@ -47,16 +47,18 @@ const Table = observer(({controller} : ITableProps) => {
 		if (!player) return null;
 		const {hand} = player;
 		if (!hand) return null;
-		const wrapperRef = useRef(null);
+		useEffect(() => {
+			console.log('TABLE Mounted')
+		}, [])
+	//return null;
 
 		return (
-			<div className={"gameTable"} ref={wrapperRef}>
-				{ wrapperRef.current && (
-					<Stage className={"pixi-canvas"} options={{width:getWindowWidth(), height:getWindowHeight(), resolution:window.devicePixelRatio, transparent:true, antialias:true}}>
-						<Room controller={controller}/>
-						<Hand controller={controller}/>
-					</Stage>
-				)}
+			<div className={"gameTable"}>
+				<Stage className={"pixi-canvas"} options={{width:getWindowWidth(), height:getWindowHeight(), resolution:window.devicePixelRatio, transparent:true, antialias:true}}>
+					<Room controller={controller}/>
+					<Hand controller={controller}/>
+				</Stage>
+
 				<div className={"debug-div"}><div></div></div>
 				<GameLog controller={controller}/>
 {/*

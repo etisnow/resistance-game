@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {clamp, clone, map} from 'lodash';
 import './styles.scss';
 import {observer} from "mobx-react-lite";
@@ -101,7 +101,6 @@ const lineAnimation = ({newPlayerList, badgeRadius, offensePlayerId, defensePlay
 		arrowHeight: arrowHeight,
 	} as any
 }
-
 
 const Room = observer(({controller} : IRoomProps) => {
 

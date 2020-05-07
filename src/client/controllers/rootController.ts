@@ -14,6 +14,7 @@ export default class RootController {
 	constructor(socket) {
 		this.socketController = new SocketController(this, this, socket);
 		this.gameController = new GameController(this);
+		console.log('initing new game controller')
 		this.launcherController = new LauncherController(this, this);
 	}
 }

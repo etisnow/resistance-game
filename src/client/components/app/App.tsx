@@ -9,11 +9,13 @@ import RootController from 'client/controllers/rootController';
 var socket = io.connect('http://95.37.255.173:30');
 
 
+
 @observer
 class App extends React.Component<any, any> {
 	controller: RootController;
 	constructor(props) {
 		super(props);
+		console.log('NEW APP TEST')
 		this.controller = new RootController(socket);
 	}
 	renderContent = () => {
@@ -21,6 +23,7 @@ class App extends React.Component<any, any> {
 			case EAppState.launcher:
 				return <Launcher controller={this.controller.launcherController} />
 			case EAppState.game:
+				console.log('render game')
 				return <GameScreen controller={this.controller.gameController} />
 		}
 	};

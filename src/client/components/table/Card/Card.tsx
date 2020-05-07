@@ -7,14 +7,11 @@ import {EEventID} from 'shared/enum/cards';
 import { Container, Sprite } from 'react-pixi-fiber';
 import * as PIXI from 'pixi.js'
 import { AnimatedPixi } from '../pixiInjected';
-import {OutlineFilter} from '@pixi/filter-outline';
-import {GlowFilter} from '@pixi/filter-glow';
-import RoundedRect from 'client/components/pixiPrimitives/RoundedRect';
-import {AdvancedBloomFilter} from '@pixi/filter-advanced-bloom';
+
 
 interface ICardProps {
 	id: string;
-	menu?: React.ReactNode;
+	menu?: (style:any) => React.ReactNode;
 	onCardClick?: any;
 	canBeUsed? :boolean;
 	style: {
@@ -26,7 +23,6 @@ interface ICardProps {
 }
 
 const Card = observer(({id, menu, onCardClick, canBeUsed, style}: ICardProps) => {
-	const [cached, setCached] = useState(false);
 	const card = fulldeck[id] || (id === EEventID.thing ? thingCard : null);
 	const cardTexture = PIXI.Texture.from(resources[id]);
 	const glowTexture = PIXI.Texture.from(resources['glowEffect']);
@@ -56,6 +52,7 @@ const Card = observer(({id, menu, onCardClick, canBeUsed, style}: ICardProps) =>
 				height={style.width.interpolate(w=> w * cardAspectRatio)}
 				anchor={0.5}
 			/>
+			{menu && menu(style)}
 		</Container>
 	)
 /*	return (

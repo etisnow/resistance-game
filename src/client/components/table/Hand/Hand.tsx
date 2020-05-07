@@ -13,6 +13,7 @@ import {EPlayerActionType} from 'shared/enum/playerActions';
 import {degToRag} from 'client/helpers/roomHelpers';
 import * as PIXI from 'pixi.js'
 import Card from '../Card/Card';
+import {resources} from 'client/resources/resources';
 interface IHandProps {
 	controller: GameController
 }
@@ -41,44 +42,62 @@ export const behavior = {
 const Rect = CustomPIXIComponent(behavior, TYPE);
 
 
-const generateCardMenu = (id, cardUniqueId, gameController: GameController, onSelectCard, card) => {
+const generateCardMenu = (id, cardUniqueId, gameController: GameController, onSelectCard, card) => (style) => {
 	const player = gameController.currentPlayer;
 	if (!player || player.turnState === ETurnState.idle) return null;
 	const menuItems = card.actions;
+	const cardAct = PIXI.Texture.from(resources['cardAct']);
+	const cardDiscard = PIXI.Texture.from(resources['cardDiscard']);
+	const cardTrade = PIXI.Texture.from(resources['cardTrade']);
 	if (menuItems.length === 0) return null;
+	const cardHeight = style.width.interpolate(w => w* cardAspectRatio)
+	const width = style.width.interpolate(w => w/2)
+	const buttonHeight = width.interpolate(w => w * 1.234323432343234)
 	const menu = menuItems.map((menuIitem) => {
 		switch (menuIitem.menuType) {
 			case EPlayerActionType.cardAct:
-				return <div
+				return <AnimatedPixi.Sprite
+					interactive={true}
+					texture={cardAct}
+					width={width}
+					height={buttonHeight}
+					x={interpolate([style.x, style.width], (x,w) => x - w/2)}
+					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.1)}
+					angle={style.angle}
 					key={EPlayerActionType.cardAct}
-					className={'cardMenuItem'}
-					onClick={() => handleCardAction(gameController, onSelectCard, EPlayerActionType.cardAct, cardUniqueId)}
-				>
-					Играть
-				</div>;
+					pointerdown={() => handleCardAction(gameController, onSelectCard, EPlayerActionType.cardAct, cardUniqueId)}
+				/>
 			case EPlayerActionType.cardDiscard:
-				return <div
+				return <AnimatedPixi.Sprite
+					interactive={true}
+					texture={cardDiscard}
+					width={width}
+					height={buttonHeight}
+					x={interpolate([style.x, style.width], (x,w) => x)}
+					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.1)}
+					angle={style.angle}
 					key={EPlayerActionType.cardDiscard}
-					className={'cardMenuItem'}
-					onClick={() => handleCardAction(gameController, onSelectCard, EPlayerActionType.cardDiscard, cardUniqueId)}
-				>
-					Сбросить
-				</div>;
+					pointerdown={(e) => {e.stopPropagation(); handleCardAction(gameController, onSelectCard, EPlayerActionType.cardDiscard, cardUniqueId)}}
+				/>
 			case EPlayerActionType.cardTrade:
-				return <div
+				return <AnimatedPixi.Sprite
+					interactive={true}
+					texture={cardTrade}
+					width={width}
+					height={buttonHeight}
+					x={interpolate([style.x, style.width], (x,w) => x )}
+					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.1)}
+					angle={style.angle}
 					key={EPlayerActionType.cardTrade}
-					className={'cardMenuItem'}
-					onClick={() => handleCardAction(gameController, onSelectCard, EPlayerActionType.cardTrade, cardUniqueId)}
-				>
-					Обмен
-				</div>;
+					pointerdown={() => handleCardAction(gameController, onSelectCard, EPlayerActionType.cardTrade, cardUniqueId)}
+				/>
 		}
 		return null;
 	});
 	return (
-		<div className={'cardMenuWrapper'}>
+		<AnimatedPixi.Container>
 			{menu}
-		</div>
+		</AnimatedPixi.Container>
 	)
 };
 
@@ -115,7 +134,7 @@ const calculateCardStypeProps = (cardNumber, cardsCount) => {
 	const {x: rotationXPoint,y: rotationYPoint} = getCirclePoint(circleRadius, cardRotationDeg, circleX,circleY);
 	var angleBetweenPointsDeg = Math.atan2(rotationYPoint - circleY, rotationXPoint - circleX) * 180 / Math.PI;
 	const width = (playerCardWidthPix() * 1.1 );
-	return {x,y: y + playerHandHeight() / 2,angle:angleBetweenPointsDeg + 90, width}
+	return {x,y: y + playerHandHeight() * 0.65,angle:angleBetweenPointsDeg + 90, width}
 }
 
 const getCenterOffset = () => {
@@ -130,7 +149,10 @@ const calculateCardSelectedStypeProps = () => {
 	return {x:0,y: -offset - (playerHandHeight() / 2), angle:0, width}
 }
 
+let olcontroler = null
+
 const Hand = observer(({controller} : IHandProps) => {
+
 
 	const [selectedCardIndex, selectCard] = useState(null);
 
@@ -140,6 +162,7 @@ const Hand = observer(({controller} : IHandProps) => {
 	if (!hand) return null;
 
 	const cardsCount = hand.length;
+
 
 	const cardSelection = (index) => {
 		if (selectedCardIndex === index) {
@@ -158,6 +181,7 @@ const Hand = observer(({controller} : IHandProps) => {
 	};
 
 	const styleUpdater = (card) => {
+		console.log('enter')
 		const isSelected = card.uniqueId === selectedCardIndex;
 		const cardNumber = cardNumberInRow(card);
 		return isSelected ? calculateCardSelectedStypeProps() : calculateCardStypeProps(cardNumber, cardsCount)
@@ -180,19 +204,23 @@ const Hand = observer(({controller} : IHandProps) => {
 			x={0}
 			y={getWindowHeight() - playerHandHeight()}
 			pivot={pivotAtCenter}
+			sortableChildren={true}
 			mouseover={() => {console.log('test over')}}
 		>
 			{map(transitions, ({item: card, key, props}) => {
 				const isSelected = selectedCardIndex === card.uniqueId;
 				const cardMenu = generateCardMenu(card.id, card.uniqueId, controller, onSelectCard, card);
 				return (
-					<Card
-						key={key}
-						id={card.id}
-						canBeUsed={!!cardMenu}
-						onCardClick={() => cardSelection(card.uniqueId)}
-						style={props}
-					/>
+					<Container key={key} zIndex={isSelected ? 60 : cardNumberInRow(card)}>
+						<Card
+							key={key}
+							id={card.id}
+							canBeUsed={!!cardMenu}
+							onCardClick={() => cardSelection(card.uniqueId)}
+							style={props}
+							menu={isSelected ? cardMenu : null}
+						/>
+					</Container>
 				)
 
 			})}

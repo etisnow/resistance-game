@@ -36,6 +36,10 @@ import thing from "client/resources/cards/thing.png";
 import barricadeBadge from "client/resources/images/barricade_badge.png";
 import glowEffect from "client/resources/images/gloweffect.png";
 
+/*CARD ACTIONS*/
+import cardAct from "client/resources/images/cardAct.png";
+import cardDiscard from "client/resources/images/cardDiscard.png";
+import cardTrade from "client/resources/images/cardTrade.png";
 
 const resources = {
 tenacity,
@@ -73,7 +77,10 @@ panicBack,
 thing,
 
 barricadeBadge,
-glowEffect
+glowEffect,
+cardAct,
+cardDiscard,
+cardTrade,
 }
 
 export {resources};
