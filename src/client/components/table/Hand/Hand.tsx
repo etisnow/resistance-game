@@ -1,5 +1,5 @@
 import {AnimatedPixi} from 'client/components/table/pixiInjected';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useLayoutEffect, useState} from 'react';
 import { Container, Graphics, CustomPIXIComponent, Text } from 'react-pixi-fiber';
 import {clamp, map} from 'lodash';
 import './styles.scss';
@@ -94,6 +94,7 @@ const generateCardMenu = (id, cardUniqueId, gameController: GameController, onSe
 		}
 		return null;
 	});
+	if (!menu.length) return null;
 	return (
 		<AnimatedPixi.Container>
 			{menu}
@@ -149,10 +150,16 @@ const calculateCardSelectedStypeProps = () => {
 	return {x:0,y: -offset - (playerHandHeight() / 2), angle:0, width}
 }
 
-let olcontroler = null
+let olhand = null
 
 const Hand = observer(({controller} : IHandProps) => {
 
+
+/*	useLayoutEffect(() => {
+		console.log('hand', controller === olcontroler, controller, olcontroler)
+		olcontroler = controller
+	}, [controller])
+	return*/
 
 	const [selectedCardIndex, selectCard] = useState(null);
 
@@ -181,23 +188,27 @@ const Hand = observer(({controller} : IHandProps) => {
 	};
 
 	const styleUpdater = (card) => {
-		console.log('enter')
+		//console.log('enter')
 		const isSelected = card.uniqueId === selectedCardIndex;
 		const cardNumber = cardNumberInRow(card);
 		return isSelected ? calculateCardSelectedStypeProps() : calculateCardStypeProps(cardNumber, cardsCount)
 	}
 	const defaultCardStyle = { x:0,y:-getCenterOffset(),angle:-90, width: 0 };
 
+	console.log(hand)
+
 	const transitions = useTransition(hand, card=>card.uniqueId, {
 		from: defaultCardStyle,
-		enter: styleUpdater,
-		update: styleUpdater,
-		leave: card => defaultCardStyle,
+		enter: (card) => {console.log('enter'); return styleUpdater(card)},
+		update: (card) => {console.log('update'); return styleUpdater(card)},
+		leave: card => {console.log('LEAVE'); return defaultCardStyle},
 		config: config.default,
 		native: true,
 	} as any);
 
 	const pivotAtCenter = {x:-getWindowWidth() / 2 , y: 0}
+
+
 
 	return (
 		<Container
@@ -213,7 +224,6 @@ const Hand = observer(({controller} : IHandProps) => {
 				return (
 					<Container key={key} zIndex={isSelected ? 60 : cardNumberInRow(card)}>
 						<Card
-							key={key}
 							id={card.id}
 							canBeUsed={!!cardMenu}
 							onCardClick={() => cardSelection(card.uniqueId)}

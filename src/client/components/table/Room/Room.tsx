@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useLayoutEffect} from 'react';
 import {clamp, clone, map} from 'lodash';
 import './styles.scss';
 import {observer} from "mobx-react-lite";
@@ -104,6 +104,10 @@ const lineAnimation = ({newPlayerList, badgeRadius, offensePlayerId, defensePlay
 
 const Room = observer(({controller} : IRoomProps) => {
 
+/*	useLayoutEffect(() => {
+		console.log('room')
+	}, [controller])
+	return*/
 	const { currentPlayer, currentPlayerId } = controller;
 	const { playersList, players } = controller;
 	if (!currentPlayer || !currentPlayerId || !playersList) return null;

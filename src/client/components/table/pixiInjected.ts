@@ -15,6 +15,7 @@ Globals.injectApplyAnimatedValues(
   style => style
 )
 Globals.injectFrame(cb => (global as any).requestAnimationFrame(cb), cb => (global as any).cancelAnimationFrame(cb))
+
 /*
 Globals.injectApplyAnimatedValues((instance, { scale, ...props }) => {
 	console.log('test')

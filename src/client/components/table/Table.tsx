@@ -44,13 +44,8 @@ Globals.injectFrame(cb => { console.log('test'); return (global as any).requestA
 
 const Table = observer(({controller} : ITableProps) => {
 		const player = controller.currentPlayer;
-		if (!player) return null;
+		if (!player || !player.hand) return null;
 		const {hand} = player;
-		if (!hand) return null;
-		useEffect(() => {
-			console.log('TABLE Mounted')
-		}, [])
-	//return null;
 
 		return (
 			<div className={"gameTable"}>

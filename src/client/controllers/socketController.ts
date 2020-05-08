@@ -5,7 +5,7 @@ import {EAppState, EGameState} from 'shared/enum/common';
 import {EServerEventType} from 'shared/enum/enumServerEvents';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {EAsyncState} from 'shared/enum/async';
-import { difference } from 'lodash';
+import { difference, merge } from 'lodash';
 import * as mobx from 'mobx'
 let tempGameController = null;
 
@@ -19,7 +19,8 @@ function handleGlobalEvents(socket, root: RootController) {
 
 	const updateGame = ({tradeContext, players, playersList, deck, gameLog, currentAction, state, currentPlayer}) => {
 		root.state = EAppState.game;
-		root.gameController.players = players;
+		root.gameController.updatePlayers(players);
+		//root.gameController.players = players;
 		root.gameController.playersList = playersList;
 		root.gameController.deck = deck;
 		root.gameController.currentPlayerId = currentPlayer.id;
