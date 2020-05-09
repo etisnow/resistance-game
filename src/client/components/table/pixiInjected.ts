@@ -3,6 +3,7 @@ import { Globals, animated } from 'react-spring/universal'
 import { CustomPIXIComponent } from "react-pixi-fiber";
 import * as PIXI from 'pixi.js'
 import Circle from 'client/components/pixiPrimitives/Circle';
+import Arrow from 'client/components/pixiPrimitives/Arrow';
 
 
 Globals.injectApplyAnimatedValues(
@@ -27,10 +28,15 @@ Globals.injectApplyAnimatedValues((instance, { scale, ...props }) => {
 
 */
 
+
+
+
+
 const AnimatedPixi = {
 	Container: animated(Container),
 	Sprite: animated(Sprite),
 	Circle: animated(Circle),
+	Arrow: animated(Arrow),
 };
 
 

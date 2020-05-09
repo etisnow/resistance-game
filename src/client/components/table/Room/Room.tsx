@@ -12,6 +12,7 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {AnimatedPixi} from 'client/components/table/pixiInjected';
 import { Container, Text } from 'react-pixi-fiber';
 import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
+import Arrow from 'client/components/pixiPrimitives/Arrow';
 
 interface IRoomProps {
 	controller: GameController
@@ -99,7 +100,28 @@ const lineAnimation = ({newPlayerList, badgeRadius, offensePlayerId, defensePlay
 		arrowY: arrowY + tradeLineCenterOffset,
 		arrowRotation: angleBetweenPointsDeg + 90,
 		arrowHeight: arrowHeight,
+		color: 0xff00ff,
 	} as any
+}
+
+const CurvedArrow = (props) => {
+	const {
+		ax,
+		ay,
+		bx,
+		by,
+		mid1X,
+		mid1Y,
+		mid2X,
+		mid2Y,
+		arrowX,
+		arrowY,
+		arrowRotation,
+		arrowHeight
+	} = props;
+
+	return
+
 }
 
 const Room = observer(({controller} : IRoomProps) => {
@@ -146,7 +168,7 @@ const Room = observer(({controller} : IRoomProps) => {
 	const playerRoomHeight = (circRadius(playersCount) * 2) + badgeDiagonal;
 	const canvasHeightWidth = {height: playerRoomHeight, width: playerRoomHeight }
 	const tradeLineCenterOffset = playerRoomHeight / 2;
-	const tradeArrows = useTransition(tradeContext, ({offensePlayerId}) => offensePlayerId, {
+	const arrows = useTransition(tradeContext, ({offensePlayerId}) => offensePlayerId, {
 		enter: ({offensePlayerId, defensePlayerId}) => {
 			const {ax,ay, arrowRotation} = lineAnimation({newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players, tradeLineCenterOffset});
 			return {
@@ -162,6 +184,7 @@ const Room = observer(({controller} : IRoomProps) => {
 				arrowY: ay,
 				arrowRotation,
 				arrowHeight: 0,
+				color: 0xff00ff,
 			} as any
 		},
 		update: ({offensePlayerId, defensePlayerId}) => {
@@ -209,6 +232,31 @@ const Room = observer(({controller} : IRoomProps) => {
 							onSelect={controller.selectPlayer}
 						/>
 					</AnimatedPixi.Container>
+				)
+			})}
+			<Arrow
+				arrowHeight={15}
+				arrowRotation={-45}
+				arrowX={67.55199213410665}
+				arrowY={230.71865880077334}
+				ax={170.6146284662384}
+				ay={333.78129513290503}
+				bx={78.15859859278244}
+				by={241.32526525944917}
+				color={0xff00ff}
+				mid1X={116.87362464212536}
+				mid1Y={295.0663104090062}
+				mid2X={131.8996437423395}
+				mid2Y={280.04029130879206}
+
+			/>
+			{map(arrows, ({item: arrow, key, props }) => {
+				console.log('test', props)
+				return (
+					<AnimatedPixi.Arrow
+						key={key}
+						{...props}
+					/>
 				)
 			})}
 		</Container>
