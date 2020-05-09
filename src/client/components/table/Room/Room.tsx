@@ -58,7 +58,7 @@ const getDistanceBetweenPoints = (x1,y1,x2,y2) => {
 	return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
 }
 
-const lineAnimation = ({newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players, tradeLineCenterOffset}) => {
+const lineAnimation = ({newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players}) => {
 	const biggerBadgeRad = badgeRadius + 5;
 	const playersCount = newPlayerList.length;
 	const iterateDegree = 360 / playersCount;
@@ -88,48 +88,24 @@ const lineAnimation = ({newPlayerList, badgeRadius, offensePlayerId, defensePlay
 
 
 	return {
-		ax:newAX + tradeLineCenterOffset,
-		ay:newAY + tradeLineCenterOffset,
-		bx: newBX + tradeLineCenterOffset,
-		by: newBY + tradeLineCenterOffset,
-		mid1X: offsettedMid1X + tradeLineCenterOffset,
-		mid1Y: offsettedMid1Y + tradeLineCenterOffset,
-		mid2X: offsettedMid2X + tradeLineCenterOffset,
-		mid2Y: offsettedMid2Y + tradeLineCenterOffset,
-		arrowX: arrowX + tradeLineCenterOffset,
-		arrowY: arrowY + tradeLineCenterOffset,
+		ax:newAX,
+		ay:newAY,
+		bx: newBX,
+		by: newBY,
+		mid1X: offsettedMid1X,
+		mid1Y: offsettedMid1Y,
+		mid2X: offsettedMid2X,
+		mid2Y: offsettedMid2Y,
+		arrowX: arrowX,
+		arrowY: arrowY,
 		arrowRotation: angleBetweenPointsDeg + 90,
 		arrowHeight: arrowHeight,
 		color: 0xff00ff,
 	} as any
 }
 
-const CurvedArrow = (props) => {
-	const {
-		ax,
-		ay,
-		bx,
-		by,
-		mid1X,
-		mid1Y,
-		mid2X,
-		mid2Y,
-		arrowX,
-		arrowY,
-		arrowRotation,
-		arrowHeight
-	} = props;
-
-	return
-
-}
-
 const Room = observer(({controller} : IRoomProps) => {
 
-/*	useLayoutEffect(() => {
-		console.log('room')
-	}, [controller])
-	return*/
 	const { currentPlayer, currentPlayerId } = controller;
 	const { playersList, players } = controller;
 	if (!currentPlayer || !currentPlayerId || !playersList) return null;
@@ -166,11 +142,9 @@ const Room = observer(({controller} : IRoomProps) => {
 	const badgeDiagonal = playerRoomDiag(playersCount);
 	const badgeRadius = badgeDiagonal/2;
 	const playerRoomHeight = (circRadius(playersCount) * 2) + badgeDiagonal;
-	const canvasHeightWidth = {height: playerRoomHeight, width: playerRoomHeight }
-	const tradeLineCenterOffset = playerRoomHeight / 2;
 	const arrows = useTransition(tradeContext, ({offensePlayerId}) => offensePlayerId, {
 		enter: ({offensePlayerId, defensePlayerId}) => {
-			const {ax,ay, arrowRotation} = lineAnimation({newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players, tradeLineCenterOffset});
+			const {ax,ay, arrowRotation} = lineAnimation({newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
 			return {
 				ax,
 				ay,
@@ -188,7 +162,7 @@ const Room = observer(({controller} : IRoomProps) => {
 			} as any
 		},
 		update: ({offensePlayerId, defensePlayerId}) => {
-			return lineAnimation({newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players, tradeLineCenterOffset});
+			return lineAnimation({newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
 		},
 		config: config.stiff
 	} as any);
@@ -234,7 +208,7 @@ const Room = observer(({controller} : IRoomProps) => {
 					</AnimatedPixi.Container>
 				)
 			})}
-			<Arrow
+{/*			<Arrow
 				arrowHeight={15}
 				arrowRotation={-45}
 				arrowX={67.55199213410665}
@@ -248,15 +222,16 @@ const Room = observer(({controller} : IRoomProps) => {
 				mid1Y={295.0663104090062}
 				mid2X={131.8996437423395}
 				mid2Y={280.04029130879206}
-
-			/>
+			/>*/}
 			{map(arrows, ({item: arrow, key, props }) => {
 				console.log('test', props)
+				if (!props.bx || !props.by || !props.bx || !props.by) return
 				return (
-					<AnimatedPixi.Arrow
-						key={key}
-						{...props}
-					/>
+					<Container key={key}>
+						<AnimatedPixi.Arrow
+							{...props}
+						/>
+					</Container>
 				)
 			})}
 		</Container>
