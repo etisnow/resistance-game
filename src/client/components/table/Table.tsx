@@ -43,9 +43,8 @@ Globals.injectApplyAnimatedValues((instance, { scale, ...props }) => {
 Globals.injectFrame(cb => { console.log('test'); return (global as any).requestAnimationFrame(cb)}, cb => (global as any).cancelAnimationFrame(cb))*/
 
 const Table = observer(({controller} : ITableProps) => {
-		const player = controller.currentPlayer;
-		if (!player || !player.hand) return null;
-		const {hand} = player;
+		const {currentPlayer:player, hand} = controller;
+		if (!player || !hand) return null;
 
 		return (
 			<div className={"gameTable"}>

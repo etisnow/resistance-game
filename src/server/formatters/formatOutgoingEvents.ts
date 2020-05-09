@@ -9,6 +9,7 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 import {IFormatTradeContext} from 'shared/interfaces/common';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {getNextChainReactionPlayer} from 'server/helpers/cardActions/panic/chainReaction';
+import {getCardActions} from 'server/formatters/formatCardActions';
 
 function formatEvent(type, payload) {
 	return {
@@ -43,7 +44,6 @@ const formatTradeContext = (game: Game) : IFormatTradeContext[] => {
 			return reduce(game.playersList, (acc, pId) => {
 				const player = game.players[pId];
 				if (player.turnState === ETurnState.inOffenseTrade && player.state !== EPlayerState.door) {
-
 					const defensePlayer = getNextChainReactionPlayer({currentPlayer: player, game})
 					acc.push({
 						offensePlayerId: pId,
@@ -71,11 +71,24 @@ const formatTradeContext = (game: Game) : IFormatTradeContext[] => {
 	}
 }
 
+const getPlayerHand = (game: Game, viewer:Player) => {
+	return formatHand(game, viewer);
+}
+const getPlayerHandActions = (game: Game, viewer:Player) => {
+	const hand = getPlayerHand(game, viewer);
+	return reduce(hand, (acc, card) => {
+		acc[card.uniqueId] = getCardActions(game, viewer, card);
+		return acc
+	}, {})
+
+}
 const formatUpdatePlayerPayload = ({ game, viewer }: {game: Game, viewer: Player}) => {
 	return {
 		state: game.state,
 		currentPlayer: formatPlayer(game, viewer)(viewer),
 		players: formatPlayers(game, viewer),
+		hand: getPlayerHand(game, viewer),
+		handActions: getPlayerHandActions(game, viewer),
 		turnPlayerId:  game.turnPlayerId,
 		playersList:  game.playersList,
 		isClockwise:  game.isClockwise,
@@ -100,7 +113,6 @@ const formatPlayer = (game: Game, viewer: Player) => (player: Player) => {
 		state: player.state,
 		isHost: player.isHost,
 		isYou: player === viewer,
-		hand: isViewer ? formatHand(game, player) : null,
 		color: player.color,
 		turnState: player.turnState,
 		//isInfected: true,
@@ -130,7 +142,7 @@ const formatPlayers = (game: Game, viewer: Player) => {
 	})
 }*/
 
-const findGameHost = (game: Game) => {
+const getGameHost = (game: Game) => {
 	const hostPlayer = find(game.players, player => { return player.isHost });
 	return hostPlayer
 }
@@ -138,7 +150,7 @@ const findGameHost = (game: Game) => {
 export const formatLobbyState = (gameServer: GameServer) => {
 	return formatEvent(EServerEventType.lobbyUpdate, {
 		games: map(gameServer.games, (game: Game) => {
-			const hostPlayer = findGameHost(game);
+			const hostPlayer = getGameHost(game);
 			return {
 				gameId: game.id,
 				hostName: hostPlayer ? hostPlayer.nickname : 'ERROR'

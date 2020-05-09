@@ -30,7 +30,7 @@ const Card = observer(({id, menu, onCardClick, canBeUsed, style}: ICardProps) =>
 		console.error('Карты', id, 'не добавлено!');
 		return null;
 	}
-
+	console.log(canBeUsed)
 
 	return (
 		<Container  >

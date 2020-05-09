@@ -39,20 +39,18 @@ export const behavior = {
     instance.endFill();
   }
 };
-const Rect = CustomPIXIComponent(behavior, TYPE);
 
-
-const generateCardMenu = (id, cardUniqueId, gameController: GameController, onSelectCard, card) => (style) => {
+const generateCardMenu = (card, gameController: GameController, onSelectCard) => (style) => {
+	const menuItems = gameController.handActions[card.uniqueId];
+	if (!menuItems || menuItems.length === 0) return null;
 	const player = gameController.currentPlayer;
 	if (!player || player.turnState === ETurnState.idle) return null;
-	const menuItems = card.actions;
 	const cardAct = PIXI.Texture.from(resources['cardAct']);
 	const cardDiscard = PIXI.Texture.from(resources['cardDiscard']);
 	const cardTrade = PIXI.Texture.from(resources['cardTrade']);
-	if (menuItems.length === 0) return null;
 	const cardHeight = style.width.interpolate(w => w* cardAspectRatio)
 	const width = style.width.interpolate(w => w/2)
-	const buttonHeight = width.interpolate(w => w * 1.234323432343234)
+	const buttonHeight = width.interpolate(w => w * 1.2343)
 	const menu = menuItems.map((menuIitem) => {
 		switch (menuIitem.menuType) {
 			case EPlayerActionType.cardAct:
@@ -65,7 +63,7 @@ const generateCardMenu = (id, cardUniqueId, gameController: GameController, onSe
 					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.1)}
 					angle={style.angle}
 					key={EPlayerActionType.cardAct}
-					pointerdown={() => handleCardAction(gameController, onSelectCard, EPlayerActionType.cardAct, cardUniqueId)}
+					pointerdown={() => handleCardAction(gameController, onSelectCard, EPlayerActionType.cardAct, card.uniqueId)}
 				/>
 			case EPlayerActionType.cardDiscard:
 				return <AnimatedPixi.Sprite
@@ -77,7 +75,7 @@ const generateCardMenu = (id, cardUniqueId, gameController: GameController, onSe
 					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.1)}
 					angle={style.angle}
 					key={EPlayerActionType.cardDiscard}
-					pointerdown={(e) => {e.stopPropagation(); handleCardAction(gameController, onSelectCard, EPlayerActionType.cardDiscard, cardUniqueId)}}
+					pointerdown={(e) => {e.stopPropagation(); handleCardAction(gameController, onSelectCard, EPlayerActionType.cardDiscard, card.uniqueId)}}
 				/>
 			case EPlayerActionType.cardTrade:
 				return <AnimatedPixi.Sprite
@@ -89,12 +87,11 @@ const generateCardMenu = (id, cardUniqueId, gameController: GameController, onSe
 					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.1)}
 					angle={style.angle}
 					key={EPlayerActionType.cardTrade}
-					pointerdown={() => handleCardAction(gameController, onSelectCard, EPlayerActionType.cardTrade, cardUniqueId)}
+					pointerdown={() => handleCardAction(gameController, onSelectCard, EPlayerActionType.cardTrade, card.uniqueId)}
 				/>
 		}
 		return null;
 	});
-	if (!menu.length) return null;
 	return (
 		<AnimatedPixi.Container>
 			{menu}
@@ -163,12 +160,10 @@ const Hand = observer(({controller} : IHandProps) => {
 
 	const [selectedCardIndex, selectCard] = useState(null);
 
-	const player = controller.currentPlayer;
-	if (!player) return null;
-	const {hand} = player;
-	if (!hand) return null;
+	const {currentPlayer:player, hand} = controller;
+	if (!player || !hand) return null;
 
-	const cardsCount = hand.length;
+	const cardsCount = Object.keys(hand).length;
 
 
 	const cardSelection = (index) => {
@@ -184,20 +179,18 @@ const Hand = observer(({controller} : IHandProps) => {
 	};
 
 	const cardNumberInRow = (card) => {
-		return hand.indexOf(card)
+		return Object.values(hand).indexOf(card)
 	};
 
 	const styleUpdater = (card) => {
-		//console.log('enter')
 		const isSelected = card.uniqueId === selectedCardIndex;
 		const cardNumber = cardNumberInRow(card);
 		return isSelected ? calculateCardSelectedStypeProps() : calculateCardStypeProps(cardNumber, cardsCount)
 	}
 	const defaultCardStyle = { x:0,y:-getCenterOffset(),angle:-90, width: 0 };
 
-	console.log(hand)
 
-	const transitions = useTransition(hand, card=>card.uniqueId, {
+	const transitions = useTransition(Object.values(hand), card=>card.uniqueId, {
 		from: defaultCardStyle,
 		enter: (card) => {console.log('enter'); return styleUpdater(card)},
 		update: (card) => {console.log('update'); return styleUpdater(card)},
@@ -220,12 +213,13 @@ const Hand = observer(({controller} : IHandProps) => {
 		>
 			{map(transitions, ({item: card, key, props}) => {
 				const isSelected = selectedCardIndex === card.uniqueId;
-				const cardMenu = generateCardMenu(card.id, card.uniqueId, controller, onSelectCard, card);
+				const canBeUsed = !!(controller.handActions[card.uniqueId] ? controller.handActions[card.uniqueId].length : false)
+				const cardMenu = generateCardMenu(card, controller, onSelectCard);
 				return (
 					<Container key={key} zIndex={isSelected ? 60 : cardNumberInRow(card)}>
 						<Card
 							id={card.id}
-							canBeUsed={!!cardMenu}
+							canBeUsed={canBeUsed}
 							onCardClick={() => cardSelection(card.uniqueId)}
 							style={props}
 							menu={isSelected ? cardMenu : null}

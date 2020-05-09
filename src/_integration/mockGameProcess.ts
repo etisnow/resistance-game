@@ -111,12 +111,12 @@ const interfaceTest = ({player, card}: {player:Player, card: ICardPanic}) => {
 	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'1'});
 	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'2'});
 	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'4'});
-	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'5'});
-	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'6'});
-	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'7'});
-	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'8'});
-	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'9'});
-	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'10'});
+	//gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'5'});
+	//gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'6'});
+	//gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'7'});
+	//gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'8'});
+	//gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'9'});
+	//gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'10'});
 
 	each(game.players, pl => pl.isReady = true);
 	gameServer.startGame({player});

@@ -10,6 +10,7 @@ import {EPlayerActionType} from 'shared/enum/playerActions';
 import {IFormatTradeContext} from 'shared/interfaces/common';
 import fscreen from 'fscreen';
 import { each, merge, difference, keys, find } from "lodash";
+import {ICardEvent} from 'shared/interfaces/cards';
 
 export default class GameController {
 	root: RootController;
@@ -17,7 +18,7 @@ export default class GameController {
 
 	@observable state: EGameState = EGameState.lobby;
 	@observable id : string | null = null;
-	@observable players: {[key: string]: any | null } = {};
+	@observable players: {[key: string]: Player | null } = {};
 	@observable currentPlayerId : string | null = null;
 	@observable playersList: string[] = [];
 	@observable gameLog: string[] = [];
@@ -28,6 +29,8 @@ export default class GameController {
 	@observable isFullScreen: boolean = false;
 	@observable tradeContext: IFormatTradeContext[] | null = null;
 	@observable currentAction: INotificationAction | null = null;
+	@observable hand: {[key:string]: ICardEvent} = {};
+	@observable handActions: {[key: string]: any[] } = {};
 
 	constructor(root: RootController) {
 		this.root = root;
@@ -87,57 +90,6 @@ export default class GameController {
 		this.isLayoutSequential = !this.isLayoutSequential;
 	}
 
-	updatePlayers = (newPlayers) => {
-		//if (!this.players) this.players = {};
-		//merge(this.players, newPlayers);
-		//return;
-		//this.players = newPlayers
-		each(newPlayers, (pl,pId) => {
-			if (!this.players[pId]) this.players[pId] = pl;
-			merge(this.players[pId], pl)
-
-			this.players[pId].hand = pl.hand
-		})
-		//console.log(this.players)
-		//this.players = newPlayers;
-/*
-		each(newPlayers, (pl, pId) => {
-			const playerToUpdate = this.players[pId]
-			each(pl.hand, (card, cardIndex) => {
-/!*				const cardToUpdate = find(playerToUpdate.hand, {uniqueId: card.uniqueId});
-				if (cardToUpdate) {
-					console.log('test')
-					merge(this.players[pId].hand[cardIndex], card)
-				} else {
-					this.players[pId].hand.push(card)
-				}*!/
-
-				each(this.players[pId].hand, (existingCard, exCid: number) => {
-					const isUpdatedCardExists = find(pl.hand, {uniqueId: existingCard.uniqueId});
-					if (!isUpdatedCardExists) {
-						console.log({exCid})
-						this.players[pId].hand.splice(exCid - 1,1)
-					}
-				})
-			})
-			//this.players[pId].hand = pl.hand*/
-
-		//})
-/*		difference(keys(this.players), keys(newPlayers)).forEach(k => delete this.players[k])
-		each(newPlayers, (pl, pId) => {
-			console.log(pl, this.players[pId])
-			if (this.players[pId]) {
-				this.players[pId].hand = pl.hand;
-			} else {
-				this.players = newPlayers
-			}
-		})*/
-		//this.players = newPlayers
-		//each(newPlayers, (oldPlayer, id) => {
-		//	this.players[id] = merge(this.players[id], newPlayers[id])
-		//})
-	}
-
 	toggleFullScreen = () => {
 		if (!fscreen.fullscreenEnabled) return;
 		if (!this.isFullScreen) {
@@ -145,6 +97,35 @@ export default class GameController {
 		} else {
 			fscreen.exitFullscreen();
 		}
-		//this.is = !this.isLayoutSequential;
-	}
+	};
+
+	updateHand = (newHand) => {
+		each(this.hand, card => {
+			if (!newHand[card.uniqueId]) delete this.hand[card.uniqueId]
+		});
+		merge(this.hand, newHand)
+	};
+
+	updatePlayers = (newPlayers) => {
+		merge(this.players, newPlayers);
+	};
+
+	updateHandActions = (handActions) => {
+		this.handActions = handActions
+	};
+
+	updateGame = ({tradeContext, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions}) => {
+		this.updatePlayers(players);
+		this.updateHand(hand);
+		this.updateHandActions(handActions);
+		this.playersList = playersList;
+		this.deck = deck;
+		this.currentPlayerId = currentPlayer.id;
+		this.tradeContext = tradeContext;
+		this.currentAction = currentAction;
+		this.state = state;
+		this.gameLog = gameLog;
+	};
+
+
 }

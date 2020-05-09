@@ -10,7 +10,6 @@ export default class Player {
 	@observable gameId: string | null = null;
 	@observable id: string = '';
 	@observable isHost: boolean = false;
-	@observable hand: ICardEvent[] = [];
 	@observable turnState: ETurnState = ETurnState.idle;
 	@observable isInfected: boolean = false;
 	@observable isThing: boolean = false;
