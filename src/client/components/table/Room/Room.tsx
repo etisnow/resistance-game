@@ -208,28 +208,18 @@ const Room = observer(({controller} : IRoomProps) => {
 					</AnimatedPixi.Container>
 				)
 			})}
-{/*			<Arrow
-				arrowHeight={15}
-				arrowRotation={-45}
-				arrowX={67.55199213410665}
-				arrowY={230.71865880077334}
-				ax={170.6146284662384}
-				ay={333.78129513290503}
-				bx={78.15859859278244}
-				by={241.32526525944917}
-				color={0xff00ff}
-				mid1X={116.87362464212536}
-				mid1Y={295.0663104090062}
-				mid2X={131.8996437423395}
-				mid2Y={280.04029130879206}
-			/>*/}
 			{map(arrows, ({item: arrow, key, props }) => {
-				console.log('test', props)
 				if (!props.bx || !props.by || !props.bx || !props.by) return
 				return (
 					<Container key={key}>
 						<AnimatedPixi.Arrow
 							{...props}
+						/>
+						<AnimatedPixi.Circle
+							r={20}
+							xCoord={props.bx}
+							yCoord={props.by}
+							color={0xFF0000}
 						/>
 					</Container>
 				)

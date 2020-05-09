@@ -5,17 +5,28 @@ const TYPE = "Circle";
 export const behavior = {
   customDisplayObject: props => new PIXI.Graphics(),
   customApplyProps: function(instance, oldProps, newProps) {
-    const { fill, x, y, radius, ...newPropsRest } = newProps;
-    const { fill: oldFill, radius: oldRadius, ...oldPropsRest } = oldProps;
+    const { xCoord, yCoord, r, color } = newProps;
     if (typeof oldProps !== "undefined") {
       instance.clear();
     }
-    instance.beginFill(fill);
-    instance.drawCircle(x, y, radius);
+    instance.lineStyle(2, color);
+    instance.beginFill(color);
+    instance.moveTo(xCoord, yCoord);
+    instance.drawCircle(xCoord, yCoord, r);
 
     instance.endFill();
-    this.applyDisplayObjectProps(oldPropsRest, newPropsRest);
+
+    this.applyDisplayObjectProps(oldProps, newProps);
   },
 };
 
 export default CustomPIXIComponent(behavior, TYPE);
+
+
+
+/*
+    instance.beginFill(color);
+    instance.moveTo(xCoord, yCoord);
+    instance.drawCircle(xCoord, yCoord, r);
+
+    instance.endFill();*/

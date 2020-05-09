@@ -54,7 +54,7 @@ const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, on
 		<Container
 			pointerdown={() => (onSelect && canBeSelected) ? onSelect(id) : null}
 		>
-			<Circle x={0} y={0} fill={0xFFFFFF} radius={style.height/2}>
+			<Circle xCoord={0} yCoord={0} color={0xFFFFFF} r={style.height/2}>
 				<Text text={nick} anchor={0.5} style={{fontFamily : 'Arial', fontSize: 18, fill : 0xff1010, align : 'center'}}/>
 			</Circle>
 		</Container>

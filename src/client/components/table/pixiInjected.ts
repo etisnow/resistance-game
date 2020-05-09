@@ -7,17 +7,18 @@ import Arrow from 'client/components/pixiPrimitives/Arrow';
 
 
 Globals.injectApplyAnimatedValues(
-	(instance, props, oldProps) => {
+	(instance, props) => {
 		//console.log('OLD PROPS', oldProps)
 		//console.log(instance)
 		//if (instance instanceof PIXI.Graphics) return;
 		//console.log()
-		//for (let prop in props) {
-		//	//console.log(prop)
-		//	instance[prop] = props[prop]
-		//}
-		//if (scale) instance.scale.set(scale)
 		applyProps(instance, {}, props)
+		//for (let prop in props) {
+		//	if(instance.hasOwnProperty(prop)) {
+		//		instance[prop] = props[prop]
+		//	}
+		//}
+		//if (props.scale) instance.scale.set(props.scale)
 	},
 	style => style
 )
