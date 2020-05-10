@@ -15,18 +15,16 @@ export const behavior = {
   customDisplayObject: props => new PIXI.Graphics(),
   customApplyProps: function(instance, oldProps, newProps) {
     const { color, ax, ay,mid1X, mid1Y, mid2X, mid2Y, bx, by, arrowX, arrowY, arrowHeight, arrowRotation } = newProps;
-    console.log('COLOR', color)
     if (typeof oldProps !== "undefined") {
       instance.clear();
     }
     instance.lineStyle(2, color);
     instance.moveTo(ax, ay);
-    //instance.drawCircle(bx, by, 20);
     instance.bezierCurveTo(mid1X, mid1Y, mid2X, mid2Y, bx, by)
 
     const {x: leftX, y:leftY} = getCirclePoint(arrowHeight, arrowRotation + 90 - 15, arrowX, arrowY);
     const {x: rightX, y:rightY} = getCirclePoint(arrowHeight, arrowRotation + 90 + 15, arrowX, arrowY);
-
+    instance.lineStyle(0, color);
     instance.beginFill(color, 1);
     instance.moveTo(arrowX, arrowY);
     instance.lineTo(leftX, leftY);
