@@ -58,7 +58,18 @@ const getDistanceBetweenPoints = (x1,y1,x2,y2) => {
 	return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
 }
 
-const lineAnimation = ({newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players}) => {
+const getColorByArrowType = (arrowType) => {
+	switch (arrowType) {
+		case ETurnContextType.positionswap:
+			return 0x00adff;
+		case ETurnContextType.burn:
+			return 0xff0000;
+		default:
+			return 0xffdf00;
+	}
+}
+
+const lineAnimation = ({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players}) => {
 	const biggerBadgeRad = badgeRadius + 5;
 	const playersCount = newPlayerList.length;
 	const iterateDegree = 360 / playersCount;
@@ -100,9 +111,10 @@ const lineAnimation = ({newPlayerList, badgeRadius, offensePlayerId, defensePlay
 		arrowY: arrowY,
 		arrowRotation: angleBetweenPointsDeg + 90,
 		arrowHeight: arrowHeight,
-		color: 0xff00ff,
+		color: getColorByArrowType(type),
 	} as any
 }
+
 
 const Room = observer(({controller} : IRoomProps) => {
 
@@ -143,8 +155,8 @@ const Room = observer(({controller} : IRoomProps) => {
 	const badgeRadius = badgeDiagonal/2;
 	const playerRoomHeight = (circRadius(playersCount) * 2) + badgeDiagonal;
 	const arrows = useTransition(tradeContext, ({offensePlayerId}) => offensePlayerId, {
-		enter: ({offensePlayerId, defensePlayerId}) => {
-			const {ax,ay, arrowRotation} = lineAnimation({newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
+		enter: ({offensePlayerId, defensePlayerId, type}) => {
+			const {ax,ay, arrowRotation, color} = lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
 			return {
 				ax,
 				ay,
@@ -158,11 +170,11 @@ const Room = observer(({controller} : IRoomProps) => {
 				arrowY: ay,
 				arrowRotation,
 				arrowHeight: 0,
-				color: 0xff00ff,
+				color,
 			} as any
 		},
-		update: ({offensePlayerId, defensePlayerId}) => {
-			return lineAnimation({newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
+		update: ({offensePlayerId, defensePlayerId, type}) => {
+			return lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
 		},
 		config: config.stiff
 	} as any);
@@ -214,12 +226,6 @@ const Room = observer(({controller} : IRoomProps) => {
 					<Container key={key}>
 						<AnimatedPixi.Arrow
 							{...props}
-						/>
-						<AnimatedPixi.Circle
-							r={20}
-							xCoord={props.bx}
-							yCoord={props.by}
-							color={0xFF0000}
 						/>
 					</Container>
 				)
