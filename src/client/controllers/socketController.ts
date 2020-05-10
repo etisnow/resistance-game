@@ -5,9 +5,7 @@ import {EAppState, EGameState} from 'shared/enum/common';
 import {EServerEventType} from 'shared/enum/enumServerEvents';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {EAsyncState} from 'shared/enum/async';
-import { difference, merge } from 'lodash';
-import * as mobx from 'mobx'
-let tempGameController = null;
+import io from 'socket.io-client';
 
 function handleGlobalEvents(socket, root: RootController) {
 	socket.on(EServerEventType.gameConnectionSuccess, ({players, player, game, currentPlayer}) => {
@@ -56,7 +54,8 @@ export default class SocketController {
 	parent: RootController;
 	socket: SocketIOClient.Socket;
 
-	constructor(root, parent, socket: SocketIOClient.Socket) {
+	constructor(root, parent) {
+		var socket = io.connect('http://botilo.hldns.ru:30');
 		this.root = root;
 		this.parent = parent;
 		this.socket = socket;

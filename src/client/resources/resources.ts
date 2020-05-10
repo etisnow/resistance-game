@@ -35,6 +35,7 @@ import thing from "client/resources/cards/thing.png";
 
 import barricadeBadge from "client/resources/images/barricade_badge.png";
 import glowEffect from "client/resources/images/gloweffect.png";
+import noise from "client/resources/images/noise.jpg";
 
 /*CARD ACTIONS*/
 import cardAct from "client/resources/images/cardAct.png";
@@ -78,6 +79,7 @@ thing,
 
 barricadeBadge,
 glowEffect,
+noise,
 cardAct,
 cardDiscard,
 cardTrade,

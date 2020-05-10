@@ -11,8 +11,8 @@ export default class RootController {
 	@observable launcherController: LauncherController;
 	@observable socketController: SocketController;
 	@observable gameController: GameController;
-	constructor(socket) {
-		this.socketController = new SocketController(this, this, socket);
+	constructor() {
+		this.socketController = new SocketController(this, this);
 		this.gameController = new GameController(this);
 		console.log('initing new game controller')
 		this.launcherController = new LauncherController(this, this);
