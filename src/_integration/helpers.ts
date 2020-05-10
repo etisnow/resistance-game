@@ -8,9 +8,10 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {Player} from 'server/models/Player';
 import {initialDeck} from 'server/helpers/gameStarter';
 import {debugLog} from 'server/helpers/util';
+import {gameServer} from 'server/server/GameServer';
 
 export const checkAllDeckCards = (game: Game, withPanics = true) => {
-
+	if (gameServer.isMock) return true;
 	const activePlayers = filter(game.players, p => p.state !== EPlayerState.door)
 
 	const playersCount = Object.keys(activePlayers).length;

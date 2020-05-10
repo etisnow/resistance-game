@@ -35,54 +35,91 @@ import thing from "client/resources/cards/thing.png";
 
 import barricadeBadge from "client/resources/images/barricade_badge.png";
 import glowEffect from "client/resources/images/gloweffect.png";
+import playerbadgeGlow from "client/resources/images/playerbadgeGlow.png";
 import noise from "client/resources/images/noise.jpg";
 
-/*CARD ACTIONS*/
+import playerThing from "client/resources/images/pla.jpg";
+import playerInfected from "client/resources/images/pla.jpg";
+
+
+
+import playerBadge1 from "client/resources/images/playerBadges/1.png";
+import playerBadge2 from "client/resources/images/playerBadges/2.png";
+import playerBadge3 from "client/resources/images/playerBadges/3.png";
+import playerBadge4 from "client/resources/images/playerBadges/4.png";
+import playerBadge5 from "client/resources/images/playerBadges/5.png";
+import playerBadge6 from "client/resources/images/playerBadges/6.png";
+import playerBadge7 from "client/resources/images/playerBadges/7.png";
+import playerBadge8 from "client/resources/images/playerBadges/8.png";
+import playerBadge9 from "client/resources/images/playerBadges/9.png";
+import playerBadge10 from "client/resources/images/playerBadges/10.png";
+import playerBadge11 from "client/resources/images/playerBadges/11.png";
+
 import cardAct from "client/resources/images/cardAct.png";
 import cardDiscard from "client/resources/images/cardDiscard.png";
 import cardTrade from "client/resources/images/cardTrade.png";
 
 const resources = {
-tenacity,
-fear,
-suspicion,
-leaveMeAlone,
-positionswap,
-flamethrower,
-reelFishingRods,
-axe,
-lookaround,
-whiskey,
-barricade,
-seduction,
-infect,
-quarantine,
-noFire,
-analysis,
-noThanks,
-miss,
-threeFour,
-chainReaction,
-blindDate,
-oldRopes,
-oneTwo,
-onlyBetweenUs,
-youCallThisParty,
-goAway,
-oops,
-friendship,
-forgetfulness,
-recognitionTime,
-eventBack,
-panicBack,
-thing,
+	tenacity,
+	fear,
+	suspicion,
+	leaveMeAlone,
+	positionswap,
+	flamethrower,
+	reelFishingRods,
+	axe,
+	lookaround,
+	whiskey,
+	barricade,
+	seduction,
+	infect,
+	quarantine,
+	noFire,
+	analysis,
+	noThanks,
+	miss,
+	threeFour,
+	chainReaction,
+	blindDate,
+	oldRopes,
+	oneTwo,
+	onlyBetweenUs,
+	youCallThisParty,
+	goAway,
+	oops,
+	friendship,
+	forgetfulness,
+	recognitionTime,
+	eventBack,
+	panicBack,
+	thing,
 
-barricadeBadge,
-glowEffect,
-noise,
-cardAct,
-cardDiscard,
-cardTrade,
-}
+	glowEffect,
+	playerbadgeGlow,
+	noise,
+	cardAct,
+	cardDiscard,
+	cardTrade,
+
+	playerThing,
+	playerInfected,
+
+
+	playerBadges: {
+		0: playerBadge1,
+		1: playerBadge2,
+		2: playerBadge2,
+		3: playerBadge3,
+		4: playerBadge4,
+		5: playerBadge5,
+		6: playerBadge6,
+		7: playerBadge7,
+		8: playerBadge8,
+		9: playerBadge9,
+		10: playerBadge10,
+		11: playerBadge11,
+		'door': barricadeBadge
+	}
+};
 
 export {resources};

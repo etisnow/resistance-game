@@ -91,10 +91,11 @@ export const gameStarter = (game: Game) => {
 	initialDeck = clone(game.deck);
 
 	each(playersIdsArray, (playerId, index) => {
-		const color = playerColors[index];
-		const secondColor = chroma.mix(color, '00a70c').hex();
+		//const color = playerColors[index];
+		//const secondColor = chroma.mix(color, '00a70c').hex();
 		initialDeck = concat([], clone(initialDeck), clone(game.players[playerId].hand))
-		game.players[playerId].color = `linear-gradient(${color}, ${secondColor})`
+		game.players[playerId].color = index+''
+		//game.players[playerId].color = `linear-gradient(${color}, ${secondColor})`
 	});
 
 };

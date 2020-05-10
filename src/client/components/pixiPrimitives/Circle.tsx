@@ -9,7 +9,6 @@ export const behavior = {
     if (typeof oldProps !== "undefined") {
       instance.clear();
     }
-    instance.lineStyle(2, color);
     instance.beginFill(color);
     instance.moveTo(xCoord, yCoord);
     instance.drawCircle(xCoord, yCoord, r);

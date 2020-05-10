@@ -2,9 +2,11 @@ import React from 'react';
 import './styles.scss';
 import cx from 'classnames';
 import {range, map} from 'lodash';
-import { Container, Text, Graphics } from 'react-pixi-fiber';
+import { Container, Text, Graphics, Sprite } from 'react-pixi-fiber';
 import Circle from 'client/components/pixiPrimitives/Circle';
-
+import {quarantineAct} from 'server/helpers/cardActions/offense/quarantine';
+import {resources} from 'client/resources/resources';
+import * as PIXI from 'pixi.js'
 
 interface IPlayerBadgeProps {
 	id: string;
@@ -40,23 +42,76 @@ const InfectBadge = () => {
 const ThingBadge = () => {
 	return <div className={'thingBadge'}/>
 };
-const Quarantine = ({quarantine}) => {
+const Quarantine = ({quarantine, badgeRadius}) => {
+	const r = badgeRadius * 0.05;
+	const yOffset = badgeRadius * 0.45;
+	const xOffset = r * 4;
 	return quarantine ? (
-		<div className={'quarantineBadge'}>
-			{ map(range(quarantine), (q) => <div key={q} className={'quarantineDot'}/>) }
-		</div>
+		<Container>
+			{ map(range(quarantine), (q, index) => {
+				return <Circle key={index} xCoord={(index * r * 4) - xOffset } yCoord={yOffset} color={0xFFFF00} r={r}/>
+			})}
+		</Container>
 	) :  null;
 }
 
 const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, onSelect = null, id, isDoor, quarantine, isYou, isInfected, isThing, isConnected, style}: IPlayerBadgeProps) => {
 	const nick = isYou ? 'ТЫ' : formatNickname(nickname)
+	const playerBadgeTexture = PIXI.Texture.from(isDoor ? resources.playerBadges['door'] : resources.playerBadges[color]);
+	const playerGlowTexture = PIXI.Texture.from(resources.playerbadgeGlow);
+	const playerThingTexture = PIXI.Texture.from(resources.playerThing);
+	const playerInfectedTexture = PIXI.Texture.from(resources.playerInfected);
 	return (
 		<Container
-			pointerdown={() => (onSelect && canBeSelected) ? onSelect(id) : null}
+
 		>
-			<Circle xCoord={0} yCoord={0} color={0xFFFFFF} r={style.height/2}>
-				<Text text={nick} anchor={0.5} style={{fontFamily : 'Arial', fontSize: 18, fill : 0xff1010, align : 'center'}}/>
-			</Circle>
+			{canBeSelected && (
+				<Sprite
+					texture={playerGlowTexture}
+					anchor={0.5}
+					width={style.height * 1.35}
+					height={style.height * 1.35}
+				/>
+			)}
+
+			<Sprite
+				texture={playerBadgeTexture}
+				anchor={0.5}
+				width={style.height}
+				height={style.height}
+				alpha={quarantine>0 ? 0.3 : 0.8}
+				interactive={canBeSelected}
+				buttonMode={canBeSelected}
+				pointerdown={() => (onSelect && canBeSelected) ? onSelect(id) : null}
+			/>
+			{!isDoor && (
+				<React.Fragment>
+					<Text text={nick} anchor={0.5} style={{fontFamily : 'Arial', fontSize: 14, fill : 0xFFFFFF, align : 'center'}}/>
+					{/*<Circle xCoord={0} yCoord={0} color={0xFF00FF} r={2}/>*/}
+					<Quarantine quarantine={quarantine} badgeRadius={style.height/2} />
+				</React.Fragment>
+			)}
+			{inTurn && (
+				<Circle xCoord={0} yCoord={-style.height/2} color={0x00FF00} r={style.height * 0.07}/>
+			)}
+			{isThing && (
+				<Sprite
+					texture={playerThingTexture}
+					anchor={0.5}
+					y={style.height/2}
+					width={style.height * 1.35}
+					height={style.height * 1.35}
+				/>
+			)}
+			{isInfected && (
+				<Sprite
+					texture={playerInfectedTexture}
+					anchor={0.5}
+					y={style.height/2}
+					width={style.height * 1.35}
+					height={style.height * 1.35}
+				/>
+			)}
 		</Container>
 	)
 };
