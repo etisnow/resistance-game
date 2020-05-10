@@ -38,8 +38,8 @@ import glowEffect from "client/resources/images/gloweffect.png";
 import playerbadgeGlow from "client/resources/images/playerbadgeGlow.png";
 import noise from "client/resources/images/noise.jpg";
 
-import playerThing from "client/resources/images/pla.jpg";
-import playerInfected from "client/resources/images/pla.jpg";
+import playerThing from "client/resources/images/thing.svg";
+import playerInfected from "client/resources/images/infected.svg";
 
 
 

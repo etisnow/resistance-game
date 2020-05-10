@@ -1,10 +1,8 @@
 import React from 'react';
 import './styles.scss';
-import cx from 'classnames';
 import {range, map} from 'lodash';
 import { Container, Text, Graphics, Sprite } from 'react-pixi-fiber';
 import Circle from 'client/components/pixiPrimitives/Circle';
-import {quarantineAct} from 'server/helpers/cardActions/offense/quarantine';
 import {resources} from 'client/resources/resources';
 import * as PIXI from 'pixi.js'
 
@@ -32,16 +30,6 @@ const formatNickname = (nickname) => {
 	return nickname.substring(0,4).toUpperCase()
 };
 
-const TurnBadge = () => {
-	return <div className={'turnBadge'}/>
-};
-
-const InfectBadge = () => {
-	return <div className={'infectBadge'}/>
-};
-const ThingBadge = () => {
-	return <div className={'thingBadge'}/>
-};
 const Quarantine = ({quarantine, badgeRadius}) => {
 	const r = badgeRadius * 0.05;
 	const yOffset = badgeRadius * 0.45;
@@ -99,8 +87,8 @@ const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, on
 					texture={playerThingTexture}
 					anchor={0.5}
 					y={style.height/2}
-					width={style.height * 1.35}
-					height={style.height * 1.35}
+					width={style.height * 0.3}
+					height={style.height * 0.3}
 				/>
 			)}
 			{isInfected && (
@@ -108,8 +96,8 @@ const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, on
 					texture={playerInfectedTexture}
 					anchor={0.5}
 					y={style.height/2}
-					width={style.height * 1.35}
-					height={style.height * 1.35}
+					width={style.height * 0.2}
+					height={style.height * 0.2}
 				/>
 			)}
 		</Container>
