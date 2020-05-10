@@ -67,7 +67,7 @@ const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, on
 				anchor={0.5}
 				width={style.height}
 				height={style.height}
-				alpha={quarantine>0 ? 0.3 : 0.8}
+				alpha={quarantine>0 ? 0.4 : 1}
 				interactive={canBeSelected}
 				buttonMode={canBeSelected}
 				pointerdown={() => (onSelect && canBeSelected) ? onSelect(id) : null}

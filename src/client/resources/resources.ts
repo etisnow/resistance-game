@@ -108,16 +108,15 @@ const resources = {
 	playerBadges: {
 		0: playerBadge1,
 		1: playerBadge2,
-		2: playerBadge2,
-		3: playerBadge3,
-		4: playerBadge4,
-		5: playerBadge5,
-		6: playerBadge6,
-		7: playerBadge7,
-		8: playerBadge8,
-		9: playerBadge9,
-		10: playerBadge10,
-		11: playerBadge11,
+		2: playerBadge3,
+		3: playerBadge4,
+		4: playerBadge5,
+		5: playerBadge6,
+		6: playerBadge7,
+		7: playerBadge8,
+		8: playerBadge9,
+		9: playerBadge10,
+		10: playerBadge11,
 		'door': barricadeBadge
 	}
 };

@@ -107,19 +107,20 @@ const testPanic = ({player, card}: {player:Player, card: ICardPanic}) => {
 
 const interfaceTest = ({player, card}: {player:Player, card: ICardPanic}) => {
 	const host = player
-	host.isThing = true;
+	//host.isThing = true;
 	const game = gameServer.createGame({nickname: 'хост', player: host});
-	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'1'});
+	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'2'});
 
 	const qarantinedPlayer = createPlayer()
-	qarantinedPlayer.quarantine = 3;
+	//qarantinedPlayer.quarantine = 3;
 	qarantinedPlayer.isInfected = true;
-	gameServer.connectGame({player: qarantinedPlayer, gameId: game.id, nickname:'2'});
+	gameServer.connectGame({player: qarantinedPlayer, gameId: game.id, nickname:'3'});
 
-	gameServer.connectGame({player: createDoor(), gameId: game.id, nickname:'ДВЕРЬ'});
+	//gameServer.connectGame({player: createDoor(), gameId: game.id, nickname:'ДВЕРЬ'});
 	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'4'});
+	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'5'});
 	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'6'});
-	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'7'});
+
 
 	//gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'5'});
 	//gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'6'});
