@@ -112,7 +112,6 @@ const Notification = ({notification, controller}: {notification: INotificationAc
 
 const Notifier = observer(({controller}: INotifierProps) => {
 	const notifications = controller.notifications;
-	console.log(notifications)
 	if (notifications.length === 0) return null;
 	const notification = notifications[0];
 	return <Notification notification={notification} controller={controller}/>;

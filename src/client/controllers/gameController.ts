@@ -31,6 +31,7 @@ export default class GameController {
 	@observable currentAction: INotificationAction | null = null;
 	@observable hand: {[key:string]: ICardEvent} = {};
 	@observable handActions: {[key: string]: any[] } = {};
+	@observable cardInPreview: string | null = null;
 
 	constructor(root: RootController) {
 		this.root = root;

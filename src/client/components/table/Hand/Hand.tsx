@@ -14,6 +14,7 @@ import {degToRag} from 'client/helpers/roomHelpers';
 import * as PIXI from 'pixi.js'
 import Card from '../Card/Card';
 import {resources} from 'client/resources/resources';
+import gameController from 'client/controllers/gameController';
 interface IHandProps {
 	controller: GameController
 }
@@ -158,8 +159,8 @@ const Hand = observer(({controller} : IHandProps) => {
 	}, [controller])
 	return*/
 
-	const [selectedCardIndex, selectCard] = useState(null);
-
+	//const [selectedCardIndex, selectCard] = useState(null);
+	const selectedCardIndex = controller.cardInPreview;
 	const {currentPlayer:player, hand} = controller;
 	if (!player || !hand) return null;
 
@@ -168,14 +169,17 @@ const Hand = observer(({controller} : IHandProps) => {
 
 	const cardSelection = (index) => {
 		if (selectedCardIndex === index) {
-			selectCard(null)
+			//selectCard(null)
+			controller.cardInPreview = null;
 		} else {
-			selectCard(index);
+			controller.cardInPreview = index;
+			//selectCard(index);
 		}
 	};
 
 	const onSelectCard = () => {
-		selectCard(null)
+		controller.cardInPreview = null;
+		//selectCard(null)
 	};
 
 	const cardNumberInRow = (card) => {

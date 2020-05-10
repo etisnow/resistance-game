@@ -9,6 +9,11 @@ interface IGameLogProps {
 	controller: GameController
 }
 
+const getZIndex = (controller) => {
+	if (controller.cardInPreview) return 0;
+	return 99;
+}
+
 const GameLog = observer(({controller}: IGameLogProps) => {
 	const gameLogRef = useRef(null);
 	useEffect(() => {
@@ -19,7 +24,7 @@ const GameLog = observer(({controller}: IGameLogProps) => {
 			duration: 200,
 	    });
 	});
-	return <div ref={gameLogRef} id="gameLog" className={'gameLogWrapper'}>
+	return <div ref={gameLogRef} id="gameLog" style={{zIndex: getZIndex(controller)}} className={'gameLogWrapper'}>
 		{map(controller.gameLog, (log, index) => {
 			return <div key={index}>{log}</div>
 		})}

@@ -48,16 +48,16 @@ const Table = observer(({controller} : ITableProps) => {
 
 		return (
 			<div className={"gameTable"}>
+				<GameLog controller={controller}/>
 				<Stage className={"pixi-canvas"} options={{width:getWindowWidth(), height:getWindowHeight(), resolution:window.devicePixelRatio, transparent:true, antialias:true}}>
 					<Room controller={controller}/>
 					<Hand controller={controller}/>
+					<Notifier controller={controller}/>
 				</Stage>
 
 				<div className={"debug-div"}><div></div></div>
-				<GameLog controller={controller}/>
 {/*
 				<Deck controller={controller}/>
-				<Notifier controller={controller}/>
 				<ActionInteracter controller={controller}/>
 				<button className={'layoutChangeButton'} onClick={() => {controller.toggleRoomLayout()}}>
 					Вид: {controller.isLayoutSequential ? 'От игрока' : 'Сверху'}
