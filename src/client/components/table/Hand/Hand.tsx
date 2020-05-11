@@ -4,6 +4,7 @@ import {observer} from "mobx-react-lite";
 import GameController from 'client/controllers/gameController';
 import HandComponent from 'client/components/table/Hand/HandComponent';
 import {getWindowHeight, playerHandHeight} from 'client/helpers/window';
+import {EPlayerActionType} from 'shared/enum/playerActions';
 interface IHandProps {
 	controller: GameController
 }
@@ -22,9 +23,9 @@ const Hand = observer(({controller} : IHandProps) => {
 		}
 	};
 
-	const handleCardAction = (cardUniqueId, cardAction) => {
-		console.log({cardUniqueId, cardAction})
-	}
+	const handleCardAction = (cardUniqueId: string, cardAction: EPlayerActionType) => {
+		controller.cardAction(cardAction, cardUniqueId)
+	};
 
 
 	return (
