@@ -27,6 +27,7 @@ import clc from 'cli-color';
 import {EGameState} from 'shared/enum/common';
 import {Simulate} from 'react-dom/test-utils';
 import play = Simulate.play;
+import {formatCards} from 'server/helpers/cardHelpers';
 
 
 export class Game {
@@ -242,7 +243,7 @@ export class Game {
         player: notificationPlayer,
         notification: {
           type: ENotificationAction.okayCard,
-          cards: [thingCard],
+          cards: formatCards([thingCard]),
           text: 'Нечто выйграло'
         },
       }))

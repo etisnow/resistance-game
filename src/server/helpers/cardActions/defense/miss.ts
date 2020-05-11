@@ -8,6 +8,7 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
 import {ETurnState} from 'shared/enum/player';
+import {formatCards} from 'server/helpers/cardHelpers';
 
 
 export const getMissNextPlayer = (game: Game, currentPlayer: Player) => {
@@ -57,7 +58,7 @@ export const missAct = ({card, game, player} : {card:ICardEvent, game: Game, pla
       player: player,
       notification: {
 		type: ENotificationAction.okayCard,
-        cards: [getCard(EEventID.miss)],
+        cards: formatCards([getCard(EEventID.miss)]),
 		text: `${player.nickname}: отказывается от обмена и теперь ходит игрок ${nextPlayer.nickname}`,
       },
     }), player);

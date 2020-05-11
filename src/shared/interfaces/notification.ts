@@ -15,11 +15,11 @@ export interface INotificationActionDecision {
 }
 export interface INotificationActionOkayCard {
 	type: ENotificationAction.okayCard,
-	cards: ICardEvent[] | ICardPanic[];
+	cards: {[key:string]: ICardEvent | ICardPanic};
 }
 export interface INotificationActionSelectCard {
 	type: ENotificationAction.selectCard,
-	cards: ICardEvent[] | ICardPanic[];
+	cards: {[key:string]: ICardEvent | ICardPanic};
 }
 export interface INotificationActionPlayerSelect {
 	type: ENotificationAction.playerSelect,

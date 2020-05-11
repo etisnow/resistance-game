@@ -38,9 +38,9 @@ const Table = observer(({controller} : ITableProps) => {
 					<Deck controller={controller} />
 					<Room controller={controller} />
 					<HandComponent controller={controller} />
+					<Notifier controller={controller}/>
 				</Stage>
 
-				<Notifier controller={controller}/>
 				<ActionInteracter controller={controller}/>
 				{/*<div className={"debug-div"}><div></div></div>*/}
 {/*

@@ -5,6 +5,7 @@ import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
+import {formatCards} from 'server/helpers/cardHelpers';
 
 
 export const analysisAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
@@ -37,7 +38,7 @@ export const analysisSelect = ({game, player, selectedPlayerId} : {game: Game, p
       player: player,
       notification: {
 		type: ENotificationAction.okayCard,
-        cards: selectedPlayer.hand as ICardEvent[],
+        cards: formatCards(selectedPlayer.hand as ICardEvent[]),
 		text: `${selectedPlayer.nickname}: На, смотри!`,
       },
     }));

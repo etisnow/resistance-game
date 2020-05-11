@@ -9,6 +9,7 @@ import {EPlayerActionType} from 'shared/enum/playerActions';
 
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import INotificationAction from 'shared/interfaces/notification';
+import {formatCards} from 'server/helpers/cardHelpers';
 
 export const notifyPlayerDiscardCards = ({game, player}: {game:Game, player:Player}) : INotificationAction => {
 	const clonedPlayer = clone(player);
@@ -22,7 +23,7 @@ export const notifyPlayerDiscardCards = ({game, player}: {game:Game, player:Play
 
 	return {
 		type: ENotificationAction.selectCard,
-		cards: filteredCards,
+		cards: formatCards(filteredCards),
 		text:'Выбери одну из своих карт, чтобы поменять её на карту из колоды'
 	}
 };

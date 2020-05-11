@@ -6,6 +6,7 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {filter, find} from 'lodash';
 import {ICardEvent} from 'shared/interfaces/cards';
+import {formatCards} from 'server/helpers/cardHelpers';
 
 export const onlyBetweenUsAct = ({game, player}: {game:Game, player:Player}) => {
 	player.changeTurnState(ETurnState.inCardActionProgress);
@@ -38,7 +39,7 @@ export const onlyBetweenUsSelect = ({game, selectedPlayerId, player}: {game:Game
       player: player,
       notification: {
 		type: ENotificationAction.okayCard,
-        cards: player.hand as ICardEvent[],
+        cards: formatCards(player.hand as ICardEvent[]),
 		text: `${selectedPlayer.nickname}: На, смотри! Чертова паника`,
       },
     }));

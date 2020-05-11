@@ -15,10 +15,10 @@ import * as PIXI from 'pixi.js'
 import Card from '../Card/Card';
 import {resources} from 'client/resources/resources';
 import gameController from 'client/controllers/gameController';
-import {ICardEvent} from 'shared/interfaces/cards';
+import {ICardAny, ICardEvent} from 'shared/interfaces/cards';
 
 interface IHandProps {
-	cards: {[key:string]: ICardEvent};
+	cards: {[key:string]: ICardAny};
 	selectedCardIndex: null | string;
 	cardActions: {[key: string]: any[] };
 	onSelectCard: null| Function;

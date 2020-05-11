@@ -77,30 +77,29 @@ const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, on
 			{!isDoor && (
 				<React.Fragment>
 					<Text text={nick} anchor={0.5} style={{fontFamily : 'Arial', fontSize: 14, fill : 0xFFFFFF, align : 'center'}}/>
-					{/*<Circle xCoord={0} yCoord={0} color={0xFF00FF} r={2}/>*/}
 					<Quarantine quarantine={quarantine} badgeRadius={style.height/2} />
+					{inTurn && (
+						<Circle xCoord={0} yCoord={-style.height/2} color={0x00FF00} r={style.height * 0.07}/>
+					)}
+					{isThing && (
+						<Sprite
+							texture={playerThingTexture}
+							anchor={0.5}
+							y={style.height/2}
+							width={style.height * 0.3}
+							height={style.height * 0.3}
+						/>
+					)}
+					{isInfected && (
+						<Sprite
+							texture={playerInfectedTexture}
+							anchor={0.5}
+							y={style.height/2}
+							width={style.height * 0.2}
+							height={style.height * 0.2}
+						/>
+					)}
 				</React.Fragment>
-			)}
-			{inTurn && (
-				<Circle xCoord={0} yCoord={-style.height/2} color={0x00FF00} r={style.height * 0.07}/>
-			)}
-			{isThing && (
-				<Sprite
-					texture={playerThingTexture}
-					anchor={0.5}
-					y={style.height/2}
-					width={style.height * 0.3}
-					height={style.height * 0.3}
-				/>
-			)}
-			{isInfected && (
-				<Sprite
-					texture={playerInfectedTexture}
-					anchor={0.5}
-					y={style.height/2}
-					width={style.height * 0.2}
-					height={style.height * 0.2}
-				/>
 			)}
 		</Container>
 	)

@@ -3,11 +3,11 @@ import {Player} from 'server/models/Player';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ICardEvent} from 'shared/interfaces/cards';
-//
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
 import {ETurnState} from 'shared/enum/player';
+import {formatCards} from 'server/helpers/cardHelpers';
 
 export const fearAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	const context = game.turnContext;
@@ -28,7 +28,7 @@ export const fearAct = ({card, game, player} : {card:ICardEvent, game: Game, pla
       player: player,
       notification: {
 		type: ENotificationAction.okayCard,
-        cards: [context.offenseCard],
+        cards: formatCards([context.offenseCard]),
 		text: `${offensePlayer.nickname}: я хотел тебе эту дать`,
       },
     }));
@@ -37,7 +37,7 @@ export const fearAct = ({card, game, player} : {card:ICardEvent, game: Game, pla
       player: player,
       notification: {
 		type: ENotificationAction.okayCard,
-        cards: [getCard(EEventID.fear)],
+        cards: formatCards([getCard(EEventID.fear)]),
 		text: `${player.nickname}: отказывается от обмена`,
       },
     }), player);

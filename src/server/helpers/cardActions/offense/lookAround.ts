@@ -6,6 +6,7 @@ import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
+import {formatCards} from 'server/helpers/cardHelpers';
 
 export const lookAroundAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	//player.discardCard(card.uniqueId);
@@ -16,7 +17,7 @@ export const lookAroundAct = ({card, game, player} : {card:ICardEvent, game: Gam
       player: player,
       notification: {
 		type: ENotificationAction.okayCard,
-		cards: [getCard(EEventID.lookaround)],
+		cards: formatCards([getCard(EEventID.lookaround)]),
 		text: `${player.nickname} изменил направление хода`
       },
     }));

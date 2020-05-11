@@ -59,7 +59,7 @@ const checkLastAction = (player, actions) => {
 
 const botSelectCardLogic = (gameServer: GameServer, player: Player, game: Game) => {
 	const action = player.currentAction as INotificationActionSelectCard;
-	const cardUniqueId = getRandomItemFromArray(action.cards).uniqueId;
+	const cardUniqueId = getRandomItemFromArray(Object.values(action.cards)).uniqueId;
 	gameServer.playerAction({
 		player,
 		actionType: EPlayerActionType.cardSelect,

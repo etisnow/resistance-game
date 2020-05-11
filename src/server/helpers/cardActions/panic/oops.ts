@@ -4,6 +4,7 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
+import {formatCards} from 'server/helpers/cardHelpers';
 
 export const oopsAct = ({game, player} : {game: Game, player: Player}) => {
     game.addLog(`${player.nickname} как бы случайно показывает все карты.`)
@@ -11,7 +12,7 @@ export const oopsAct = ({game, player} : {game: Game, player: Player}) => {
       player: player,
       notification: {
 		type: ENotificationAction.okayCard,
-        cards: player.hand as ICardEvent[],
+        cards: formatCards(player.hand as ICardEvent[]),
 		text: `${player.nickname}: УУУПС!`
       },
     }));
