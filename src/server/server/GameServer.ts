@@ -17,6 +17,7 @@ class GameServer {
   games: { [key: string]: Game } = {};
   players: { [key: string]: Player } = {};
   isMock: boolean = false;
+  ignoreChecks: boolean = false;
   io: any;
   initialize(io) {
     this.io = io;

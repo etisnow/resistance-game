@@ -137,6 +137,7 @@ const interfaceTest = ({player, card}: {player:Player, card: ICardPanic}) => {
 export function mockGameProcess(player) {
 	setTimeout(() => {
 		gameServer.isMock = true;
+		gameServer.ignoreChecks = true;
 
 		//testDefenseCard({player, cards: [
 		//	getCard(EEventID.infect),
