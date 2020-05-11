@@ -5,7 +5,7 @@ import GameController from 'client/controllers/gameController';
 import Deck from 'client/components/table/Deck/Deck';
 import GameLog from 'client/components/gameLog/GameLog';
 import Room from 'client/components/table/Room/Room';
-import Hand from 'client/components/table/Hand/Hand';
+import HandComponent from 'client/components/table/Hand/Hand';
 import Notifier from 'client/components/table/notifier/notifier';
 import {Helmet} from "react-helmet";
 import ActionInteracter from 'client/components/table/ActionInteracter/ActionInteracter';
@@ -37,7 +37,7 @@ const Table = observer(({controller} : ITableProps) => {
 				>
 					<Deck controller={controller} />
 					<Room controller={controller} />
-					<Hand controller={controller} />
+					<HandComponent controller={controller} />
 				</Stage>
 
 				<Notifier controller={controller}/>

@@ -1,4 +1,5 @@
 import {clamp} from 'lodash';
+import {cardAspectRatio, cardWidthPercent} from 'shared/constant/cards';
 
 export const getConstrainedWindowHeight = () => {
 	return clamp(window.innerHeight, 500, 1200);
@@ -15,3 +16,8 @@ export const getWindowHeight = () => {
 export const getWindowWidth = () => {
 	return window.innerWidth
 }
+
+
+
+
+export const playerHandHeight = () => clamp((getWindowWidth() / (100/cardWidthPercent)) * cardAspectRatio, 50, getWindowHeight() / 5);

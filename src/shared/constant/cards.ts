@@ -4,6 +4,7 @@ import {ECardType, EEventID, EEventType, EPanicID} from 'shared/enum/cards';
 import {ICardEvent, ICardPanic} from 'shared/interfaces/cards';
 
 export const cardAspectRatio = 1.46;
+export const cardWidthPercent = 25;
 
 const events: {[key: string]: ICardEvent} = {
   [EEventID.tenacity]: {
