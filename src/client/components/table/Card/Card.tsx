@@ -6,7 +6,7 @@ import {resources} from 'client/resources/resources';
 import {EEventID} from 'shared/enum/cards';
 import { Container, Sprite } from 'react-pixi-fiber';
 import * as PIXI from 'pixi.js'
-import { AnimatedPixi } from '../pixiInjected';
+import {AnimatedPixi, getPixiTexture} from '../pixiInjected';
 
 
 interface ICardProps {
@@ -24,8 +24,8 @@ interface ICardProps {
 
 const Card = observer(({id, menu, onCardClick, canBeUsed, style}: ICardProps) => {
 	const card = fulldeck[id] || (id === EEventID.thing ? thingCard : null);
-	const cardTexture = PIXI.Texture.from(resources[id]);
-	const glowTexture = PIXI.Texture.from(resources['glowEffect']);
+	const cardTexture = getPixiTexture(resources[id]);
+	const glowTexture = getPixiTexture(resources['glowEffect']);
 	if (!card) {
 		console.error('Карты', id, 'не добавлено!');
 		return null;

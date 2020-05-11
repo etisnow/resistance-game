@@ -5,6 +5,7 @@ import { Container, Text, Graphics, Sprite } from 'react-pixi-fiber';
 import Circle from 'client/components/pixiPrimitives/Circle';
 import {resources} from 'client/resources/resources';
 import * as PIXI from 'pixi.js'
+import {getPixiTexture} from 'client/components/table/pixiInjected';
 
 interface IPlayerBadgeProps {
 	id: string;
@@ -45,10 +46,10 @@ const Quarantine = ({quarantine, badgeRadius}) => {
 
 const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, onSelect = null, id, isDoor, quarantine, isYou, isInfected, isThing, isConnected, style}: IPlayerBadgeProps) => {
 	const nick = isYou ? 'ТЫ' : formatNickname(nickname)
-	const playerBadgeTexture = PIXI.Texture.from(isDoor ? resources.playerBadges['door'] : resources.playerBadges[color]);
-	const playerGlowTexture = PIXI.Texture.from(resources.playerbadgeGlow);
-	const playerThingTexture = PIXI.Texture.from(resources.playerThing);
-	const playerInfectedTexture = PIXI.Texture.from(resources.playerInfected);
+	const playerBadgeTexture = getPixiTexture(isDoor ? resources.playerBadges['door'] : resources.playerBadges[color]);
+	const playerGlowTexture = getPixiTexture(resources.playerbadgeGlow);
+	const playerThingTexture = getPixiTexture(resources.playerThing);
+	const playerInfectedTexture = getPixiTexture(resources.playerInfected);
 	return (
 		<Container
 

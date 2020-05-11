@@ -1,4 +1,4 @@
-import {AnimatedPixi} from 'client/components/table/pixiInjected';
+import {AnimatedPixi, getPixiTexture} from 'client/components/table/pixiInjected';
 import React, {useEffect, useLayoutEffect, useState} from 'react';
 import { Container, Graphics, CustomPIXIComponent, Text } from 'react-pixi-fiber';
 import {clamp, map} from 'lodash';
@@ -46,9 +46,9 @@ const generateCardMenu = (card, gameController: GameController, onSelectCard) =>
 	if (!menuItems || menuItems.length === 0) return null;
 	const player = gameController.currentPlayer;
 	if (!player || player.turnState === ETurnState.idle) return null;
-	const cardAct = PIXI.Texture.from(resources['cardAct']);
-	const cardDiscard = PIXI.Texture.from(resources['cardDiscard']);
-	const cardTrade = PIXI.Texture.from(resources['cardTrade']);
+	const cardAct = getPixiTexture(resources['cardAct']);
+	const cardDiscard = getPixiTexture(resources['cardDiscard']);
+	const cardTrade = getPixiTexture(resources['cardTrade']);
 	const cardHeight = style.width.interpolate(w => w* cardAspectRatio)
 	const width = style.width.interpolate(w => w/2)
 	const buttonHeight = width.interpolate(w => w * 1.2343)
