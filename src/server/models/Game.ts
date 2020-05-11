@@ -273,9 +273,9 @@ export class Game {
 
   pickFirstEventCard(): ICardEvent {
     const firstCard = this.getFirstCard();
-    this.addLog('Игрок достает карту событий...')
+    debugLog('Игрок достает карту событий...')
     if (firstCard.type === ECardType.panic) {
-      this.addLog('Попалась паника. Игрок берет следующую карту...');
+      debugLog('Попалась паника. Игрок берет следующую карту...');
       this.discardedDeckPush(firstCard);
       return this.pickFirstEventCard();
     }

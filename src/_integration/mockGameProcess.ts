@@ -130,7 +130,7 @@ const interfaceTest = ({player, card}: {player:Player, card: ICardEvent}) => {
 
 	each(game.players, pl => pl.isReady = true);
 	gameServer.startGame({player});
-	player.getCard(getCard(EEventID.analysis));
+	player.getCard(getCard(EEventID.tenacity));
 	player.getCard(getCard(EEventID.suspicion));
 }
 

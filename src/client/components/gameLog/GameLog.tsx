@@ -4,13 +4,14 @@ import './styles.scss';
 import {map} from 'lodash';
 import { animateScroll } from 'react-scroll';
 import GameController from 'client/controllers/gameController';
+import {Game} from 'server/models/Game';
 
 interface IGameLogProps {
 	controller: GameController
 }
 
-const getZIndex = (controller) => {
-	if (controller.cardInPreview) return 0;
+export const getZIndex = (controller: GameController) => {
+	if (controller.cardInPreview || controller.notifications.length > 0) return 0;
 	return 99;
 }
 

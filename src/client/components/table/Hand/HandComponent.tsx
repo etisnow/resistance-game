@@ -43,10 +43,19 @@ const generateCardMenu = (card, cardActions, onCardAction) => (style) => {
 	const cardAct = getPixiTexture(resources['cardAct']);
 	const cardDiscard = getPixiTexture(resources['cardDiscard']);
 	const cardTrade = getPixiTexture(resources['cardTrade']);
+	const cardSelect = getPixiTexture(resources['cardSelect']);
+
 	const cardHeight = style.width.interpolate(w => w* cardAspectRatio)
 	const width = style.width.interpolate(w => w/2)
-	const buttonHeight = width.interpolate(w => w * 1.2343)
+	const buttonHeight = width.interpolate(w => w / 3.5)
 	const menu = menuItems.map((menuIitem) => {
+
+		const overrideStyles = menuItems.length === 1 ? {
+			anchor: 0.5,
+			x:0,
+		} : {}
+
+
 		switch (menuIitem.menuType) {
 			case EPlayerActionType.cardAct:
 				return <AnimatedPixi.Sprite
@@ -55,10 +64,11 @@ const generateCardMenu = (card, cardActions, onCardAction) => (style) => {
 					width={width}
 					height={buttonHeight}
 					x={interpolate([style.x, style.width], (x,w) => x - w/2)}
-					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.1)}
+					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.36)}
 					angle={style.angle}
 					key={EPlayerActionType.cardAct}
 					pointerdown={() => onCardAction(card.uniqueId, EPlayerActionType.cardAct)}
+					{...overrideStyles}
 				/>
 			case EPlayerActionType.cardDiscard:
 				return <AnimatedPixi.Sprite
@@ -67,10 +77,11 @@ const generateCardMenu = (card, cardActions, onCardAction) => (style) => {
 					width={width}
 					height={buttonHeight}
 					x={interpolate([style.x, style.width], (x,w) => x)}
-					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.1)}
+					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.36)}
 					angle={style.angle}
 					key={EPlayerActionType.cardDiscard}
 					pointerdown={() => onCardAction(card.uniqueId, EPlayerActionType.cardDiscard)}
+					{...overrideStyles}
 				/>
 			case EPlayerActionType.cardTrade:
 				return <AnimatedPixi.Sprite
@@ -79,22 +90,25 @@ const generateCardMenu = (card, cardActions, onCardAction) => (style) => {
 					width={width}
 					height={buttonHeight}
 					x={interpolate([style.x, style.width], (x,w) => x )}
-					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.1)}
+					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.36)}
 					angle={style.angle}
 					key={EPlayerActionType.cardTrade}
 					pointerdown={() => onCardAction(card.uniqueId, EPlayerActionType.cardTrade)}
+					{...overrideStyles}
 				/>
 			case EPlayerActionType.cardSelect:
 				return <AnimatedPixi.Sprite
 					interactive={true}
-					texture={cardTrade}
+					texture={cardSelect}
 					width={width}
+					anchor={0.5}
 					height={buttonHeight}
-					x={interpolate([style.x, style.width], (x,w) => x )}
-					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.1)}
+					x={0}
+					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.36)}
 					angle={style.angle}
 					key={EPlayerActionType.cardTrade}
 					pointerdown={() => onCardAction(card.uniqueId, EPlayerActionType.cardSelect)}
+					{...overrideStyles}
 				/>
 		}
 		return null;
@@ -152,9 +166,12 @@ const getCenterOffset = () => {
 	return YOffset - playerHandHeight() / 2
 }
 
-const calculateCardSelectedStypeProps = () => {
+const calculateCardSelectedStypeProps = (autoWidth) => {
 	const {width, height} = calculateSize();
 	const offset = getCenterOffset() + (getCenterOffset() * 0.25)
+	if (autoWidth) {
+		return {x:0,y: 0, angle:0, width}
+	}
 	return {x:0,y: -offset - (playerHandHeight() / 2), angle:0, width}
 }
 
@@ -173,7 +190,7 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 	const styleUpdater = (card) => {
 		const isSelected = card.uniqueId === selectedCardIndex;
 		const cardNumber = cardNumberInRow(card);
-		return isSelected ? calculateCardSelectedStypeProps() : calculateCardStypeProps(cardNumber, cardsCount, autoWidth)
+		return isSelected ? calculateCardSelectedStypeProps(autoWidth) : calculateCardStypeProps(cardNumber, cardsCount, autoWidth)
 	}
 	const defaultCardStyle = { x:0,y:-getCenterOffset(),angle:-90, width: 0 };
 
@@ -206,7 +223,7 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 						<Card
 							id={card.id}
 							canBeUsed={canBeUsed}
-							onCardClick={() => onSelectCard(card.uniqueId)}
+							onCardClick={canBeUsed ? () => onSelectCard(card.uniqueId) : null}
 							style={props}
 							menu={isSelected ? cardMenu : null}
 						/>

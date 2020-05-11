@@ -32,6 +32,7 @@ export default class GameController {
 	@observable hand: {[key:string]: ICardEvent} = {};
 	@observable handActions: {[key: string]: any[] } = {};
 	@observable cardInPreview: string | null = null;
+	@observable cardInNotificationPreview: string | null = null;
 
 	constructor(root: RootController) {
 		this.root = root;
@@ -67,6 +68,14 @@ export default class GameController {
 		this.playersToSelect = notification.playersToSelect;
 		this.notifications.splice(0, 1);
 	};
+
+	selectNotificationCardPreview = (index) => {
+		if (this.cardInNotificationPreview === index) {
+			this.cardInNotificationPreview = null;
+		} else {
+			this.cardInNotificationPreview = index;
+		}
+	}
 
 	hidENotificationAction = () => {
 		this.notifications.splice(0, 1);

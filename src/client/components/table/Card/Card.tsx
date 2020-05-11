@@ -7,6 +7,7 @@ import {EEventID} from 'shared/enum/cards';
 import { Container, Sprite } from 'react-pixi-fiber';
 import * as PIXI from 'pixi.js'
 import {AnimatedPixi, getPixiTexture} from '../pixiInjected';
+import {interpolate} from 'react-spring/universal';
 
 
 interface ICardProps {
@@ -26,6 +27,7 @@ const Card = observer(({id, menu, onCardClick, canBeUsed, style}: ICardProps) =>
 	const card = fulldeck[id] || (id === EEventID.thing ? thingCard : null);
 	const cardTexture = getPixiTexture(resources[id]);
 	const glowTexture = getPixiTexture(resources['glowEffect']);
+	const faderTexture = getPixiTexture(resources['fader']);
 	if (!card) {
 		console.error('Карты', id, 'не добавлено!');
 		return null;
@@ -36,6 +38,8 @@ const Card = observer(({id, menu, onCardClick, canBeUsed, style}: ICardProps) =>
 
 	const cardWidth = style.width.interpolate ? style.width.interpolate(w=> w) : style.width
 	const cardHeight = style.width.interpolate ? style.width.interpolate(w=> w * cardAspectRatio) : style.width * cardAspectRatio
+	const cardHeightHalf = style.width.interpolate ? style.width.interpolate(w=> w * cardAspectRatio / 2) : (style.width * cardAspectRatio) / 2
+	const faderY = style.width.interpolate ? interpolate([style.y, style.width], (y,w) => y + (((w * cardAspectRatio) * 0.98) / 2)) : style.y + (((style.width * cardAspectRatio) * 0.98) / 2)
 
 	return (
 		<Container  >
@@ -49,7 +53,7 @@ const Card = observer(({id, menu, onCardClick, canBeUsed, style}: ICardProps) =>
 				/>
 			)}
 			<AnimatedPixi.Sprite
-				buttonMode
+				buttonMode={canBeUsed}
 				interactive={!!onCardClick}
 				texture={cardTexture}
 				pointerdown={onCardClick}
@@ -58,16 +62,13 @@ const Card = observer(({id, menu, onCardClick, canBeUsed, style}: ICardProps) =>
 				width={cardWidth}
 				height={cardHeight}
 			/>
-			{menu && menu(style)}
+			{menu && (
+				<React.Fragment>
+					{menu(style)}
+				</React.Fragment>
+			)}
 		</Container>
 	)
-/*	return (
-		<div className={`cardWrapper ${canBeUsed ? 'cardCanBeUsed' : ''} ${card.id}`} >
-			<img src={resources[card.id]} onClick={onCardClick}/>
-			{/!*<div onClick={onCardClick} className={'card-clickable-zone'}></div>*!/}
-			{menu && menu}
-		</div>
-	)*/
 });
 
 export default Card;

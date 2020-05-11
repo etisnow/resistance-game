@@ -25,6 +25,7 @@ const Table = observer(({controller} : ITableProps) => {
 		return (
 			<div className={"gameTable"}>
 				<GameLog controller={controller}/>
+				<ActionInteracter controller={controller}/>
 				<Stage
 					className={"pixi-canvas"}
 				    options={{
@@ -41,7 +42,6 @@ const Table = observer(({controller} : ITableProps) => {
 					<Notifier controller={controller}/>
 				</Stage>
 
-				{/*<ActionInteracter controller={controller}/>*/}
 				{/*<div className={"debug-div"}><div></div></div>*/}
 {/*
 				<button className={'layoutChangeButton'} onClick={() => {controller.toggleRoomLayout()}}>

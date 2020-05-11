@@ -36,6 +36,7 @@ import thing from "client/resources/cards/thing.png";
 import barricadeBadge from "client/resources/images/barricade_badge.png";
 import disconnected from "client/resources/images/disconnected.png";
 import glowEffect from "client/resources/images/gloweffect.png";
+import fader from "client/resources/images/fader.png";
 import playerbadgeGlow from "client/resources/images/playerbadgeGlow.png";
 import noise from "client/resources/images/noise.jpg";
 import deckCounterBg from "client/resources/images/deckCounterBg.png";
@@ -57,9 +58,10 @@ import playerBadge9 from "client/resources/images/playerBadges/9.png";
 import playerBadge10 from "client/resources/images/playerBadges/10.png";
 import playerBadge11 from "client/resources/images/playerBadges/11.png";
 
-import cardAct from "client/resources/images/cardAct.png";
-import cardDiscard from "client/resources/images/cardDiscard.png";
-import cardTrade from "client/resources/images/cardTrade.png";
+import cardAct from "client/resources/images/buttons/act.png";
+import cardDiscard from "client/resources/images/buttons/discard.png";
+import cardTrade from "client/resources/images/buttons/trade.png";
+import cardSelect from "client/resources/images/buttons/select.png";
 
 import okay from "client/resources/images/buttons/okay.png";
 
@@ -100,12 +102,15 @@ const resources = {
 	thing,
 
 	glowEffect,
+	fader,
 	playerbadgeGlow,
 	deckCounterBg,
 	noise,
+
 	cardAct,
 	cardDiscard,
 	cardTrade,
+	cardSelect,
 
 	playerThing,
 	playerInfected,
