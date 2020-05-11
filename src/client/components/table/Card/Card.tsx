@@ -30,27 +30,33 @@ const Card = observer(({id, menu, onCardClick, canBeUsed, style}: ICardProps) =>
 		console.error('Карты', id, 'не добавлено!');
 		return null;
 	}
-	console.log(canBeUsed)
+
+	const cardGlowWidth = style.width.interpolate ? style.width.interpolate(w=> w * 1.15) : style.width * 1.15
+	const cardGlowHeight = style.width.interpolate ? style.width.interpolate(w=> w * cardAspectRatio * 1.1) : style.width * cardAspectRatio * 1.1
+
+	const cardWidth = style.width.interpolate ? style.width.interpolate(w=> w) : style.width
+	const cardHeight = style.width.interpolate ? style.width.interpolate(w=> w * cardAspectRatio) : style.width * cardAspectRatio
 
 	return (
 		<Container  >
 			{canBeUsed && (
 				<AnimatedPixi.Sprite
 					texture={glowTexture}
-					{...style}
-					width={style.width.interpolate(w=> w * 1.15)}
-					height={style.width.interpolate(w=> w * cardAspectRatio * 1.1)}
 					anchor={0.5}
+					{...style}
+					width={cardGlowWidth}
+					height={cardGlowHeight}
 				/>
 			)}
 			<AnimatedPixi.Sprite
 				buttonMode
-				interactive
+				interactive={!!onCardClick}
 				texture={cardTexture}
 				pointerdown={onCardClick}
-				{...style}
-				height={style.width.interpolate(w=> w * cardAspectRatio)}
 				anchor={0.5}
+				{...style}
+				width={cardWidth}
+				height={cardHeight}
 			/>
 			{menu && menu(style)}
 		</Container>

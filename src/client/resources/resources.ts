@@ -37,6 +37,7 @@ import barricadeBadge from "client/resources/images/barricade_badge.png";
 import glowEffect from "client/resources/images/gloweffect.png";
 import playerbadgeGlow from "client/resources/images/playerbadgeGlow.png";
 import noise from "client/resources/images/noise.jpg";
+import deckCounterBg from "client/resources/images/deckCounterBg.png";
 
 import playerThing from "client/resources/images/thing.svg";
 import playerInfected from "client/resources/images/infected.svg";
@@ -96,6 +97,7 @@ const resources = {
 
 	glowEffect,
 	playerbadgeGlow,
+	deckCounterBg,
 	noise,
 	cardAct,
 	cardDiscard,
