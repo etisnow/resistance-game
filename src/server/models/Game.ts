@@ -26,7 +26,6 @@ import {checkAllDeckCards} from '_integration/helpers';
 import clc from 'cli-color';
 import {EGameState} from 'shared/enum/common';
 import {Simulate} from 'react-dom/test-utils';
-import play = Simulate.play;
 import {formatCards} from 'server/helpers/cardHelpers';
 
 
@@ -146,7 +145,14 @@ export class Game {
 
   end = (lastMessage) => {
     //this.playersList = [];
+    const thingPlayer = find(this.players, {isThing:true});
+    if (thingPlayer) {
+      this.addLog('Нечто был игрок ' + thingPlayer.nickname)
+    }
+
+
     this.addLog(lastMessage ? lastMessage : 'Игра закончена.', true)
+
     each(this.playersList, (pId) => {
       const pl = this.players[pId];
       pl.changeTurnState(ETurnState.idle);

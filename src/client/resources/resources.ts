@@ -34,6 +34,7 @@ import thing from "client/resources/cards/thing.png";
 
 
 import barricadeBadge from "client/resources/images/barricade_badge.png";
+import disconnected from "client/resources/images/disconnected.png";
 import glowEffect from "client/resources/images/gloweffect.png";
 import playerbadgeGlow from "client/resources/images/playerbadgeGlow.png";
 import noise from "client/resources/images/noise.jpg";
@@ -124,7 +125,8 @@ const resources = {
 		8: playerBadge9,
 		9: playerBadge10,
 		10: playerBadge11,
-		'door': barricadeBadge
+		'door': barricadeBadge,
+		'disconnected': disconnected,
 	}
 };
 

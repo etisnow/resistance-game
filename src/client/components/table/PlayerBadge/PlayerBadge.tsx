@@ -47,7 +47,7 @@ const Quarantine = ({quarantine, badgeRadius}) => {
 const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, onSelect = null, id, isDoor, quarantine, isYou, isInfected, isThing, isConnected, style}: IPlayerBadgeProps) => {
 	if (!color) return null;
 	const nick = isYou ? 'ТЫ' : formatNickname(nickname)
-	const playerBadgeTexture = getPixiTexture(isDoor ? resources.playerBadges['door'] : resources.playerBadges[color]);
+	const playerBadgeTexture = getPixiTexture(!isConnected ? resources.playerBadges['disconnected'] : isDoor ? resources.playerBadges['door'] : resources.playerBadges[color]);
 	const playerGlowTexture = getPixiTexture(resources.playerbadgeGlow);
 	const playerThingTexture = getPixiTexture(resources.playerThing);
 	const playerInfectedTexture = getPixiTexture(resources.playerInfected);
