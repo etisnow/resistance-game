@@ -9,38 +9,14 @@ import Hand from 'client/components/table/Hand/Hand';
 import Notifier from 'client/components/table/notifier/notifier';
 import {Helmet} from "react-helmet";
 import ActionInteracter from 'client/components/table/ActionInteracter/ActionInteracter';
-import { Stage, Text, applyProps, Sprite, Container  } from "react-pixi-fiber";
-import { Globals, createAnimatedComponent, Animated, animated } from 'react-spring/universal';
+import { Stage  } from "react-pixi-fiber";
 import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
-//import * as PIXI from 'pixi.js'
-//import * as Animated from "animated";
 
 
 interface ITableProps {
 	controller: GameController
 }
-//Globals.injectApplyAnimatedValues(
-//  (instance, props) => {
-//  	console.log('test')
-//    return instance.setNativeProps ? instance.setNativeProps(props) : false
-//  },
-//  style => style
-//)
-//Globals.injectFrame(cb => (global as any).requestAnimationFrame(cb), cb => (global as any).cancelAnimationFrame(cb))
 
-/*
-
-Globals.injectApplyAnimatedValues((instance, { scale, ...props }) => {
-	console.log('test')
-  if (instance.pluginName) {
-  	console.log('test')
-    for (let prop in props) instance[prop] = props[prop]
-    if (scale) instance.scale.set(scale)
-  } else return false
-}, style => style)
-// injectFrame teaches react-spring the tools it needs to construct a game-loop, although
-// we use a custom renderer (pixi), we're still in the web, so RAF is available
-Globals.injectFrame(cb => { console.log('test'); return (global as any).requestAnimationFrame(cb)}, cb => (global as any).cancelAnimationFrame(cb))*/
 
 const Table = observer(({controller} : ITableProps) => {
 		const {currentPlayer:player, hand} = controller;
@@ -49,10 +25,19 @@ const Table = observer(({controller} : ITableProps) => {
 		return (
 			<div className={"gameTable"}>
 				<GameLog controller={controller}/>
-				<Stage className={"pixi-canvas"} options={{width:getWindowWidth(), height:getWindowHeight(), resolution:window.devicePixelRatio, transparent:true, antialias:true}}>
-					<Deck controller={controller}/>
-					<Room controller={controller}/>
-					<Hand controller={controller}/>
+				<Stage
+					className={"pixi-canvas"}
+				    options={{
+				    	width:getWindowWidth(),
+					    height:getWindowHeight(),
+					    resolution:window.devicePixelRatio,
+					    transparent:true,
+					    antialias:true
+				    }}
+				>
+					<Deck controller={controller} />
+					<Room controller={controller} />
+					<Hand controller={controller} />
 				</Stage>
 
 				<Notifier controller={controller}/>

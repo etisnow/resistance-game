@@ -341,9 +341,6 @@ export class Game {
     checkAllDeckCards(this, !gameServer.isMock);
   }
 
-
-
-
   cardAction({
     player,
     actionType,
