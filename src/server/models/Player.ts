@@ -55,6 +55,7 @@ export class Player {
 			case ENotificationAction.turnCard:
 			case ENotificationAction.defenseTradeCard:
 			case ENotificationAction.offenseTradeCard:
+			case ENotificationAction.cardPick:
 				this.currentAction = notificationAction;
 				return
 		}
@@ -68,6 +69,8 @@ export class Player {
 				return this.processNotificationAction({ type: ENotificationAction.offenseTradeCard, text: 'Выбери карту для обмена' });
 			case ETurnState.inCardAction:
 				return this.processNotificationAction({ type: ENotificationAction.turnCard, text: 'Сбрось или сыграй карту' });
+			case ETurnState.inCardPick:
+				return this.processNotificationAction({ type: ENotificationAction.cardPick, text: 'Возьми карту из колоды' });
 			case ETurnState.idle:
 			case ETurnState.dead:
 				return this.currentAction = null;

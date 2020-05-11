@@ -6,6 +6,7 @@ export enum EPlayerState {
 
 export enum ETurnState {
 	idle = 'idle',
+	inCardPick = 'inCardPick',
 	inCardAction = 'inCardAction',
 	inCardActionProgress = 'inCardActionProgress',
 

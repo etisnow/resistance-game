@@ -1,4 +1,5 @@
 export enum ENotificationAction {
+	cardPick = 'cardPick',
 	turnCard = 'turnCard',
 	offenseTradeCard = 'offenseTradeCard',
 	defenseTradeCard = 'defenseTradeCard',

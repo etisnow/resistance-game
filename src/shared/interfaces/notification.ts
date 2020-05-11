@@ -37,15 +37,20 @@ export interface INotificationActionOffenseTradeCard {
 export interface INotificationActionTurnCard {
 	type: ENotificationAction.turnCard
 }
-
+export interface INotificationActionCardPick {
+	type: ENotificationAction.cardPick
+}
 type INotificationAction = INotificationActionCommon &
-	(INotificationActionDecision
-	| INotificationActionInfo
-	| INotificationActionOkayCard
-	| INotificationActionSelectCard
-	| INotificationActionPlayerSelect
-	| INotificationActionDefenseTradeCard
-	| INotificationActionOffenseTradeCard
-	| INotificationActionTurnCard);
+	(
+		INotificationActionCardPick
+		| INotificationActionDecision
+		| INotificationActionInfo
+		| INotificationActionOkayCard
+		| INotificationActionSelectCard
+		| INotificationActionPlayerSelect
+		| INotificationActionDefenseTradeCard
+		| INotificationActionOffenseTradeCard
+		| INotificationActionTurnCard
+	);
 
 export default INotificationAction;

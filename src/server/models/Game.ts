@@ -2,8 +2,6 @@ import {clone, each, filter, find, map, uniqueId} from "lodash";
 import {Player} from "server/models/Player";
 import {gameServer} from 'server/server/GameServer';
 import {
-  //formatPlayerConnectedEvent,
-  //formatPlayerConnectionSuccessEvent,
   formatPlayerNotification,
   formatStartGameEvent,
   formatUpdateGameEvent,
@@ -27,6 +25,8 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {checkAllDeckCards} from '_integration/helpers';
 import clc from 'cli-color';
 import {EGameState} from 'shared/enum/common';
+import {Simulate} from 'react-dom/test-utils';
+import play = Simulate.play;
 
 
 export class Game {
@@ -64,7 +64,7 @@ export class Game {
   }
 
   killPlayer = (player) => {
-
+    player.currentAction = null;
 	if (player.isThing) {
 		this.notifyAllPlayers(formatPlayerNotification({
 		  player: player,
@@ -179,6 +179,7 @@ export class Game {
   resetGameState = () => {
     this.turnContext = null;
     each(this.players, p => {
+      p.currentAction = null;
       if (p.isAlive()) {
         p.changeTurnState(ETurnState.idle);
       }
@@ -191,54 +192,7 @@ export class Game {
     }
     this.discardedDeck.push(card)
   }
-  changeTurn(playerId: string) {
-    if (!this.gameInProcess) return;
-    const player = this.players[playerId];
-    if (!player) {
-      debugLog(this.players)
-    }
-    this.resetGameState()
-    this.turnPlayerId = playerId;
-    debugLog(`change turn player id ${playerId}`)
 
-    if (!player.isAlive()) {
-      //Дверь и мертвец не может ходить
-      const nextPlayer = player.getNextAlivePlayer();
-      return this.changeTurn(nextPlayer.id)
-    }
-    this.addLog(`Ходит игрок ${player.nickname}!`);
-
-    //Удаляем карту из колоды сверху и даем её игроку
-	let grabbedCard = this.getFirstCard();
-    //Если паника, то прекращаем граббинг и создаем панику
-    if (grabbedCard.type === ECardType.panic) {
-      return this.makePanic(player, grabbedCard);
-    }
-
-    // Добавляем поднятую карту игроку на руку
-    player.getCard(grabbedCard);
-    player.changeTurnState(ETurnState.inCardAction);
-    if (player.quarantine > 0) {
-      player.quarantine = player.quarantine - 1;
-      if (player.quarantine === 0 ) {
-        this.addLog(`Игрок ${player.nickname} вышел из карантина`);
-      }
-    }
-    this.addLog(`Игрок ${player.nickname} взял карту и ходит...`);
-    this.updateGame();
-  }
-
-  endTurn(playerId: string) {
-    if (!this.gameInProcess) return
-    this.turnContext = null;
-    const endTurnPlayer = this.players[playerId];
-    endTurnPlayer.changeTurnState(ETurnState.idle);
-    const nextPlayer = endTurnPlayer.getNextAlivePlayer();
-    debugLog(`Игрок ${endTurnPlayer.nickname} заканчивает ход`, map(endTurnPlayer.hand, card=> card.id))
-    debugLog(`След. игрок ${nextPlayer.nickname}`)
-    this.changeTurn(nextPlayer.id);
-    checkAllDeckCards(this, !gameServer.isMock);
-  }
 
 
   getPlayerByPosition = ({playerId, isNext}: {playerId: string, isNext: boolean}) : Player => {
@@ -327,6 +281,69 @@ export class Game {
     player.getCard(eventCard);
   }
 
+
+  endTurn(playerId: string) {
+    if (!this.gameInProcess) return
+    this.turnContext = null;
+    const endTurnPlayer = this.players[playerId];
+    endTurnPlayer.changeTurnState(ETurnState.idle);
+    const nextPlayer = endTurnPlayer.getNextAlivePlayer();
+    debugLog(`Игрок ${endTurnPlayer.nickname} заканчивает ход`, map(endTurnPlayer.hand, card=> card.id))
+    debugLog(`След. игрок ${nextPlayer.nickname}`)
+    this.changeTurn(nextPlayer.id);
+    checkAllDeckCards(this, !gameServer.isMock);
+  }
+
+  changeTurn(playerId: string) {
+    if (!this.gameInProcess) return;
+    const player = this.players[playerId];
+    debugLog('CHANGE TURN ', player.nickname)
+    if (!player) {
+      debugLog(this.players)
+    }
+    player.currentAction = null;
+    this.resetGameState()
+    this.turnPlayerId = playerId;
+    debugLog(`change turn player id ${playerId}`)
+
+    if (!player.isAlive()) {
+      //Дверь и мертвец не может ходить
+      const nextPlayer = player.getNextAlivePlayer();
+      return this.changeTurn(nextPlayer.id)
+    }
+    this.addLog(`Ходит игрок ${player.nickname}!`);
+    player.changeTurnState(ETurnState.inCardPick);
+    checkAllDeckCards(this, !gameServer.isMock);
+    this.updateGame();
+  }
+
+
+  cardPick = ({player}: {player:Player}) => {
+    //this.resetGameState()
+    //Удаляем карту из колоды сверху и даем её игроку
+    debugLog('PLAYERS CURRENT ACTION', player.currentAction)
+    this.addLog(`Игрок ${player.nickname} взял карту и ходит...`);
+	let grabbedCard = this.getFirstCard();
+    //Если паника, то прекращаем граббинг и создаем панику
+    if (grabbedCard.type === ECardType.panic) {
+      return this.makePanic(player, grabbedCard);
+    }
+    player.currentAction = null;
+    // Добавляем поднятую карту игроку на руку
+    player.getCard(grabbedCard);
+    player.changeTurnState(ETurnState.inCardAction);
+    if (player.quarantine > 0) {
+      player.quarantine = player.quarantine - 1;
+      if (player.quarantine === 0 ) {
+        this.addLog(`Игрок ${player.nickname} вышел из карантина`);
+      }
+    }
+    checkAllDeckCards(this, !gameServer.isMock);
+  }
+
+
+
+
   cardAction({
     player,
     actionType,
@@ -353,6 +370,16 @@ export class Game {
       debugLog(`Player ${player.nickname} выбирает ${action}`);
     }
     switch (actionType) {
+      case EPlayerActionType.cardPick:
+        if (!player.currentAction || player.currentAction.type !== ENotificationAction.cardPick) {
+          throw new Error('ПОПЫТКА ВЗЯТЬ КАРТУ ВНЕ КОНТЕКСТА cardPick у игрока ' + player.nickname)
+          return;
+        }
+        if (player.currentAction.type === ENotificationAction.cardPick) {
+          this.cardPick({player});
+          this.updateGame();
+        }
+        return;
       case EPlayerActionType.cardDiscard:
         discardCardAction({game: this, player, cardUniqueId});
         this.updateGame();

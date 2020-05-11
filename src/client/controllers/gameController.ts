@@ -82,6 +82,10 @@ export default class GameController {
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.playerSelect, selectedPlayerId: playerId});
 	};
 
+	cardPick = () => {
+		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.cardPick});
+	}
+
 	actionDecision = (action: string ) => {
 		this.playersToSelect = [];
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.actionDecision, action});

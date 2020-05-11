@@ -135,6 +135,12 @@ const botAct = (gameServer: GameServer, player: Player, game: Game) => {
 		case ENotificationAction.turnCard:
 			botPlayerTurnCardLogic(gameServer, player, game);
 			return true;
+		case ENotificationAction.cardPick:
+			gameServer.playerAction({
+				player,
+				actionType: EPlayerActionType.cardPick,
+			});
+			return true;
 	}
 	return false;
 };

@@ -6,7 +6,6 @@ import {shuffle} from 'server/helpers/util';
 import * as chroma from 'chroma-js';
 import {gameServer} from 'server/server/GameServer';
 import {ECardType, EEventID, EPanicID} from 'shared/enum/cards';
-import {checkAllDeckCards} from '_integration/helpers';
 
 export let initialDeck = [];
 
