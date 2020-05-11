@@ -153,11 +153,7 @@ let olhand = null
 const Hand = observer(({controller} : IHandProps) => {
 
 
-/*	useLayoutEffect(() => {
-		console.log('hand', controller === olcontroler, controller, olcontroler)
-		olcontroler = controller
-	}, [controller])
-	return*/
+
 
 	//const [selectedCardIndex, selectCard] = useState(null);
 	const selectedCardIndex = controller.cardInPreview;

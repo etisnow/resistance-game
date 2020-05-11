@@ -12,24 +12,21 @@ interface IActionInteracterProps {
 }
 
 const renderAction = (action: INotificationAction, controller: GameController) => {
-	switch (action.type) {
-		case ENotificationAction.actionDecision:
-			return (
-				<div className={"menu-wrapper"}>
-					<div className={"centeredNotificationRow column"}>
-						{map(action.menu, ({text, action}) => {
-							return (<div
-								className={'okayNotificationButton'}
-								onClick={() => controller.actionDecision(action)}
-							>
-								{text}
-							</div>)
-						})}
-					</div>
-				</div>
-			);
-			break;
-	}
+	if (action.type !== ENotificationAction.actionDecision) return null;
+	return (
+		<div className={"menu-wrapper"}>
+			<div className={"centeredNotificationRow column"}>
+				{map(action.menu, ({text, action}) => {
+					return (<div
+						className={'okayNotificationButton'}
+						onClick={() => controller.actionDecision(action)}
+					>
+						{text}
+					</div>)
+				})}
+			</div>
+		</div>
+	);
 }
 
 const ActionInteracter = observer(({controller}: IActionInteracterProps) => {
