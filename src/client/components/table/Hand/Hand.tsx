@@ -30,7 +30,6 @@ const Hand = observer(({controller} : IHandProps) => {
 
 	return (
 		<HandComponent
-			x={0}
 			y={getWindowHeight() - playerHandHeight()}
 			cards={hand}
 			selectedCardIndex={selectedCardIndex}

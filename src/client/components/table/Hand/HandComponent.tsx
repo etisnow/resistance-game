@@ -1,21 +1,25 @@
 import {AnimatedPixi, getPixiTexture} from 'client/components/table/pixiInjected';
-import React, {useEffect, useLayoutEffect, useState} from 'react';
-import { Container, Graphics, CustomPIXIComponent, Text } from 'react-pixi-fiber';
+import React from 'react';
+import { Container } from 'react-pixi-fiber';
 import {clamp, map} from 'lodash';
 import './styles.scss';
 import {observer} from "mobx-react-lite";
 import {config, useTransition, interpolate} from 'react-spring/universal';
-import GameController from 'client/controllers/gameController';
-import {getWindowHeight, getWindowWidth, playerHandHeight} from 'client/helpers/window';
+import {
+	autoWidthCard,
+	getConstrainedWindowHeight,
+	getConstrainedWindowWidth,
+	getWindowHeight,
+	getWindowWidth,
+	playerCardWidthPix,
+	playerHandHeight,
+} from 'client/helpers/window';
 import {cardAspectRatio} from 'shared/constant/cards';
-import {ETurnState} from 'shared/enum/player';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {degToRag} from 'client/helpers/roomHelpers';
-import * as PIXI from 'pixi.js'
 import Card from '../Card/Card';
 import {resources} from 'client/resources/resources';
-import gameController from 'client/controllers/gameController';
-import {ICardAny, ICardEvent} from 'shared/interfaces/cards';
+import {ICardAny} from 'shared/interfaces/cards';
 
 interface IHandProps {
 	cards: {[key:string]: ICardAny};
@@ -23,13 +27,13 @@ interface IHandProps {
 	cardActions: {[key: string]: any[] };
 	onSelectCard: null| Function;
 	onCardAction: null| Function;
-	x: number;
 	y: number;
+	autoWidth?: boolean;
 }
 
 
 
-const playerCardWidthPix = () => playerHandHeight() / cardAspectRatio;
+
 
 const generateCardMenu = (card, cardActions, onCardAction) => (style) => {
 	const menuItems = cardActions[card.uniqueId];
@@ -126,7 +130,7 @@ const getCirclePoint = (radius, deg, centerX, centerY) => {
 }
 
 
-const calculateCardStypeProps = (cardNumber, cardsCount) => {
+const calculateCardStypeProps = (cardNumber, cardsCount, autoWidth) => {
 	const degStep = 11;
 	const maxCardDeg = degStep * cardsCount;
 	const cardDeg = getCardDeg(cardNumber, cardsCount, maxCardDeg);
@@ -134,7 +138,11 @@ const calculateCardStypeProps = (cardNumber, cardsCount) => {
 	const {x,y} = getCirclePoint(circleRadius, cardDeg, circleX,circleY);
 	const {x: rotationXPoint,y: rotationYPoint} = getCirclePoint(circleRadius, cardRotationDeg, circleX,circleY);
 	var angleBetweenPointsDeg = Math.atan2(rotationYPoint - circleY, rotationXPoint - circleX) * 180 / Math.PI;
-	const width = (playerCardWidthPix() * 1.1 );
+
+	const width = autoWidth ?
+		autoWidthCard(cardsCount) :
+		(playerCardWidthPix() * 1.1 );
+
 	return {x,y: y + playerHandHeight() * 0.65,angle:angleBetweenPointsDeg + 90, width}
 }
 
@@ -150,9 +158,8 @@ const calculateCardSelectedStypeProps = () => {
 	return {x:0,y: -offset - (playerHandHeight() / 2), angle:0, width}
 }
 
-let olhand = null
 
-const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelectCard, onCardAction, x, y} : IHandProps) => {
+const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelectCard, onCardAction, y, autoWidth = false} : IHandProps) => {
 
 	if (!cards) return null;
 
@@ -166,7 +173,7 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 	const styleUpdater = (card) => {
 		const isSelected = card.uniqueId === selectedCardIndex;
 		const cardNumber = cardNumberInRow(card);
-		return isSelected ? calculateCardSelectedStypeProps() : calculateCardStypeProps(cardNumber, cardsCount)
+		return isSelected ? calculateCardSelectedStypeProps() : calculateCardStypeProps(cardNumber, cardsCount, autoWidth)
 	}
 	const defaultCardStyle = { x:0,y:-getCenterOffset(),angle:-90, width: 0 };
 
@@ -186,11 +193,9 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 
 	return (
 		<Container
-			x={x}
 			y={y}
 			pivot={pivotAtCenter}
 			sortableChildren={true}
-			mouseover={() => {console.log('test over')}}
 		>
 			{map(transitions, ({item: card, key, props}) => {
 				const isSelected = selectedCardIndex === card.uniqueId;

@@ -6,17 +6,28 @@ import INotificationAction from 'shared/interfaces/notification';
 import GameController from 'client/controllers/gameController';
 import {ICardAny} from 'shared/interfaces/cards';
 import {ENotificationAction} from 'shared/enum/notifications';
-import {Container, Text} from 'react-pixi-fiber'
+import {Container, Text, Sprite} from 'react-pixi-fiber'
 import HandComponent from 'client/components/table/Hand/HandComponent';
-import {getWindowHeight} from 'client/helpers/window';
+import {
+	autoWidthCard,
+	getWindowHeight,
+	getWindowWidth,
+	playerCardWidthPix,
+	playerHandHeight,
+} from 'client/helpers/window';
+import {getPixiTexture} from 'client/components/table/pixiInjected';
+import {resources} from 'client/resources/resources';
+import Rectangle from 'client/components/pixiPrimitives/Rectangle';
+import {cardAspectRatio} from 'shared/constant/cards';
 
 interface INotifierProps {
 	controller:  GameController;
 }
 
-
+/*
 const generateCardMenuByNotificationType = (controller: GameController, notification: INotificationAction, cardUniqueId?: string) => {
 	return (<div className={'notificationMenuWrapper'}>
+
 		<div
 			className={'notificationMenuItem'}
 			onClick={() => controller.selectCard(notification, cardUniqueId)}
@@ -24,52 +35,62 @@ const generateCardMenuByNotificationType = (controller: GameController, notifica
 			Выбрать
 		</div>
 	</div>)
-};
+};*/
 
 const Notification = ({notification, controller}: {notification: INotificationAction, controller: GameController}) => {
 	let notificationContent: React.ReactNode = null;
+	const okayTexture = getPixiTexture(resources.okay)
+	const pivotAtCenter = {x:-getWindowWidth() / 2 , y: getWindowHeight()/2}
 	switch (notification.type) {
 		case ENotificationAction.okayCard:
+			const cardHeight = autoWidthCard(Object.keys(notification.cards).length) * cardAspectRatio;
 			notificationContent = (
-				<React.Fragment>
+				<Container width={getWindowWidth()} height={getWindowHeight()}>
 					<HandComponent
 						cards={notification.cards}
 						selectedCardIndex={null}
+						autoWidth={true}
 						cardActions={{}}
 						onSelectCard={() => {}}
 						onCardAction={() => {}}
-						x={0}
-						y={getWindowHeight()/2}
+						y={getWindowHeight()/2 - playerHandHeight() /2}
 					/>
-					<div className={"centeredNotificationRow"}>
-						<div
-							className={'okayNotificationButton'}
-							onClick={() => controller.activatePlayerSelectMode(notification)}
-						>
-							Okay
-						</div>
-					</div>
-				</React.Fragment>
+					<Sprite
+						texture={okayTexture}
+						interactive={true}
+						buttonMode={true}
+						pointerdown={() => controller.activatePlayerSelectMode(notification)}
+						width={playerCardWidthPix() * 1.5}
+						height={playerCardWidthPix() * 1.5}
+						anchor={0.5}
+						x={getWindowWidth() / 2}
+						y={getWindowHeight()/2 +  cardHeight / 2}
+					/>
+				</Container>
 			);
 			break;
 		case ENotificationAction.selectCard:
-			const menu = (cardUniqueId) => generateCardMenuByNotificationType(controller, notification, cardUniqueId);
+			//const menu = (cardUniqueId) => generateCardMenuByNotificationType(controller, notification, cardUniqueId);
 			notificationContent = (
 				<HandComponent
 					cards={notification.cards}
 					selectedCardIndex={null}
+					autoWidth={true}
 					cardActions={{}}
 					onSelectCard={() => {}}
 					onCardAction={() => {}}
-					x={0}
-					y={getWindowHeight()/2}
+					y={getWindowHeight()/2 - playerHandHeight() /2}
 				/>
 			);
 			break;
 	}
 	if (!notificationContent) return null;
+
 	return (
-		<Container>
+		<Container width={getWindowWidth()} height={getWindowHeight()}>
+			<Container alpha={0.7}>
+				<Rectangle xCoord={0} yCoord={0} width={getWindowWidth()} height={getWindowHeight()}/>
+			</Container>
 			<Text text={notification.text} />
 			{notificationContent}
 		</Container>

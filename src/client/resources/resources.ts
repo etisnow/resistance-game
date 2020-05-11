@@ -60,6 +60,9 @@ import cardAct from "client/resources/images/cardAct.png";
 import cardDiscard from "client/resources/images/cardDiscard.png";
 import cardTrade from "client/resources/images/cardTrade.png";
 
+import okay from "client/resources/images/buttons/okay.png";
+
+
 const resources = {
 	tenacity,
 	fear,
@@ -106,6 +109,8 @@ const resources = {
 	playerThing,
 	playerInfected,
 
+
+	okay,
 
 	playerBadges: {
 		0: playerBadge1,
