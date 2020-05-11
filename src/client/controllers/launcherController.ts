@@ -3,7 +3,31 @@ import SocketController from 'client/controllers/socketController';
 import RootController from 'client/controllers/rootController';
 import {EAsyncState} from 'shared/enum/async';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
+import localforage from 'localforage';
+import * as PIXI from 'pixi.js';
+import {resources} from 'client/resources/resources';
+import { reduce } from 'lodash';
 
+
+const asyncLoader = () => {
+	return new Promise((resolve, reject) => {
+		let loader = reduce(resources, (l, res) => {
+			if (res[0] === '/') {
+				l.add(res);
+			}
+			return l;
+		}, new PIXI.Loader());
+		loader = reduce(resources.playerBadges, (l, res) => {
+			if (res[0] === '/') {
+				l.add(res);
+			}
+			return l;
+		}, loader);
+		loader.load((loader, resources) => {
+			resolve();
+		});
+	})
+}
 
 export default class LauncherController {
 
@@ -11,7 +35,7 @@ export default class LauncherController {
 	parent: RootController;
 	socket: SocketController;
 
-	@observable state : EAsyncState = EAsyncState.idle;
+	@observable state : EAsyncState = EAsyncState.pending;
 	//@observable nickname: string = Math.ceil(Math.random() * 100) + '_neerone';
 	@observable nickname: string = '';
 	@observable gameId: string = '5';
@@ -22,8 +46,15 @@ export default class LauncherController {
 		this.socket = root.socketController;
 	}
 
-	changeNickname = (newNickname) => {
+	changeNickname = async (newNickname) => {
+		await localforage.setItem('nickname', newNickname)
 		this.nickname = newNickname;
+	}
+
+	init = async () => {
+		this.nickname = await localforage.getItem('nickname') || ''
+		await asyncLoader();
+		this.state = EAsyncState.idle;
 	}
 
 	changeGameId = (newGameId) => {

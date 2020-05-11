@@ -35,6 +35,14 @@ function handleGlobalEvents(socket, root: RootController) {
 		root.launcherController.games = games;
 	});
 
+	socket.on(EServerEventType.soundNotification, () => {
+		root.timerController.playSound()
+	});
+
+	socket.on(EServerEventType.timerNotification, (timerPayload) => {
+		root.timerController.initTimer(timerPayload)
+	});
+
 	socket.on(EServerEventType.notification, (notification: INotificationAction) => {
 		switch (notification.type) {
 			case ENotificationAction.info:

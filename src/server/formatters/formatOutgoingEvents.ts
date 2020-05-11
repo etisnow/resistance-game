@@ -169,3 +169,12 @@ export const formatCommonError = (errorMessage: string) => {
 		error: errorMessage,
 	})
 };
+
+export const formatSoundNotification = () => {
+	return formatEvent(EServerEventType.soundNotification, {
+	})
+};
+
+export const formatTimerNotification = (timerPayload) => {
+	return formatEvent(EServerEventType.timerNotification, timerPayload)
+};

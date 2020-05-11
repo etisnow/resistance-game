@@ -10,6 +10,7 @@ import INotificationAction from 'shared/interfaces/notification';
 import {processTurnContext} from 'server/helpers/playerHelpers';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {ETurnContextType} from 'shared/enum/turnContextType';
+import {formatSoundNotification, formatTimerNotification} from 'server/formatters/formatOutgoingEvents';
 //import {formatPlayerConnectedEvent} from 'server/formatters/formatOutgoingEvents';
 
 export class Player {
@@ -79,6 +80,31 @@ export class Player {
 		}
 	}
 
+	processTimer(turnState: ETurnState) {
+		const {game} = this;
+		let timerNotification = null;
+		if (game.turnContext && game.turnContext.type === ETurnContextType.chainReaction) {
+			timerNotification = { text: `${this.nickname} все передают карту по кругу`, seconds: 30 };
+		} else {
+			switch (turnState) {
+				case ETurnState.inDefenseTrade:
+				case ETurnState.inOffenseTrade:
+					timerNotification = { text: `${this.nickname} выбирает карту`, seconds: 30 };
+					break;
+				case ETurnState.inCardAction:
+					timerNotification = { text: `${this.nickname} играет карту`, seconds: 10 };
+					break;
+				case ETurnState.inCardPick:
+					timerNotification = { text: `${this.nickname} берет карту`, seconds: 10 };
+					break;
+				default:
+					return;
+			}
+		}
+		this.notify(formatSoundNotification());
+		this.game.notifyAllPlayers(formatTimerNotification(timerNotification));
+	}
+
 	interruptTrade = () => {
 		if (!this.game.turnContext || this.game.turnContext.type !== ETurnContextType.trade || this.game.turnContext.offensePlayer !== this) {
 			throw new Error(`Интеррупт произошел вне контекста trade у игрока ${this.nickname}`)
@@ -96,6 +122,7 @@ export class Player {
 		this.turnState = newTurnState
 		debugLog(`Игрок ${this.nickname} теперь ${newTurnState}`)
 		this.processTurnState(newTurnState);
+		this.processTimer(newTurnState);
 		processTurnContext({player:this, turnState: newTurnState});
 	};
 

@@ -144,12 +144,12 @@ export function mockGameProcess(player) {
 		gameServer.isMock = true;
 		gameServer.ignoreChecks = true;
 
-		testDefenseCard({player, cards: [
-			getCard(EEventID.infect),
-			getCard(EEventID.fear),
-			getCard(EEventID.noThanks),
-			getCard(EEventID.miss),
-		], againstCardId: EEventID.barricade});
+		//testDefenseCard({player, cards: [
+		//	getCard(EEventID.infect),
+		//	getCard(EEventID.fear),
+		//	getCard(EEventID.noThanks),
+		//	getCard(EEventID.miss),
+		//], againstCardId: EEventID.barricade});
 
 
 		//testDefenseActionCard({player, cards: [
@@ -171,7 +171,7 @@ export function mockGameProcess(player) {
 		//]})
 
 		//testPanic({player, card: getPanic(EPanicID.youCallThisParty)})
-		//interfaceTest({player, card: getCard(EEventID.suspicion)})
+		interfaceTest({player, card: getCard(EEventID.suspicion)})
 
 	}, 500)
 }

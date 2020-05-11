@@ -1,16 +1,17 @@
-import {action, computed, observable} from "mobx";
+import {computed, observable} from "mobx";
 import SocketController from 'client/controllers/socketController';
 import Player from 'client/models/Player';
 import INotificationAction from 'shared/interfaces/notification';
 import RootController from 'client/controllers/rootController';
 import {ECardType} from 'shared/enum/cards';
-import {EGameState} from 'shared/enum/common';
+import {EAppState, EGameState} from 'shared/enum/common';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {IFormatTradeContext} from 'shared/interfaces/common';
 import fscreen from 'fscreen';
-import { each, merge, difference, keys, find } from "lodash";
+import {each, merge} from "lodash";
 import {ICardEvent} from 'shared/interfaces/cards';
+import {EAsyncState} from 'shared/enum/async';
 
 export default class GameController {
 	root: RootController;
@@ -58,7 +59,7 @@ export default class GameController {
 
 	toggleReady = () => {
 		this.socket.sendToServer(EClientEventType.toggleReadyGame, {})
-	}
+	};
 
 	cardAction = (actionType: EPlayerActionType, cardUniqueId: string) => {
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType, cardUniqueId})
@@ -100,6 +101,7 @@ export default class GameController {
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.actionDecision, action});
 		this.hidENotificationAction();
 	};
+
 	toggleRoomLayout = () => {
 		this.isLayoutSequential = !this.isLayoutSequential;
 	}
@@ -141,5 +143,8 @@ export default class GameController {
 		this.gameLog = gameLog;
 	};
 
-
+	backToLauncher = () => {
+		this.root.launcherController.state = EAsyncState.idle;
+		this.root.state = EAppState.launcher;
+	}
 }
