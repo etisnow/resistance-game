@@ -24,8 +24,11 @@ export default class TimerController {
 	socket: SocketController;
 
 	@observable isActive: boolean = false;
-	@observable seconds: number = 0;
+	@observable initSeconds: number = 0;
+	@observable currentSeconds: number = 0;
 	@observable text: string = '';
+
+	timer: any = null;
 	constructor(root: RootController, parent) {
 		this.root = root;
 		this.parent = parent;
@@ -36,8 +39,13 @@ export default class TimerController {
 	};
 
 	initTimer = ({text, seconds}) => {
+		if (this.timer) clearInterval(this.timer);
 		this.text = text;
-		this.seconds = seconds;
-		console.log('INIT TIMER')
+		this.initSeconds = seconds;
+		this.currentSeconds = 0;
+		this.isActive = true;
+		this.timer = setInterval(() => {
+			this.currentSeconds = this.currentSeconds + 1;
+		}, 1000)
 	}
 }

@@ -11,6 +11,7 @@ import {Helmet} from "react-helmet";
 import ActionInteracter from 'client/components/table/ActionInteracter/ActionInteracter';
 import { Stage  } from "react-pixi-fiber";
 import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
+import ActionTimer from 'client/components/table/ActionTimer/ActionTimer';
 
 
 interface ITableProps {
@@ -26,6 +27,7 @@ const Table = observer(({controller} : ITableProps) => {
 			<div className={"gameTable"}>
 				<GameLog controller={controller}/>
 				<ActionInteracter controller={controller}/>
+				<ActionTimer controller={controller}/>
 				<Stage
 					className={"pixi-canvas"}
 				    options={{

@@ -124,6 +124,11 @@ export default class GameController {
 
 	updatePlayers = (newPlayers) => {
 		merge(this.players, newPlayers);
+		each(this.players, ({id}) => {
+			if (!newPlayers[id]) {
+				delete this.players[id];
+			}
+		})
 	};
 
 	updateHandActions = (handActions) => {

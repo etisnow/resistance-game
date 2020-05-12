@@ -25,7 +25,6 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {checkAllDeckCards} from '_integration/helpers';
 import clc from 'cli-color';
 import {EGameState} from 'shared/enum/common';
-import {Simulate} from 'react-dom/test-utils';
 import {formatCards} from 'server/helpers/cardHelpers';
 
 
@@ -66,14 +65,6 @@ export class Game {
   killPlayer = (player) => {
     player.currentAction = null;
 	if (player.isThing) {
-		this.notifyAllPlayers(formatPlayerNotification({
-		  player: player,
-		  notification: {
-			type: ENotificationAction.info,
-			text: `Игра закончена! ${player.nickname} не справился со своим коварным заданием...`,
-		  },
-		}));
-		this.addLog(`Игра закончена! ${player.nickname} не справился со своим коварным заданием...`)
 		this.end('Нечто проиграло');
 		return;
 	}
@@ -116,13 +107,14 @@ export class Game {
 
   kickPlayer = ({ player }: {player: Player}) => {
     delete this.players[player.id];
+    this.playersList = this.playersList.filter(p => p !== player.id)
     this.updateGame();
   }
 
   disconnectPlayer({ player }: {player: Player}) {
     this.addLog(`Игрок ${player.nickname} отключился от игры. Ждем его возвращения`)
     player.isReady = false;
-    const activePlayer = find(this.players, {isConnected: true});
+    const activePlayer = find(this.players, {isConnected: true, state: EPlayerState.dummy});
     if (activePlayer) {
       return this.updateGame();
     }
@@ -144,11 +136,16 @@ export class Game {
   }
 
   end = (lastMessage) => {
-    //this.playersList = [];
     const thingPlayer = find(this.players, {isThing:true});
-    if (thingPlayer) {
-      this.addLog('Нечто был игрок ' + thingPlayer.nickname)
-    }
+
+    const conditionText = lastMessage === 'Нечто проиграло' ? 'не справился' : 'справился';
+	this.notifyAllPlayers(formatPlayerNotification({
+	  player: thingPlayer,
+	  notification: {
+		type: ENotificationAction.info,
+		text: `Игра закончена! ${thingPlayer.nickname} ${conditionText} со своим коварным заданием...`,
+	  },
+	}));
 
 
     this.addLog(lastMessage ? lastMessage : 'Игра закончена.', true)

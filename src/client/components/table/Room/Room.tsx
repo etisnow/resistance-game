@@ -1,8 +1,8 @@
-import React, {useEffect, useLayoutEffect} from 'react';
+import React from 'react';
 import {clamp, clone, map} from 'lodash';
 import './styles.scss';
 import {observer} from "mobx-react-lite";
-import {animated, config, interpolate, useTransition} from 'react-spring/universal';
+import {config, useTransition} from 'react-spring/universal';
 import {circRadius, degToRag, playerRoomDiag} from 'client/helpers/roomHelpers';
 import GameController from 'client/controllers/gameController';
 import PlayerBadge from 'client/components/table/PlayerBadge/PlayerBadge';
@@ -10,9 +10,8 @@ import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {AnimatedPixi} from 'client/components/table/pixiInjected';
-import { Container, Text } from 'react-pixi-fiber';
+import {Container} from 'react-pixi-fiber';
 import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
-import Arrow from 'client/components/pixiPrimitives/Arrow';
 
 interface IRoomProps {
 	controller: GameController
@@ -123,7 +122,7 @@ const Room = observer(({controller} : IRoomProps) => {
 	if (!currentPlayer || !currentPlayerId || !playersList) return null;
 	const tradeContext = controller.tradeContext || [];
 	let newPlayerList = clone(playersList);
-	if (controller.isLayoutSequential) {
+	if (controller.isLayoutSequential && currentPlayer.turnState !== ETurnState.dead) {
 		const indexOfCurrentPlayer = playersList.indexOf(currentPlayerId);
 		let beforeCurrentPlayer = newPlayerList.slice(0, indexOfCurrentPlayer);
 		newPlayerList.splice(0, indexOfCurrentPlayer);
@@ -153,7 +152,7 @@ const Room = observer(({controller} : IRoomProps) => {
 
 	const badgeDiagonal = playerRoomDiag(playersCount);
 	const badgeRadius = badgeDiagonal/2;
-	const playerRoomHeight = (circRadius(playersCount) * 2) + badgeDiagonal;
+	//const playerRoomHeight = (circRadius(playersCount) * 2) + badgeDiagonal;
 	const arrows = useTransition(tradeContext, ({offensePlayerId}) => offensePlayerId, {
 		enter: ({offensePlayerId, defensePlayerId, type}) => {
 			const {ax,ay, arrowRotation, color} = lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});

@@ -19,7 +19,6 @@ export const getZIndex = (controller: GameController) => {
 const GameLog = observer(({controller}: IGameLogProps) => {
 	const gameLogRef = useRef(null);
 	useEffect(() => {
-		console.log('LOG MOUNTED')
 		if (!gameLogRef || !gameLogRef.current) return;
 	    animateScroll.scrollToBottom({
 			containerId: "gameLog",
