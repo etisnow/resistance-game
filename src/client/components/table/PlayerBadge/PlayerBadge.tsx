@@ -52,9 +52,7 @@ const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, on
 	const playerThingTexture = getPixiTexture(resources.playerThing);
 	const playerInfectedTexture = getPixiTexture(resources.playerInfected);
 	return (
-		<Container
-
-		>
+		<Container>
 			{canBeSelected && (
 				<Sprite
 					texture={playerGlowTexture}
