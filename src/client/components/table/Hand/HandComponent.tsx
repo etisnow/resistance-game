@@ -45,67 +45,64 @@ const generateCardMenu = (card, cardActions, onCardAction) => (style) => {
 	const cardTrade = getPixiTexture(resources['cardTrade']);
 	const cardSelect = getPixiTexture(resources['cardSelect']);
 
+	const cardWidthPercent = 0.44
+	const calcWidth = (w) => w * cardWidthPercent
+	const calcXOffset = (w) => (w / 2 - calcWidth(w)) / 2
+
 	const cardHeight = style.width.interpolate(w => w* cardAspectRatio)
-	const width = style.width.interpolate(w => w/2)
+	const width = style.width.interpolate(calcWidth)
 	const buttonHeight = width.interpolate(w => w / 3.5)
+	const commonSpriteProps = {
+		width,
+		interactive: true,
+		buttonMode:true,
+		height: buttonHeight,
+		angle: style.angle,
+	}
 	const menu = menuItems.map((menuIitem) => {
 
 		const overrideStyles = menuItems.length === 1 ? {
 			anchor: 0.5,
-			x:0,
+			x: interpolate([style.x, style.width], (x,w) => x)
 		} : {}
 
 
 		switch (menuIitem.menuType) {
 			case EPlayerActionType.cardAct:
 				return <AnimatedPixi.Sprite
-					interactive={true}
+					{...commonSpriteProps}
 					texture={cardAct}
-					width={width}
-					height={buttonHeight}
-					x={interpolate([style.x, style.width], (x,w) => x - w/2)}
+					x={interpolate([style.x, style.width], (x,w) => x - calcWidth(w) - calcXOffset(w))}
 					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.36)}
-					angle={style.angle}
 					key={EPlayerActionType.cardAct}
 					pointerdown={() => onCardAction(card.uniqueId, EPlayerActionType.cardAct)}
 					{...overrideStyles}
 				/>
 			case EPlayerActionType.cardDiscard:
 				return <AnimatedPixi.Sprite
-					interactive={true}
+					{...commonSpriteProps}
 					texture={cardDiscard}
-					width={width}
-					height={buttonHeight}
-					x={interpolate([style.x, style.width], (x,w) => x)}
+					x={interpolate([style.x, style.width], (x,w) => x + calcXOffset(w))}
 					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.36)}
-					angle={style.angle}
 					key={EPlayerActionType.cardDiscard}
 					pointerdown={() => onCardAction(card.uniqueId, EPlayerActionType.cardDiscard)}
 					{...overrideStyles}
 				/>
 			case EPlayerActionType.cardTrade:
 				return <AnimatedPixi.Sprite
-					interactive={true}
+					{...commonSpriteProps}
 					texture={cardTrade}
-					width={width}
-					height={buttonHeight}
-					x={interpolate([style.x, style.width], (x,w) => x )}
+					x={interpolate([style.x, style.width], (x,w) => x + calcXOffset(w))}
 					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.36)}
-					angle={style.angle}
 					key={EPlayerActionType.cardTrade}
 					pointerdown={() => onCardAction(card.uniqueId, EPlayerActionType.cardTrade)}
 					{...overrideStyles}
 				/>
 			case EPlayerActionType.cardSelect:
 				return <AnimatedPixi.Sprite
-					interactive={true}
+					{...commonSpriteProps}
 					texture={cardSelect}
-					width={width}
-					anchor={0.5}
-					height={buttonHeight}
-					x={0}
 					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.36)}
-					angle={style.angle}
 					key={EPlayerActionType.cardTrade}
 					pointerdown={() => onCardAction(card.uniqueId, EPlayerActionType.cardSelect)}
 					{...overrideStyles}
@@ -223,7 +220,7 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 						<Card
 							id={card.id}
 							canBeUsed={canBeUsed}
-							onCardClick={canBeUsed ? () => onSelectCard(card.uniqueId) : null}
+							onCardClick={() => onSelectCard(card.uniqueId)}
 							style={props}
 							menu={isSelected ? cardMenu : null}
 						/>

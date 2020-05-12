@@ -27,19 +27,14 @@ const Card = observer(({id, menu, onCardClick, canBeUsed, style}: ICardProps) =>
 	const card = fulldeck[id] || (id === EEventID.thing ? thingCard : null);
 	const cardTexture = getPixiTexture(resources[id]);
 	const glowTexture = getPixiTexture(resources['glowEffect']);
-	const faderTexture = getPixiTexture(resources['fader']);
 	if (!card) {
 		console.error('Карты', id, 'не добавлено!');
 		return null;
 	}
-
 	const cardGlowWidth = style.width.interpolate ? style.width.interpolate(w=> w * 1.15) : style.width * 1.15
 	const cardGlowHeight = style.width.interpolate ? style.width.interpolate(w=> w * cardAspectRatio * 1.1) : style.width * cardAspectRatio * 1.1
-
 	const cardWidth = style.width.interpolate ? style.width.interpolate(w=> w) : style.width
 	const cardHeight = style.width.interpolate ? style.width.interpolate(w=> w * cardAspectRatio) : style.width * cardAspectRatio
-	const cardHeightHalf = style.width.interpolate ? style.width.interpolate(w=> w * cardAspectRatio / 2) : (style.width * cardAspectRatio) / 2
-	const faderY = style.width.interpolate ? interpolate([style.y, style.width], (y,w) => y + (((w * cardAspectRatio) * 0.98) / 2)) : style.y + (((style.width * cardAspectRatio) * 0.98) / 2)
 
 	return (
 		<Container  >
@@ -53,8 +48,8 @@ const Card = observer(({id, menu, onCardClick, canBeUsed, style}: ICardProps) =>
 				/>
 			)}
 			<AnimatedPixi.Sprite
-				buttonMode={canBeUsed}
-				interactive={!!onCardClick}
+				buttonMode={true}
+				interactive={true}
 				texture={cardTexture}
 				pointerdown={onCardClick}
 				anchor={0.5}

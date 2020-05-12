@@ -4,6 +4,18 @@ import RootController from 'client/controllers/rootController';
 import {EAsyncState} from 'shared/enum/async';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
 import localforage from 'localforage';
+import UIfx from 'uifx'
+const bellAudio = require('../resources/sound/beep.mp3')
+//import bellAudio from 'client/resources/sound/beep.wav';
+
+
+const bell = new UIfx(
+  bellAudio,
+  {
+    volume: 0.2, // number between 0.0 ~ 1.0
+    throttleMs: 100
+  }
+)
 
 export default class TimerController {
 
@@ -20,7 +32,7 @@ export default class TimerController {
 	}
 
 	playSound = () => {
-		console.log('PLAY SOUND')
+		bell.play();
 	};
 
 	initTimer = ({text, seconds}) => {

@@ -36,7 +36,6 @@ import thing from "client/resources/cards/thing.png";
 import barricadeBadge from "client/resources/images/barricade_badge.png";
 import disconnected from "client/resources/images/disconnected.png";
 import glowEffect from "client/resources/images/gloweffect.png";
-import fader from "client/resources/images/fader.png";
 import playerbadgeGlow from "client/resources/images/playerbadgeGlow.png";
 import noise from "client/resources/images/noise.jpg";
 import deckCounterBg from "client/resources/images/deckCounterBg.png";
@@ -102,7 +101,6 @@ const resources = {
 	thing,
 
 	glowEffect,
-	fader,
 	playerbadgeGlow,
 	deckCounterBg,
 	noise,

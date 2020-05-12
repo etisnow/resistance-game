@@ -20,6 +20,6 @@ export const getWindowWidth = () => {
 
 
 //export const autoWidthCard = (cardsCount) => (clamp(getConstrainedWindowWidth() / cardsCount, 100, getConstrainedWindowWidth() * 0.7))
-export const autoWidthCard = (cardsCount) => (clamp((getConstrainedWindowWidth() / cardsCount ) * 1.5, 100, getConstrainedWindowWidth() * 0.7))
+export const autoWidthCard = (cardsCount) => clamp((clamp((getConstrainedWindowWidth() / cardsCount ) * 1.5, 100, getConstrainedWindowWidth() * 0.7)), 0, 300)
 export const playerCardWidthPix = () => playerHandHeight() / cardAspectRatio;
 export const playerHandHeight = () => clamp((getWindowWidth() / (100/cardWidthPercent)) * cardAspectRatio, 50, getWindowHeight() / 5);
