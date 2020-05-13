@@ -12,6 +12,7 @@ interface IGameLogProps {
 
 export const getZIndex = (controller: GameController) => {
 	if (controller.currentAction && controller.currentAction.type === ENotificationAction.actionDecision ) return 99;
+	if (controller.notifications.length > 0 && controller.notifications[0].type === ENotificationAction.gameEnd) return 99;
 	if (controller.cardInPreview || controller.notifications.length > 0) return 0;
 	return 99;
 }

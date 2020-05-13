@@ -8,7 +8,10 @@ interface INotificationActionCommon {
 interface INotificationActionInfo {
 	type: ENotificationAction.info
 }
-
+interface INotificationActionGameEnd {
+	type: ENotificationAction.gameEnd
+	menu : {text: string, action: string}[]
+}
 export interface INotificationActionDecision {
 	type: ENotificationAction.actionDecision,
 	menu : {text: string, action: string}[]
@@ -51,6 +54,7 @@ type INotificationAction = INotificationActionCommon &
 		| INotificationActionDefenseTradeCard
 		| INotificationActionOffenseTradeCard
 		| INotificationActionTurnCard
+		| INotificationActionGameEnd
 	);
 
 export default INotificationAction;

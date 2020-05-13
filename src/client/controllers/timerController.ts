@@ -37,7 +37,13 @@ export default class TimerController {
 	playSound = () => {
 		bell.play();
 	};
-
+	clearTimers = () => {
+		if (this.timer) clearInterval(this.timer);
+		this.text = 'Игра завершена';
+		this.initSeconds = 0;
+		this.currentSeconds = 0;
+		this.isActive = false;
+	};
 	initTimer = ({text, seconds}) => {
 		if (this.timer) clearInterval(this.timer);
 		this.text = text;

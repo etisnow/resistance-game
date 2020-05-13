@@ -139,10 +139,18 @@ export class Game {
     const thingPlayer = find(this.players, {isThing:true});
 
     const conditionText = lastMessage === 'Нечто проиграло' ? 'не справился' : 'справился';
+
 	this.notifyAllPlayers(formatPlayerNotification({
 	  player: thingPlayer,
 	  notification: {
-		type: ENotificationAction.info,
+		type: ENotificationAction.gameEnd,
+        menu: [{
+		  action: 'exit',
+          text: 'Выход',
+        }, {
+		  action: 'hide',
+          text: 'Скрыть',
+        }],
 		text: `Игра закончена! ${thingPlayer.nickname} ${conditionText} со своим коварным заданием...`,
 	  },
 	}));
@@ -154,7 +162,7 @@ export class Game {
       const pl = this.players[pId];
       pl.changeTurnState(ETurnState.idle);
     });
-    this.gameInProcess = false;
+	this.gameInProcess = false;
     gameServer.destroyGame(this.id)
   };
 

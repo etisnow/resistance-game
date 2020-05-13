@@ -50,6 +50,11 @@ function handleGlobalEvents(socket, root: RootController) {
 			case ENotificationAction.okayCard:
 			case ENotificationAction.selectCard:
 				root.gameController.notifications.push(notification);
+				break;
+			case ENotificationAction.gameEnd:
+				root.gameController.notifications.push(notification);
+				root.timerController.clearTimers();
+				root.gameController.currentAction = null;
 			default:
 				return null
 		}

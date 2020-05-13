@@ -33,7 +33,6 @@ export class Lobby extends React.Component<ILobbyProps, any> {
 		if (!currentPlayer) return <ErrorComponent/>;
 		const currentPlayerIsHost = currentPlayer.isHost;
 		const kickButton = (playerId) => currentPlayerIsHost ? <button className={"kick-button"} onClick={() => this.handleKickEvent(playerId)}>Кик</button> : null;
-		console.log('PLAYERS IN THA TABLE', players)
 		return map(players, (player : Player | null) => {
 			const isReady = player.isReady;
 			if (!player) return null;

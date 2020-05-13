@@ -1,11 +1,12 @@
 import {gameServer} from 'server/server/GameServer';
 import {createDoor, createPlayer} from '_integration/mockSocket';
-import {EEventID, EPanicID} from 'shared/enum/cards';
-import {getCard, getPanic} from 'shared/constant/cards';
+import {EEventID} from 'shared/enum/cards';
+import {getCard} from 'shared/constant/cards';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {Player} from 'server/models/Player';
 import {ICardEvent, ICardPanic} from 'shared/interfaces/cards';
-import { each } from 'lodash';
+import {each} from 'lodash';
+import {ETurnState} from 'shared/enum/player';
 
 const testOffenseCard = ({player, cards}) => {
 		const host = player
@@ -111,18 +112,25 @@ const testPanic = ({player, card}: {player:Player, card: ICardPanic}) => {
 
 const interfaceTest = ({player, card}: {player:Player, card: ICardEvent}) => {
 	const host = player
-	//host.isThing = true;
-	const game = gameServer.createGame({nickname: 'хост', player: host});
-	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'2'});
-	const qarantinedPlayer = createPlayer()
-	qarantinedPlayer.quarantine = 3;
-	qarantinedPlayer.isInfected = true;
-	gameServer.connectGame({player: qarantinedPlayer, gameId: game.id, nickname:'3'});
+	host.isThing = true;
+	const player2 = createPlayer();
+	player2.turnState = ETurnState.idle
+	const player3 = createPlayer();
+	player3.turnState = ETurnState.dead
+	const player4 = createPlayer();
+	player4.turnState = ETurnState.dead
+	const player5 = createPlayer();
+	player5.turnState = ETurnState.dead
+	const player6 = createPlayer();
+	player6.turnState = ETurnState.dead
 
-	//gameServer.connectGame({player: createDoor(), gameId: game.id, nickname:'ДВЕРЬ'});
-	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'4'});
-	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'5'});
-	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'6'});
+	const game = gameServer.createGame({nickname: 'хост', player: host});
+	gameServer.connectGame({player: player2, gameId: game.id, nickname:'2'});
+	gameServer.connectGame({player: player3, gameId: game.id, nickname:'3'});
+	gameServer.connectGame({player: createDoor(), gameId: game.id, nickname:'ДВЕРЬ'});
+	gameServer.connectGame({player: player4, gameId: game.id, nickname:'4'});
+	gameServer.connectGame({player: player5, gameId: game.id, nickname:'5'});
+	gameServer.connectGame({player: player6, gameId: game.id, nickname:'6'});
 
 
 	//gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'5'});
@@ -134,6 +142,9 @@ const interfaceTest = ({player, card}: {player:Player, card: ICardEvent}) => {
 
 	each(game.players, pl => pl.isReady = true);
 	gameServer.startGame({player});
+	setTimeout(() => {
+		game.end('Нечто проиграло')
+	}, 1000);
 	player.getCard(getCard(EEventID.barricade));
 	player.getCard(getCard(EEventID.suspicion));
 }

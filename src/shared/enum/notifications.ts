@@ -8,4 +8,5 @@ export enum ENotificationAction {
 	selectCard = 'selectCard',
 	playerSelect = 'playerSelect',
 	actionDecision = 'actionDecision',
+	gameEnd = 'gameEnd',
 }

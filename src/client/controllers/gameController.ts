@@ -97,6 +97,19 @@ export default class GameController {
 	}
 
 	actionDecision = (action: string ) => {
+		this.hidENotificationAction();
+		switch (action) {
+			case 'restart':
+				this.root.state = EAppState.game;
+				this.state = EGameState.lobby;
+				return;
+			case 'exit':
+				this.root.state = EAppState.launcher;
+				this.root.launcherController.state = EAsyncState.idle;
+				return;
+			case 'hide':
+				return;
+		}
 		this.playersToSelect = [];
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.actionDecision, action});
 		this.hidENotificationAction();
