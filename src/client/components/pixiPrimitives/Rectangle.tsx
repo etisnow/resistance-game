@@ -1,7 +1,7 @@
 import { CustomPIXIComponent } from "react-pixi-fiber";
 import * as PIXI from "pixi.js";
 
-const TYPE = "Circle";
+const TYPE = "Rectangle";
 export const behavior = {
   customDisplayObject: props => new PIXI.Graphics(),
   customApplyProps: function(instance, oldProps, newProps) {

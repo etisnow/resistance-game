@@ -115,7 +115,7 @@ const interfaceTest = ({player, card}: {player:Player, card: ICardEvent}) => {
 	const game = gameServer.createGame({nickname: 'хост', player: host});
 	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'2'});
 	const qarantinedPlayer = createPlayer()
-	//qarantinedPlayer.quarantine = 3;
+	qarantinedPlayer.quarantine = 3;
 	qarantinedPlayer.isInfected = true;
 	gameServer.connectGame({player: qarantinedPlayer, gameId: game.id, nickname:'3'});
 

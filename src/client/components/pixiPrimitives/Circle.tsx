@@ -6,6 +6,7 @@ export const behavior = {
   customDisplayObject: props => new PIXI.Graphics(),
   customApplyProps: function(instance, oldProps, newProps) {
     const { xCoord, yCoord, r, color } = newProps;
+    console.log('CIRCLE')
     if (typeof oldProps !== "undefined") {
       instance.clear();
     }

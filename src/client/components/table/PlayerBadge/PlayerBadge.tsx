@@ -6,6 +6,7 @@ import Circle from 'client/components/pixiPrimitives/Circle';
 import {resources} from 'client/resources/resources';
 import * as PIXI from 'pixi.js'
 import {getPixiTexture} from 'client/components/table/pixiInjected';
+import Rectangle from 'client/components/pixiPrimitives/Rectangle';
 
 interface IPlayerBadgeProps {
 	id: string;
@@ -73,6 +74,7 @@ const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, on
 				pointerdown={() => (onSelect && canBeSelected) ? onSelect(id) : null}
 			/>
 			{!isDoor && (
+
 				<React.Fragment>
 					<Text text={nick} anchor={0.5} style={{fontFamily : 'Arial', fontSize: 14, fill : 0xFFFFFF, align : 'center'}}/>
 					<Quarantine quarantine={quarantine} badgeRadius={style.height/2} />
