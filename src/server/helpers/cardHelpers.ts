@@ -3,7 +3,7 @@ import { reduce } from 'lodash';
 
 export const formatCards = (cards: ICardAny[]) => {
 	return reduce(cards, (acc, item) => {
-		acc[item.id] = item;
+		acc[item.uniqueId] = item;
 		return acc;
 	}, {});
 }
