@@ -39,14 +39,19 @@ class GameServer {
 
   createGame({ player, nickname }: { player: Player; nickname: string }) {
     const game = new Game({ player });
-    player.isHost = true;
+    game.hostPlayerId = player.id;
     player.isReady = true;
     player.register({ nickname, game });
     this.games[game.id] = game;
     this.updateLobby();
     return game;
   }
-
+  leaveGame({ player }: { player: Player }) {
+    const game = player.game;
+    if (game) {
+      game.playerLeave({player});
+    }
+  }
   updateLobby = () => {
     each(this.players, pl => {
       if (!pl.game) {
@@ -92,6 +97,7 @@ class GameServer {
     const parsedGameId = gameId.trim();
     const game = this.games[parsedGameId] || this.games['game_' + parsedGameId];
     if (!game) return;
+    //player.isHost = false;
     const connectedPlayer = find(game.players, {nickname});
     if (connectedPlayer) {
       this.tryReconnectPlayer(game, player, nickname)
@@ -116,12 +122,13 @@ class GameServer {
     const player = this.getPlayerById(playerId);
     if (!player) return;
     const game = player.game;
-    game.kickPlayer({player});
-    player.notify(formatCommonError(`Тебя исключили из игры`))
+    game.kickPlayer({player, notify: `Хост исключил тебя из игры`});
   }
+
   getGameById(id) {
     return this.games[id] || null;
   }
+
   destroyGame(id) {
     if (this.games[id]) {
       delete this.games[id]

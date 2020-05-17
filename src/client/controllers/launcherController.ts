@@ -53,8 +53,13 @@ export default class LauncherController {
 
 	init = async () => {
 		this.nickname = await localforage.getItem('nickname') || ''
-		await asyncLoader();
+		if (this.root.isLoaded) {
+			this.state = EAsyncState.idle;
+			return;
+		}
 		this.state = EAsyncState.idle;
+		await asyncLoader();
+		this.root.isLoaded = true
 	}
 
 	changeGameId = (newGameId) => {

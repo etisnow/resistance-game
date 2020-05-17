@@ -1,7 +1,7 @@
 import {EServerEventType} from 'shared/enum/enumServerEvents';
 import {Player} from 'server/models/Player';
 import {Game} from 'server/models/Game';
-import {find, map, mapValues, reduce, remove, filter} from 'lodash';
+import {find, map, mapValues, reduce} from 'lodash';
 import {GameServer} from 'server/server/GameServer';
 import INotificationAction from 'shared/interfaces/notification';
 import {formatHand} from 'server/formatters/formatHand';
@@ -84,6 +84,7 @@ const getPlayerHandActions = (game: Game, viewer:Player) => {
 }
 const formatUpdatePlayerPayload = ({ game, viewer }: {game: Game, viewer: Player}) => {
 	return {
+		hostPlayerId: game.hostPlayerId,
 		state: game.state,
 		currentPlayer: formatPlayer(game, viewer)(viewer),
 		players: formatPlayers(game, viewer),
@@ -111,7 +112,7 @@ const formatPlayer = (game: Game, viewer: Player) => (player: Player) => {
 		id: player.id,
 		nickname: player.nickname,
 		state: player.state,
-		isHost: player.isHost,
+		isHost: game.hostPlayerId === player.id,
 		isYou: player === viewer,
 		color: player.color,
 		turnState: player.turnState,
@@ -143,7 +144,7 @@ const formatPlayers = (game: Game, viewer: Player) => {
 }*/
 
 const getGameHost = (game: Game) => {
-	const hostPlayer = find(game.players, player => { return player.isHost });
+	const hostPlayer = find(game.players, player => { return player.id === game.hostPlayerId });
 	return hostPlayer
 }
 

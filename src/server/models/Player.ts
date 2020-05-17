@@ -19,7 +19,6 @@ export class Player {
 	state: EPlayerState = EPlayerState.dummy;
 	turnState: ETurnState = ETurnState.idle;
 	nickname: string = '';
-	isHost: boolean = false;
 	color:string = '';
 	game: Game = null;
 	isYou: boolean;

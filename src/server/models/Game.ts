@@ -2,6 +2,7 @@ import {clone, each, filter, find, map, uniqueId} from "lodash";
 import {Player} from "server/models/Player";
 import {gameServer} from 'server/server/GameServer';
 import {
+  formatCommonError,
   formatPlayerNotification,
   formatStartGameEvent,
   formatUpdateGameEvent,
@@ -37,6 +38,7 @@ export class Game {
   discardedDeck: ICardAny[] = [];
   turnPlayerId: string | null = null;
   isClockwise : boolean = true;
+  hostPlayerId: string = '';
   gameLog: string[] = [];
   turnContext: ITurnContext | null = null;
   gameInProcess:boolean = true;
@@ -98,16 +100,15 @@ export class Game {
   connectPlayer({ player }: {player: Player}) {
     this.players[player.id] = player;
     this.playersList.push(player.id);
-    const players = this.players;
-	//player.notify(formatPlayerConnectionSuccessEvent({player: player, game: this, players}));
-	//player.socket.join(this.id);
     this.updateGame();
-    //this.notifyAllPlayers(formatPlayerConnectedEvent({viewer: player, game: this}))
   }
 
-  kickPlayer = ({ player }: {player: Player}) => {
+  kickPlayer = ({ player, notify =  `Тебя исключили из игры`}: {player: Player, notify:string | null}) => {
     delete this.players[player.id];
     this.playersList = this.playersList.filter(p => p !== player.id)
+    if (notify) {
+      player.notify(formatCommonError(notify));
+    }
     this.updateGame();
   }
 
@@ -430,4 +431,18 @@ export class Game {
   destroy() {
     gameServer.destroyGame(this.id);
   }
+
+  playerLeave({player}: {player:Player}) {
+    this.kickPlayer({player, notify: null})
+    if (player.id === this.hostPlayerId) {
+      each(this.players, (pl) => {
+        if (pl !== player) {
+          this.kickPlayer({player: pl, notify: `Хост вышел из игры`})
+        }
+      });
+      this.destroy();
+    }
+    this.updateGame();
+  }
+
 }

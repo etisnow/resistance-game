@@ -175,6 +175,24 @@ const Room = observer(({controller} : IRoomProps) => {
 		update: ({offensePlayerId, defensePlayerId, type}) => {
 			return lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
 		},
+		leave: ({offensePlayerId, defensePlayerId, type}) => {
+			const {bx, by, arrowRotation, color} = lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
+			return {
+				ax: bx,
+				ay: by,
+				bx: bx,
+				by: by,
+				mid1X: bx,
+				mid1Y: by,
+				mid2X: bx,
+				mid2Y: by,
+				arrowX: bx,
+				arrowY: by,
+				arrowRotation,
+				arrowHeight: 0,
+				color,
+			} as any
+		},
 		config: config.stiff
 	} as any);
 

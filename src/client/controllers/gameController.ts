@@ -34,6 +34,7 @@ export default class GameController {
 	@observable handActions: {[key: string]: any[] } = {};
 	@observable cardInPreview: string | null = null;
 	@observable cardInNotificationPreview: string | null = null;
+	@observable hostPlayerId: string = '';
 
 	constructor(root: RootController) {
 		this.root = root;
@@ -148,10 +149,11 @@ export default class GameController {
 		this.handActions = handActions
 	};
 
-	updateGame = ({tradeContext, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions}) => {
+	updateGame = ({tradeContext, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions, hostPlayerId}) => {
 		this.updatePlayers(players);
 		this.updateHand(hand);
 		this.updateHandActions(handActions);
+		this.hostPlayerId = hostPlayerId;
 		this.playersList = playersList;
 		this.deck = deck;
 		this.currentPlayerId = currentPlayer.id;
@@ -162,6 +164,7 @@ export default class GameController {
 	};
 
 	backToLauncher = () => {
+		this.socket.sendToServer(EClientEventType.leaveGame, {})
 		this.root.launcherController.state = EAsyncState.idle;
 		this.root.state = EAppState.launcher;
 	}

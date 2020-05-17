@@ -14,9 +14,10 @@ class App extends React.Component<any, any> {
 	controller: RootController;
 	constructor(props) {
 		super(props);
-		console.log('NEW APP TEST')
 		this.controller = new RootController();
 	}
+
+
 	renderContent = () => {
 		switch (this.controller.state) {
 			case EAppState.launcher:

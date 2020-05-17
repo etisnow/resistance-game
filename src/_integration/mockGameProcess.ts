@@ -116,13 +116,13 @@ const interfaceTest = ({player, card}: {player:Player, card: ICardEvent}) => {
 	const player2 = createPlayer();
 	player2.turnState = ETurnState.idle
 	const player3 = createPlayer();
-	player3.turnState = ETurnState.dead
+	player3.turnState = ETurnState.idle
 	const player4 = createPlayer();
-	player4.turnState = ETurnState.dead
+	player4.turnState = ETurnState.idle
 	const player5 = createPlayer();
-	player5.turnState = ETurnState.dead
+	player5.turnState = ETurnState.idle
 	const player6 = createPlayer();
-	player6.turnState = ETurnState.dead
+	player6.turnState = ETurnState.idle
 
 	const game = gameServer.createGame({nickname: 'хост', player: host});
 	gameServer.connectGame({player: player2, gameId: game.id, nickname:'2'});
@@ -142,11 +142,8 @@ const interfaceTest = ({player, card}: {player:Player, card: ICardEvent}) => {
 
 	each(game.players, pl => pl.isReady = true);
 	gameServer.startGame({player});
-	setTimeout(() => {
-		game.end('Нечто проиграло')
-	}, 1000);
-	player.getCard(getCard(EEventID.barricade));
-	player.getCard(getCard(EEventID.suspicion));
+	player.getCard(getCard(EEventID.tenacity));
+	player.getCard(getCard(EEventID.tenacity));
 }
 
 

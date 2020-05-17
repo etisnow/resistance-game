@@ -41,6 +41,6 @@ export const suspicionSelect = ({game, player, selectedPlayerId} : {game: Game, 
 		cards: formatCards([cardToView])
       },
     }));
-	game.addLog(`Игрок ${player.nickname} играет карту "Подозрение"`);
+	game.addLog(`Игрок ${player.nickname} играет карту "Подозрение" на игрока ${playerToView.nickname}`);
 	player.changeTurnState(ETurnState.inOffenseTrade)
 };

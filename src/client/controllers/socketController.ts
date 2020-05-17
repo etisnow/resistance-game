@@ -42,7 +42,10 @@ function handleGlobalEvents(socket, root: RootController) {
 	socket.on(EServerEventType.timerNotification, (timerPayload) => {
 		root.timerController.initTimer(timerPayload)
 	});
-
+	socket.on('connect', () => {
+		console.log('connected');
+		root.start();
+	});
 	socket.on(EServerEventType.notification, (notification: INotificationAction) => {
 		switch (notification.type) {
 			case ENotificationAction.info:

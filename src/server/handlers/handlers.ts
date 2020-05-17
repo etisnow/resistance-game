@@ -7,6 +7,9 @@ export const registerHandlers = (player: Player) => {
   player.socket.on(EClientEventType.createGame, ({ nickname }) => {
     gameServer.createGame({nickname, player})
   });
+  player.socket.on(EClientEventType.leaveGame, function () {
+    gameServer.leaveGame({player});
+  });
   player.socket.on(EClientEventType.connectGame, ({ nickname, gameId }) => {
     gameServer.connectGame({nickname, player, gameId})
   });
