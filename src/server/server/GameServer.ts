@@ -1,15 +1,17 @@
-import { Game } from "server/models/Game";
-import { Player } from "server/models/Player";
+import {Game} from "server/models/Game";
+import {Player} from "server/models/Player";
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {formatCommonError, formatLobbyState} from 'server/formatters/formatOutgoingEvents';
 import {
   isPlayerCanActCard,
-  isPlayerCanDiscardCard, isPlayerCanSelectCard, isPlayerCanSelectDesicion,
+  isPlayerCanDiscardCard,
+  isPlayerCanSelectCard,
+  isPlayerCanSelectDesicion,
   isPlayerCanSelectPlayer,
   isPlayerCanTradeCard,
 } from 'server/helpers/validators';
 import {debugLog} from 'server/helpers/util';
-import {some, find, each, isFunction} from 'lodash';
+import {each, find, isFunction, some} from 'lodash';
 import {EGameState} from 'shared/enum/common';
 
 
@@ -74,10 +76,9 @@ class GameServer {
 
   tryReconnectPlayer = (game, player, nickname) : boolean => {
     const connectedPlayer = find(game.players, {nickname});
-    console.log('CONNECTED PLAYER STATE DISCONNECTED',  connectedPlayer && connectedPlayer.socket.disconnected)
     if (game.state === EGameState.sarted) {
       if (!connectedPlayer || !connectedPlayer.socket.disconnected) {
-        player.notify(formatCommonError(`Игрок с ником ${nickname} не был найден в этой игре или еще находится онлайн.`))
+        player.notify(formatCommonError(`Игрок с ником ${nickname} еще онлайн.`))
         return false;
       }
       this.reconnectPlayer(connectedPlayer, player);
@@ -97,10 +98,12 @@ class GameServer {
     const parsedGameId = gameId.trim();
     const game = this.games[parsedGameId] || this.games['game_' + parsedGameId];
     if (!game) return;
-    //player.isHost = false;
     const connectedPlayer = find(game.players, {nickname});
     if (connectedPlayer) {
       this.tryReconnectPlayer(game, player, nickname)
+      return;
+    } else if (game.state === EGameState.sarted) {
+      player.notify(formatCommonError(`Игрок с ником ${nickname} не был найден в этой игре, а она уже началась.`))
       return;
     }
     player.register({ nickname, game });
