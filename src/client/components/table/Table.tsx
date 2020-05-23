@@ -9,35 +9,46 @@ import Hand from 'client/components/table/Hand/Hand';
 import Notifier from 'client/components/table/notifier/notifier';
 import {Helmet} from "react-helmet";
 import ActionInteracter from 'client/components/table/ActionInteracter/ActionInteracter';
+import { Stage  } from "react-pixi-fiber";
+import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
+import ActionTimer from 'client/components/table/ActionTimer/ActionTimer';
+
 
 interface ITableProps {
 	controller: GameController
 }
 
+
 const Table = observer(({controller} : ITableProps) => {
-		const player = controller.currentPlayer;
-		const canvasWrapperEl = useRef(null);
-		useEffect(() => {
-			controller.root.pixiController.init(canvasWrapperEl.current)
-		});
-		if (!player) return null;
-		const {hand} = player;
-		if (!hand) return null;
+		const {currentPlayer:player, hand} = controller;
+		if (!player || !hand) return null;
+
 		return (
 			<div className={"gameTable"}>
 				<GameLog controller={controller}/>
-				<div ref={canvasWrapperEl} className={'canvasWrapper'}></div>
-{/*				<Deck controller={controller}/>
-				<Room controller={controller}/>
-				<Hand controller={controller}/>
-				<Notifier controller={controller}/>
-				<ActionInteracter controller={controller}/>*/}
-{/*				<button className={'fullscreenChangeButton'} onClick={() => {controller.toggleFullScreen()}}>
-					{controller.isFullScreen ? 'Обычный' : 'Полноэкранный'}
-				</button>*/}
+				<ActionInteracter controller={controller}/>
+				<ActionTimer controller={controller}/>
+				<Stage
+					className={"pixi-canvas"}
+				    options={{
+				    	width:getWindowWidth(),
+					    height:getWindowHeight(),
+					    resolution:window.devicePixelRatio,
+					    transparent:true,
+					    antialias:true
+				    }}
+				>
+					<Deck controller={controller} />
+					<Room controller={controller} />
+					<Hand controller={controller} />
+					<Notifier controller={controller} />
+				</Stage>
+
+				{/*<div className={"debug-div"}><div></div></div>*/}
+{/*
 				<button className={'layoutChangeButton'} onClick={() => {controller.toggleRoomLayout()}}>
 					Вид: {controller.isLayoutSequential ? 'От игрока' : 'Сверху'}
-				</button>
+				</button>*/}
 	            <Helmet>
 	                <title>{player.nickname}</title>
 	            </Helmet>

@@ -5,6 +5,7 @@ import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
+import {formatCards} from 'server/helpers/cardHelpers';
 
 
 export const suspicionAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
@@ -37,9 +38,9 @@ export const suspicionSelect = ({game, player, selectedPlayerId} : {game: Game, 
       notification: {
 		type: ENotificationAction.okayCard,
 		text: `Ты подсмотрел у игрока ${playerToView.nickname} эту карту`,
-		cards: [cardToView]
+		cards: formatCards([cardToView])
       },
     }));
-	game.addLog(`Игрок ${player.nickname} играет карту "Подозрение"`);
+	game.addLog(`Игрок ${player.nickname} играет карту "Подозрение" на игрока ${playerToView.nickname}`);
 	player.changeTurnState(ETurnState.inOffenseTrade)
 };

@@ -1,5 +1,6 @@
 export enum EClientEventType {
   createGame = "createGame",
+  leaveGame = "leaveGame",
   toggleReadyGame = "toggleReadyGame",
   connectGame = "connectGame",
   kickPlayer = "kickPlayer",

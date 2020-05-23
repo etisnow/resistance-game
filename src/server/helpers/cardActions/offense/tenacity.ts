@@ -6,6 +6,7 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 import {each} from 'lodash';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
+import {formatCards} from 'server/helpers/cardHelpers';
 
 
 export const tenacityAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
@@ -24,7 +25,7 @@ export const tenacityAct = ({card, game, player} : {card:ICardEvent, game: Game,
       player: player,
       notification: {
         type: ENotificationAction.selectCard,
-        cards: [first, second, third],
+        cards: formatCards([first, second, third]),
         text: `Выбери одну их этих карт себе в колоду`,
       },
     }));

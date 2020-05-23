@@ -1,3 +1,7 @@
+h1 {
+	margin-top: 5px;
+}
+
 .player-lobby-item {
     padding: 5px 10px;
     background: black;
@@ -21,4 +25,11 @@
 		cursor: pointer;
 		background: #0000001f;
 	}
+}
+
+.lobby-back {
+	font-size: 20px;
+    line-height: 1;
+    color: white;
+	cursor: pointer;
 }

@@ -4,11 +4,14 @@ import Player from 'client/models/Player';
 import INotificationAction from 'shared/interfaces/notification';
 import RootController from 'client/controllers/rootController';
 import {ECardType} from 'shared/enum/cards';
-import {EGameState} from 'shared/enum/common';
+import {EAppState, EGameState} from 'shared/enum/common';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {IFormatTradeContext} from 'shared/interfaces/common';
 import fscreen from 'fscreen';
+import {each, merge} from "lodash";
+import {ICardEvent} from 'shared/interfaces/cards';
+import {EAsyncState} from 'shared/enum/async';
 
 export default class GameController {
 	root: RootController;
@@ -23,10 +26,15 @@ export default class GameController {
 	@observable deck: {count: number, topCardType: ECardType} = {count: 0, topCardType: ECardType.event};
 	@observable notifications: INotificationAction[] = [];
 	@observable playersToSelect: string[] = [];
-	@observable isLayoutSequential: boolean = false;
+	@observable isLayoutSequential: boolean = true;
 	@observable isFullScreen: boolean = false;
 	@observable tradeContext: IFormatTradeContext[] | null = null;
 	@observable currentAction: INotificationAction | null = null;
+	@observable hand: {[key:string]: ICardEvent} = {};
+	@observable handActions: {[key: string]: any[] } = {};
+	@observable cardInPreview: string | null = null;
+	@observable cardInNotificationPreview: string | null = null;
+	@observable hostPlayerId: string = '';
 
 	constructor(root: RootController) {
 		this.root = root;
@@ -41,9 +49,6 @@ export default class GameController {
 		return this.players[this.currentPlayerId] || null;
 	}
 
-	initialize({ players }: {players: {[key: string]: Player}}) {
-		this.players = players;
-	};
 
 	kickPlayer = (playerId) => {
 		this.socket.sendToServer(EClientEventType.kickPlayer, { playerId })
@@ -55,7 +60,7 @@ export default class GameController {
 
 	toggleReady = () => {
 		this.socket.sendToServer(EClientEventType.toggleReadyGame, {})
-	}
+	};
 
 	cardAction = (actionType: EPlayerActionType, cardUniqueId: string) => {
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType, cardUniqueId})
@@ -65,6 +70,14 @@ export default class GameController {
 		this.playersToSelect = notification.playersToSelect;
 		this.notifications.splice(0, 1);
 	};
+
+	selectNotificationCardPreview = (index) => {
+		if (this.cardInNotificationPreview === index) {
+			this.cardInNotificationPreview = null;
+		} else {
+			this.cardInNotificationPreview = index;
+		}
+	}
 
 	hidENotificationAction = () => {
 		this.notifications.splice(0, 1);
@@ -80,14 +93,33 @@ export default class GameController {
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.playerSelect, selectedPlayerId: playerId});
 	};
 
+	cardPick = () => {
+		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.cardPick});
+	}
+
 	actionDecision = (action: string ) => {
+		this.hidENotificationAction();
+		switch (action) {
+			case 'restart':
+				this.root.state = EAppState.game;
+				this.state = EGameState.lobby;
+				return;
+			case 'exit':
+				this.root.state = EAppState.launcher;
+				this.root.launcherController.state = EAsyncState.idle;
+				return;
+			case 'hide':
+				return;
+		}
 		this.playersToSelect = [];
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.actionDecision, action});
 		this.hidENotificationAction();
 	};
+
 	toggleRoomLayout = () => {
 		this.isLayoutSequential = !this.isLayoutSequential;
 	}
+
 	toggleFullScreen = () => {
 		if (!fscreen.fullscreenEnabled) return;
 		if (!this.isFullScreen) {
@@ -95,6 +127,45 @@ export default class GameController {
 		} else {
 			fscreen.exitFullscreen();
 		}
-		//this.is = !this.isLayoutSequential;
+	};
+
+	updateHand = (newHand) => {
+		each(this.hand, card => {
+			if (!newHand[card.uniqueId]) delete this.hand[card.uniqueId]
+		});
+		merge(this.hand, newHand)
+	};
+
+	updatePlayers = (newPlayers) => {
+		merge(this.players, newPlayers);
+		each(this.players, ({id}) => {
+			if (!newPlayers[id]) {
+				delete this.players[id];
+			}
+		})
+	};
+
+	updateHandActions = (handActions) => {
+		this.handActions = handActions
+	};
+
+	updateGame = ({tradeContext, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions, hostPlayerId}) => {
+		this.updatePlayers(players);
+		this.updateHand(hand);
+		this.updateHandActions(handActions);
+		this.hostPlayerId = hostPlayerId;
+		this.playersList = playersList;
+		this.deck = deck;
+		this.currentPlayerId = currentPlayer.id;
+		this.tradeContext = tradeContext;
+		this.currentAction = currentAction;
+		this.state = state;
+		this.gameLog = gameLog;
+	};
+
+	backToLauncher = () => {
+		this.socket.sendToServer(EClientEventType.leaveGame, {})
+		this.root.launcherController.state = EAsyncState.idle;
+		this.root.state = EAppState.launcher;
 	}
 }

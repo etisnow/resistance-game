@@ -1,11 +1,12 @@
 import {gameServer} from 'server/server/GameServer';
 import {createDoor, createPlayer} from '_integration/mockSocket';
-import {EEventID, EPanicID} from 'shared/enum/cards';
-import {getCard, getPanic} from 'shared/constant/cards';
+import {EEventID} from 'shared/enum/cards';
+import {getCard} from 'shared/constant/cards';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {Player} from 'server/models/Player';
-import {ICardPanic} from 'shared/interfaces/cards';
-import { each } from 'lodash';
+import {ICardEvent, ICardPanic} from 'shared/interfaces/cards';
+import {each} from 'lodash';
+import {ETurnState} from 'shared/enum/player';
 
 const testOffenseCard = ({player, cards}) => {
 		const host = player
@@ -49,7 +50,11 @@ const testDefenseCard = ({player, cards, againstCardId}) => {
 
 		//Подтасовываем карту
 		const pl = currentGame.players[player.id];
-		pl.hand.splice(0,cards.length, ...cards);
+		each(cards, (card) => {
+			pl.getCard(card)
+		})
+		//pl.getCard()
+		//pl.hand.splice(0,cards.length, ...cards);
 
 		const randomdiscardCard = host.hand[0];
 		gameServer.playerAction({player: host, actionType: EPlayerActionType.cardDiscard, cardUniqueId: randomdiscardCard.uniqueId});
@@ -105,22 +110,47 @@ const testPanic = ({player, card}: {player:Player, card: ICardPanic}) => {
 	game.changeTurn(player.id)
 }
 
-const interfaceTest = ({player, card}: {player:Player, card: ICardPanic}) => {
+const interfaceTest = ({player, card}: {player:Player, card: ICardEvent}) => {
 	const host = player
+	host.isThing = true;
+	const player2 = createPlayer();
+	player2.turnState = ETurnState.idle
+	const player3 = createPlayer();
+	player3.turnState = ETurnState.idle
+	const player4 = createPlayer();
+	player4.turnState = ETurnState.idle
+	const player5 = createPlayer();
+	player5.turnState = ETurnState.idle
+	const player6 = createPlayer();
+	player6.turnState = ETurnState.idle
+
 	const game = gameServer.createGame({nickname: 'хост', player: host});
-	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'1'});
-	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'2'});
-	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'4'});
-	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'5'});
+	gameServer.connectGame({player: player2, gameId: game.id, nickname:'2'});
+	gameServer.connectGame({player: player3, gameId: game.id, nickname:'3'});
+	gameServer.connectGame({player: createDoor(), gameId: game.id, nickname:'ДВЕРЬ'});
+	gameServer.connectGame({player: player4, gameId: game.id, nickname:'4'});
+	gameServer.connectGame({player: player5, gameId: game.id, nickname:'5'});
+	gameServer.connectGame({player: player6, gameId: game.id, nickname:'6'});
+
+
+	//gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'5'});
+	//gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'6'});
+	//gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'7'});
+	//gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'8'});
+	//gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'9'});
+	//gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'10'});
 
 	each(game.players, pl => pl.isReady = true);
 	gameServer.startGame({player});
+	player.getCard(getCard(EEventID.tenacity));
+	player.getCard(getCard(EEventID.tenacity));
 }
 
 
 export function mockGameProcess(player) {
 	setTimeout(() => {
 		gameServer.isMock = true;
+		gameServer.ignoreChecks = true;
 
 		//testDefenseCard({player, cards: [
 		//	getCard(EEventID.infect),
@@ -149,7 +179,7 @@ export function mockGameProcess(player) {
 		//]})
 
 		//testPanic({player, card: getPanic(EPanicID.youCallThisParty)})
-		interfaceTest({player, card: getPanic(EPanicID.youCallThisParty)})
+		interfaceTest({player, card: getCard(EEventID.suspicion)})
 
 	}, 500)
 }

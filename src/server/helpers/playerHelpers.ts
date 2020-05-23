@@ -11,8 +11,6 @@ const processDeathByOverinfection = (player:Player) => {
 	debugLog(`Состояние игры ${game.turnContext && game.turnContext.type}. Стейт некста ${nextPlayer.turnState}`)
 	if (game.turnContext && game.turnContext.type === ETurnContextType.trade) {
 		if (game.turnContext.defensePlayer === player) {
-			//game.turnContext.defensePlayer = nextPlayer;
-			//nextPlayer.changeTurnState(ETurnState.inDefenseTrade)
 			game.turnContext.offensePlayer.interruptTrade();
 		} else if (game.turnContext.offensePlayer === player) {
 			game.turnContext = null;

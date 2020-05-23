@@ -7,11 +7,56 @@
 	overflow: hidden;
 }
 
-
-.canvasWrapper {
-	position: fixed;
-    width: 100%;
+.pixi-canvas {
+    top: 0;
+    left: 0;
+	width: 100%;
     height: 100%;
-    top: 0px;
-    left: 0px;
+	z-index: 1;
+}
+
+#test {
+	canvas {
+		width:100%;
+		height:100%;
+		position:fixed;
+		top:0;
+		left:0;
+		image-rendering: auto;
+	}
+}
+
+.debug-div {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    flex-direction: column;
+    height: 100%;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 9999;
+    display: flex;
+    pointer-events: none;
+	&>div {
+		content: '';
+		display: flex;
+		width:10px;
+		height:10px;
+		background: red;
+	}
+	&:after {
+		content: '';
+		display: flex;
+		width:10px;
+		height:10px;
+		background: red;
+	}
+	&:before {
+		content: '';
+		display: flex;
+		width:10px;
+		height:10px;
+		background: red;
+	}
 }

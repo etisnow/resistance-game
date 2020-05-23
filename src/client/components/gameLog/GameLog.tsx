@@ -2,11 +2,20 @@ import React, {useEffect, useRef} from 'react';
 import {observer} from 'mobx-react';
 import './styles.scss';
 import {map} from 'lodash';
-import { animateScroll } from 'react-scroll';
+import {animateScroll} from 'react-scroll';
 import GameController from 'client/controllers/gameController';
+import {ENotificationAction} from 'shared/enum/notifications';
 
 interface IGameLogProps {
 	controller: GameController
+}
+
+export const getZIndex = (controller: GameController) => {
+	if (controller.currentAction && controller.currentAction.type === ENotificationAction.actionDecision ) return 99;
+	if (controller.notifications.length > 0 && controller.notifications[0].type === ENotificationAction.gameEnd) return 99;
+	const cardInPreview = controller.hand[controller.cardInPreview];
+	if (cardInPreview || controller.notifications.length > 0) return 0;
+	return 99;
 }
 
 const GameLog = observer(({controller}: IGameLogProps) => {
@@ -18,7 +27,7 @@ const GameLog = observer(({controller}: IGameLogProps) => {
 			duration: 200,
 	    });
 	});
-	return <div ref={gameLogRef} id="gameLog" className={'gameLogWrapper'}>
+	return <div ref={gameLogRef} id="gameLog" style={{zIndex: getZIndex(controller)}} className={'gameLogWrapper'}>
 		{map(controller.gameLog, (log, index) => {
 			return <div key={index}>{log}</div>
 		})}

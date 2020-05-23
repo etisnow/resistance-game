@@ -8,6 +8,7 @@ import {ETurnState} from 'shared/enum/player';
 
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
+import {formatCards} from 'server/helpers/cardHelpers';
 
 export const quarantineAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	game.turnContext = {
@@ -39,7 +40,7 @@ export const quarantineSelect = ({game, player, selectedPlayerId} : {game: Game,
       notification: {
 		type: ENotificationAction.okayCard,
 		text: `Игрок ${selectedPlayer.nickname} теперь на карантине`,
-		cards: [getCard(EEventID.quarantine)]
+		cards: formatCards([getCard(EEventID.quarantine)])
       },
     }));
 	game.addLog(`Игрок ${selectedPlayer.nickname} теперь на карантине`);

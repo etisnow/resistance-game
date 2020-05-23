@@ -15,13 +15,14 @@ import {goAwayAct} from 'server/helpers/cardActions/panic/goAway';
 import {oopsAct} from 'server/helpers/cardActions/panic/oops';
 import {friendshipAct} from 'server/helpers/cardActions/panic/friendship';
 import {forgetfullnessAct} from 'server/helpers/cardActions/panic/forgetfulness';
+import {formatCards} from 'server/helpers/cardHelpers';
 
 export const panicAction = ({game, player, panicCard}: {game:Game, player:Player, panicCard: ICardPanic}) => {
     game.notifyAllPlayers(formatPlayerNotification({
       player: player,
       notification: {
 		type: ENotificationAction.okayCard,
-        cards: [panicCard],
+        cards: formatCards([panicCard]),
 		text: `${player.nickname} достает карту паники`
       },
     }));

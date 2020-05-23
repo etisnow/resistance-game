@@ -10,6 +10,7 @@ import INotificationAction from 'shared/interfaces/notification';
 import {processTurnContext} from 'server/helpers/playerHelpers';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {ETurnContextType} from 'shared/enum/turnContextType';
+import {formatSoundNotification, formatTimerNotification} from 'server/formatters/formatOutgoingEvents';
 //import {formatPlayerConnectedEvent} from 'server/formatters/formatOutgoingEvents';
 
 export class Player {
@@ -18,7 +19,6 @@ export class Player {
 	state: EPlayerState = EPlayerState.dummy;
 	turnState: ETurnState = ETurnState.idle;
 	nickname: string = '';
-	isHost: boolean = false;
 	color:string = '';
 	game: Game = null;
 	isYou: boolean;
@@ -55,6 +55,7 @@ export class Player {
 			case ENotificationAction.turnCard:
 			case ENotificationAction.defenseTradeCard:
 			case ENotificationAction.offenseTradeCard:
+			case ENotificationAction.cardPick:
 				this.currentAction = notificationAction;
 				return
 		}
@@ -68,12 +69,39 @@ export class Player {
 				return this.processNotificationAction({ type: ENotificationAction.offenseTradeCard, text: 'Выбери карту для обмена' });
 			case ETurnState.inCardAction:
 				return this.processNotificationAction({ type: ENotificationAction.turnCard, text: 'Сбрось или сыграй карту' });
+			case ETurnState.inCardPick:
+				return this.processNotificationAction({ type: ENotificationAction.cardPick, text: 'Возьми карту из колоды' });
 			case ETurnState.idle:
 			case ETurnState.dead:
 				return this.currentAction = null;
 			default:
 				return;
 		}
+	}
+
+	processTimer(turnState: ETurnState) {
+		const {game} = this;
+		let timerNotification = null;
+		if (game.turnContext && game.turnContext.type === ETurnContextType.chainReaction) {
+			timerNotification = { text: `${this.nickname} все передают карту по кругу`, seconds: 30 };
+		} else {
+			switch (turnState) {
+				case ETurnState.inDefenseTrade:
+				case ETurnState.inOffenseTrade:
+					timerNotification = { text: `${this.nickname} выбирает карту`, seconds: 30 };
+					break;
+				case ETurnState.inCardAction:
+					timerNotification = { text: `${this.nickname} играет карту`, seconds: 10 };
+					break;
+				case ETurnState.inCardPick:
+					timerNotification = { text: `${this.nickname} берет карту`, seconds: 10 };
+					break;
+				default:
+					return;
+			}
+		}
+		this.notify(formatSoundNotification());
+		this.game.notifyAllPlayers(formatTimerNotification(timerNotification));
 	}
 
 	interruptTrade = () => {
@@ -93,6 +121,7 @@ export class Player {
 		this.turnState = newTurnState
 		debugLog(`Игрок ${this.nickname} теперь ${newTurnState}`)
 		this.processTurnState(newTurnState);
+		this.processTimer(newTurnState);
 		processTurnContext({player:this, turnState: newTurnState});
 	};
 

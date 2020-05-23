@@ -9,6 +9,7 @@ import {ETurnState} from 'shared/enum/player';
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
 import {each, find, map} from 'lodash';
+import {formatCards} from 'server/helpers/cardHelpers';
 
 export const flamethrowerAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	game.turnContext = {
@@ -78,7 +79,7 @@ export const flamethrowerFinish = ({game, player, action} : {game: Game, player:
 			  player: player,
 			  notification: {
 				type: ENotificationAction.okayCard,
-				cards: [getCard(EEventID.flamethrower)],
+				cards: formatCards([getCard(EEventID.flamethrower)]),
 				text: `Игрок ${defensePlayer.nickname} был заживо сожжен игроком ${offensePlayer.nickname} и выбывает из игры`,
 			  },
 			}));
@@ -92,7 +93,7 @@ export const flamethrowerFinish = ({game, player, action} : {game: Game, player:
 				player: player,
 				notification: {
 					type: ENotificationAction.okayCard,
-					cards: [getCard(EEventID.noFire)],
+					cards: formatCards([getCard(EEventID.noFire)]),
 					text: `Игрок ${defensePlayer.nickname} использовал "Никакого шашлыка" и спасся от огнемета!`,
 				},
 		    }));

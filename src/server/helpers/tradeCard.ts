@@ -7,6 +7,7 @@ import {Game} from 'server/models/Game';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {filter} from 'lodash';
 import {debugLog} from 'server/helpers/util';
+import {formatCards} from 'server/helpers/cardHelpers';
 
 export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Player, cardUniqueId: string}) => {
 
@@ -67,7 +68,7 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
     player: player,
     notification: {
       type: ENotificationAction.okayCard,
-      cards: [defensePlayerCard],
+      cards: formatCards([defensePlayerCard]),
       text: `Игрок ${player.nickname} дал эту карту`,
     },
   }));
@@ -82,7 +83,7 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
     player: player,
     notification: {
       type: ENotificationAction.okayCard,
-      cards: [offensePlayerCard],
+      cards: formatCards([offensePlayerCard]),
       text: `Игрок ${offensePlayer.nickname} дал эту карту`,
     },
   }));

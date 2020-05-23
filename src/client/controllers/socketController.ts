@@ -5,7 +5,7 @@ import {EAppState, EGameState} from 'shared/enum/common';
 import {EServerEventType} from 'shared/enum/enumServerEvents';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {EAsyncState} from 'shared/enum/async';
-
+import io from 'socket.io-client';
 
 function handleGlobalEvents(socket, root: RootController) {
 	socket.on(EServerEventType.gameConnectionSuccess, ({players, player, game, currentPlayer}) => {
@@ -15,16 +15,9 @@ function handleGlobalEvents(socket, root: RootController) {
 		root.gameController.players = players
 	});
 
-	const updateGame = ({tradeContext, players, playersList, deck, gameLog, currentAction, state, currentPlayer}) => {
+	const updateGame = (updates) => {
 		root.state = EAppState.game;
-		root.gameController.players = players;
-		root.gameController.playersList = playersList;
-		root.gameController.deck = deck;
-		root.gameController.currentPlayerId = currentPlayer.id;
-		root.gameController.tradeContext = tradeContext;
-		root.gameController.currentAction = currentAction;
-		root.gameController.state = state
-		root.gameController.gameLog = gameLog;
+		root.gameController.updateGame(updates)
 	};
 
 	socket.on(EServerEventType.commonError, ({error}) => {
@@ -33,7 +26,6 @@ function handleGlobalEvents(socket, root: RootController) {
 		root.launcherController.state = EAsyncState.idle;
 	});
 	socket.on(EServerEventType.updateGame, updateGame);
-	//socket.on(EServerEventType.playerConnected, updateGame);
 	socket.on(EServerEventType.gameStarted, () => {
 		root.state = EAppState.game;
 		root.gameController.state = EGameState.sarted;
@@ -43,6 +35,17 @@ function handleGlobalEvents(socket, root: RootController) {
 		root.launcherController.games = games;
 	});
 
+	socket.on(EServerEventType.soundNotification, () => {
+		root.timerController.playSound()
+	});
+
+	socket.on(EServerEventType.timerNotification, (timerPayload) => {
+		root.timerController.initTimer(timerPayload)
+	});
+	socket.on('connect', () => {
+		console.log('connected');
+		root.start();
+	});
 	socket.on(EServerEventType.notification, (notification: INotificationAction) => {
 		switch (notification.type) {
 			case ENotificationAction.info:
@@ -50,6 +53,11 @@ function handleGlobalEvents(socket, root: RootController) {
 			case ENotificationAction.okayCard:
 			case ENotificationAction.selectCard:
 				root.gameController.notifications.push(notification);
+				break;
+			case ENotificationAction.gameEnd:
+				root.gameController.notifications.push(notification);
+				root.timerController.clearTimers();
+				root.gameController.currentAction = null;
 			default:
 				return null
 		}
@@ -62,7 +70,8 @@ export default class SocketController {
 	parent: RootController;
 	socket: SocketIOClient.Socket;
 
-	constructor(root, parent, socket: SocketIOClient.Socket) {
+	constructor(root, parent) {
+		var socket = io.connect('http://botilo.hldns.ru:30');
 		this.root = root;
 		this.parent = parent;
 		this.socket = socket;

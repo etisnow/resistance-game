@@ -2,8 +2,7 @@ import {clone, each, filter, find, map, uniqueId} from "lodash";
 import {Player} from "server/models/Player";
 import {gameServer} from 'server/server/GameServer';
 import {
-  //formatPlayerConnectedEvent,
-  //formatPlayerConnectionSuccessEvent,
+  formatCommonError,
   formatPlayerNotification,
   formatStartGameEvent,
   formatUpdateGameEvent,
@@ -27,6 +26,7 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {checkAllDeckCards} from '_integration/helpers';
 import clc from 'cli-color';
 import {EGameState} from 'shared/enum/common';
+import {formatCards} from 'server/helpers/cardHelpers';
 
 
 export class Game {
@@ -38,6 +38,7 @@ export class Game {
   discardedDeck: ICardAny[] = [];
   turnPlayerId: string | null = null;
   isClockwise : boolean = true;
+  hostPlayerId: string = '';
   gameLog: string[] = [];
   turnContext: ITurnContext | null = null;
   gameInProcess:boolean = true;
@@ -64,16 +65,8 @@ export class Game {
   }
 
   killPlayer = (player) => {
-
+    player.currentAction = null;
 	if (player.isThing) {
-		this.notifyAllPlayers(formatPlayerNotification({
-		  player: player,
-		  notification: {
-			type: ENotificationAction.info,
-			text: `Игра закончена! ${player.nickname} не справился со своим коварным заданием...`,
-		  },
-		}));
-		this.addLog(`Игра закончена! ${player.nickname} не справился со своим коварным заданием...`)
 		this.end('Нечто проиграло');
 		return;
 	}
@@ -107,22 +100,22 @@ export class Game {
   connectPlayer({ player }: {player: Player}) {
     this.players[player.id] = player;
     this.playersList.push(player.id);
-    const players = this.players;
-	//player.notify(formatPlayerConnectionSuccessEvent({player: player, game: this, players}));
-	//player.socket.join(this.id);
     this.updateGame();
-    //this.notifyAllPlayers(formatPlayerConnectedEvent({viewer: player, game: this}))
   }
 
-  kickPlayer = ({ player }: {player: Player}) => {
+  kickPlayer = ({ player, notify =  `Тебя исключили из игры`}: {player: Player, notify:string | null}) => {
     delete this.players[player.id];
+    this.playersList = this.playersList.filter(p => p !== player.id)
+    if (notify) {
+      player.notify(formatCommonError(notify));
+    }
     this.updateGame();
   }
 
   disconnectPlayer({ player }: {player: Player}) {
     this.addLog(`Игрок ${player.nickname} отключился от игры. Ждем его возвращения`)
     player.isReady = false;
-    const activePlayer = find(this.players, {isConnected: true});
+    const activePlayer = find(this.players, {isConnected: true, state: EPlayerState.dummy});
     if (activePlayer) {
       return this.updateGame();
     }
@@ -144,13 +137,33 @@ export class Game {
   }
 
   end = (lastMessage) => {
-    //this.playersList = [];
+    const thingPlayer = find(this.players, {isThing:true});
+
+    const conditionText = lastMessage === 'Нечто проиграло' ? 'не справился' : 'справился';
+
+	this.notifyAllPlayers(formatPlayerNotification({
+	  player: thingPlayer,
+	  notification: {
+		type: ENotificationAction.gameEnd,
+        menu: [{
+		  action: 'exit',
+          text: 'Выход',
+        }, {
+		  action: 'hide',
+          text: 'Скрыть',
+        }],
+		text: `Игра закончена! ${thingPlayer.nickname} ${conditionText} со своим коварным заданием...`,
+	  },
+	}));
+
+
     this.addLog(lastMessage ? lastMessage : 'Игра закончена.', true)
+
     each(this.playersList, (pId) => {
       const pl = this.players[pId];
       pl.changeTurnState(ETurnState.idle);
     });
-    this.gameInProcess = false;
+	this.gameInProcess = false;
     gameServer.destroyGame(this.id)
   };
 
@@ -179,6 +192,7 @@ export class Game {
   resetGameState = () => {
     this.turnContext = null;
     each(this.players, p => {
+      p.currentAction = null;
       if (p.isAlive()) {
         p.changeTurnState(ETurnState.idle);
       }
@@ -191,54 +205,7 @@ export class Game {
     }
     this.discardedDeck.push(card)
   }
-  changeTurn(playerId: string) {
-    if (!this.gameInProcess) return;
-    const player = this.players[playerId];
-    if (!player) {
-      debugLog(this.players)
-    }
-    this.resetGameState()
-    this.turnPlayerId = playerId;
-    debugLog(`change turn player id ${playerId}`)
 
-    if (!player.isAlive()) {
-      //Дверь и мертвец не может ходить
-      const nextPlayer = player.getNextAlivePlayer();
-      return this.changeTurn(nextPlayer.id)
-    }
-    this.addLog(`Ходит игрок ${player.nickname}!`);
-
-    //Удаляем карту из колоды сверху и даем её игроку
-	let grabbedCard = this.getFirstCard();
-    //Если паника, то прекращаем граббинг и создаем панику
-    if (grabbedCard.type === ECardType.panic) {
-      return this.makePanic(player, grabbedCard);
-    }
-
-    // Добавляем поднятую карту игроку на руку
-    player.getCard(grabbedCard);
-    player.changeTurnState(ETurnState.inCardAction);
-    if (player.quarantine > 0) {
-      player.quarantine = player.quarantine - 1;
-      if (player.quarantine === 0 ) {
-        this.addLog(`Игрок ${player.nickname} вышел из карантина`);
-      }
-    }
-    this.addLog(`Игрок ${player.nickname} взял карту и ходит...`);
-    this.updateGame();
-  }
-
-  endTurn(playerId: string) {
-    if (!this.gameInProcess) return
-    this.turnContext = null;
-    const endTurnPlayer = this.players[playerId];
-    endTurnPlayer.changeTurnState(ETurnState.idle);
-    const nextPlayer = endTurnPlayer.getNextAlivePlayer();
-    debugLog(`Игрок ${endTurnPlayer.nickname} заканчивает ход`, map(endTurnPlayer.hand, card=> card.id))
-    debugLog(`След. игрок ${nextPlayer.nickname}`)
-    this.changeTurn(nextPlayer.id);
-    checkAllDeckCards(this, !gameServer.isMock);
-  }
 
 
   getPlayerByPosition = ({playerId, isNext}: {playerId: string, isNext: boolean}) : Player => {
@@ -288,7 +255,7 @@ export class Game {
         player: notificationPlayer,
         notification: {
           type: ENotificationAction.okayCard,
-          cards: [thingCard],
+          cards: formatCards([thingCard]),
           text: 'Нечто выйграло'
         },
       }))
@@ -312,9 +279,9 @@ export class Game {
 
   pickFirstEventCard(): ICardEvent {
     const firstCard = this.getFirstCard();
-    this.addLog('Игрок достает карту событий...')
+    debugLog('Игрок достает карту событий...')
     if (firstCard.type === ECardType.panic) {
-      this.addLog('Попалась паника. Игрок берет следующую карту...');
+      debugLog('Попалась паника. Игрок берет следующую карту...');
       this.discardedDeckPush(firstCard);
       return this.pickFirstEventCard();
     }
@@ -325,6 +292,66 @@ export class Game {
     const eventCard = this.pickFirstEventCard();
     debugLog(`Игрок ${player.nickname} взял карту ${eventCard.id}`)
     player.getCard(eventCard);
+  }
+
+
+  endTurn(playerId: string) {
+    if (!this.gameInProcess) return
+    this.turnContext = null;
+    const endTurnPlayer = this.players[playerId];
+    endTurnPlayer.changeTurnState(ETurnState.idle);
+    const nextPlayer = endTurnPlayer.getNextAlivePlayer();
+    debugLog(`Игрок ${endTurnPlayer.nickname} заканчивает ход`, map(endTurnPlayer.hand, card=> card.id))
+    debugLog(`След. игрок ${nextPlayer.nickname}`)
+    this.changeTurn(nextPlayer.id);
+    checkAllDeckCards(this, !gameServer.isMock);
+  }
+
+  changeTurn(playerId: string) {
+    if (!this.gameInProcess) return;
+    const player = this.players[playerId];
+    debugLog('CHANGE TURN ', player.nickname)
+    if (!player) {
+      debugLog(this.players)
+    }
+    player.currentAction = null;
+    this.resetGameState()
+    this.turnPlayerId = playerId;
+    debugLog(`change turn player id ${playerId}`)
+
+    if (!player.isAlive()) {
+      //Дверь и мертвец не может ходить
+      const nextPlayer = player.getNextAlivePlayer();
+      return this.changeTurn(nextPlayer.id)
+    }
+    this.addLog(`Ходит игрок ${player.nickname}!`);
+    player.changeTurnState(ETurnState.inCardPick);
+    checkAllDeckCards(this, !gameServer.isMock);
+    this.updateGame();
+  }
+
+
+  cardPick = ({player}: {player:Player}) => {
+    //this.resetGameState()
+    //Удаляем карту из колоды сверху и даем её игроку
+    debugLog('PLAYERS CURRENT ACTION', player.currentAction)
+    this.addLog(`Игрок ${player.nickname} взял карту и ходит...`);
+	let grabbedCard = this.getFirstCard();
+    //Если паника, то прекращаем граббинг и создаем панику
+    if (grabbedCard.type === ECardType.panic) {
+      return this.makePanic(player, grabbedCard);
+    }
+    player.currentAction = null;
+    // Добавляем поднятую карту игроку на руку
+    player.getCard(grabbedCard);
+    player.changeTurnState(ETurnState.inCardAction);
+    if (player.quarantine > 0) {
+      player.quarantine = player.quarantine - 1;
+      if (player.quarantine === 0 ) {
+        this.addLog(`Игрок ${player.nickname} вышел из карантина`);
+      }
+    }
+    checkAllDeckCards(this, !gameServer.isMock);
   }
 
   cardAction({
@@ -353,6 +380,16 @@ export class Game {
       debugLog(`Player ${player.nickname} выбирает ${action}`);
     }
     switch (actionType) {
+      case EPlayerActionType.cardPick:
+        if (!player.currentAction || player.currentAction.type !== ENotificationAction.cardPick) {
+          throw new Error('ПОПЫТКА ВЗЯТЬ КАРТУ ВНЕ КОНТЕКСТА cardPick у игрока ' + player.nickname)
+          return;
+        }
+        if (player.currentAction.type === ENotificationAction.cardPick) {
+          this.cardPick({player});
+          this.updateGame();
+        }
+        return;
       case EPlayerActionType.cardDiscard:
         discardCardAction({game: this, player, cardUniqueId});
         this.updateGame();
@@ -394,4 +431,18 @@ export class Game {
   destroy() {
     gameServer.destroyGame(this.id);
   }
+
+  playerLeave({player}: {player:Player}) {
+    this.kickPlayer({player, notify: null})
+    if (player.id === this.hostPlayerId) {
+      each(this.players, (pl) => {
+        if (pl !== player) {
+          this.kickPlayer({player: pl, notify: `Хост вышел из игры`})
+        }
+      });
+      this.destroy();
+    }
+    this.updateGame();
+  }
+
 }

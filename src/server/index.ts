@@ -23,7 +23,6 @@ class App {
     gameServer.initialize(this.io);
     this.io.on("connection", (socket: socketIO.Socket) => {
       const player = gameServer.initPlayer(socket);
-      //gameServer.isMock = true;
       registerHandlers(player);
       mockGameProcess(player);
     });
@@ -31,7 +30,7 @@ class App {
   }
 
   public Start() {
-    this.server.listen(this.port, '192.168.0.101');
+    this.server.listen(this.port, '0.0.0.0');
     console.log(`Server listening on port ${this.port}.`);
   }
 }

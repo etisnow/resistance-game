@@ -1,15 +1,17 @@
-import { Game } from "server/models/Game";
-import { Player } from "server/models/Player";
+import {Game} from "server/models/Game";
+import {Player} from "server/models/Player";
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {formatCommonError, formatLobbyState} from 'server/formatters/formatOutgoingEvents';
 import {
   isPlayerCanActCard,
-  isPlayerCanDiscardCard, isPlayerCanSelectCard, isPlayerCanSelectDesicion,
+  isPlayerCanDiscardCard,
+  isPlayerCanSelectCard,
+  isPlayerCanSelectDesicion,
   isPlayerCanSelectPlayer,
   isPlayerCanTradeCard,
 } from 'server/helpers/validators';
 import {debugLog} from 'server/helpers/util';
-import {some, find, each, isFunction} from 'lodash';
+import {each, find, isFunction, some} from 'lodash';
 import {EGameState} from 'shared/enum/common';
 
 
@@ -17,6 +19,7 @@ class GameServer {
   games: { [key: string]: Game } = {};
   players: { [key: string]: Player } = {};
   isMock: boolean = false;
+  ignoreChecks: boolean = false;
   io: any;
   initialize(io) {
     this.io = io;
@@ -38,14 +41,19 @@ class GameServer {
 
   createGame({ player, nickname }: { player: Player; nickname: string }) {
     const game = new Game({ player });
-    player.isHost = true;
+    game.hostPlayerId = player.id;
     player.isReady = true;
     player.register({ nickname, game });
     this.games[game.id] = game;
     this.updateLobby();
     return game;
   }
-
+  leaveGame({ player }: { player: Player }) {
+    const game = player.game;
+    if (game) {
+      game.playerLeave({player});
+    }
+  }
   updateLobby = () => {
     each(this.players, pl => {
       if (!pl.game) {
@@ -68,10 +76,9 @@ class GameServer {
 
   tryReconnectPlayer = (game, player, nickname) : boolean => {
     const connectedPlayer = find(game.players, {nickname});
-    console.log('CONNECTED PLAYER STATE DISCONNECTED',  connectedPlayer && connectedPlayer.socket.disconnected)
     if (game.state === EGameState.sarted) {
       if (!connectedPlayer || !connectedPlayer.socket.disconnected) {
-        player.notify(formatCommonError(`Игрок с ником ${nickname} не был найден в этой игре или еще находится онлайн.`))
+        player.notify(formatCommonError(`Игрок с ником ${nickname} еще онлайн.`))
         return false;
       }
       this.reconnectPlayer(connectedPlayer, player);
@@ -95,6 +102,9 @@ class GameServer {
     if (connectedPlayer) {
       this.tryReconnectPlayer(game, player, nickname)
       return;
+    } else if (game.state === EGameState.sarted) {
+      player.notify(formatCommonError(`Игрок с ником ${nickname} не был найден в этой игре, а она уже началась.`))
+      return;
     }
     player.register({ nickname, game });
   }
@@ -115,12 +125,13 @@ class GameServer {
     const player = this.getPlayerById(playerId);
     if (!player) return;
     const game = player.game;
-    game.kickPlayer({player});
-    player.notify(formatCommonError(`Тебя исключили из игры`))
+    game.kickPlayer({player, notify: `Хост исключил тебя из игры`});
   }
+
   getGameById(id) {
     return this.games[id] || null;
   }
+
   destroyGame(id) {
     if (this.games[id]) {
       delete this.games[id]

@@ -34,44 +34,103 @@ import thing from "client/resources/cards/thing.png";
 
 
 import barricadeBadge from "client/resources/images/barricade_badge.png";
+import disconnected from "client/resources/images/disconnected.png";
+import glowEffect from "client/resources/images/gloweffect.png";
+import playerbadgeGlow from "client/resources/images/playerbadgeGlow.png";
+import noise from "client/resources/images/noise.jpg";
+import deckCounterBg from "client/resources/images/deckCounterBg.png";
+
+import playerThing from "client/resources/images/thing.svg";
+import playerInfected from "client/resources/images/infected.svg";
+
+
+
+import playerBadge1 from "client/resources/images/playerBadges/1.png";
+import playerBadge2 from "client/resources/images/playerBadges/2.png";
+import playerBadge3 from "client/resources/images/playerBadges/3.png";
+import playerBadge4 from "client/resources/images/playerBadges/4.png";
+import playerBadge5 from "client/resources/images/playerBadges/5.png";
+import playerBadge6 from "client/resources/images/playerBadges/6.png";
+import playerBadge7 from "client/resources/images/playerBadges/7.png";
+import playerBadge8 from "client/resources/images/playerBadges/8.png";
+import playerBadge9 from "client/resources/images/playerBadges/9.png";
+import playerBadge10 from "client/resources/images/playerBadges/10.png";
+import playerBadge11 from "client/resources/images/playerBadges/11.png";
+
+import cardAct from "client/resources/images/buttons/act.png";
+import cardDiscard from "client/resources/images/buttons/discard.png";
+import cardTrade from "client/resources/images/buttons/trade.png";
+import cardSelect from "client/resources/images/buttons/select.png";
+
+import okay from "client/resources/images/buttons/okay.png";
 
 
 const resources = {
-tenacity,
-fear,
-suspicion,
-leaveMeAlone,
-positionswap,
-flamethrower,
-reelFishingRods,
-axe,
-lookaround,
-whiskey,
-barricade,
-seduction,
-infect,
-quarantine,
-noFire,
-analysis,
-noThanks,
-miss,
-threeFour,
-chainReaction,
-blindDate,
-oldRopes,
-oneTwo,
-onlyBetweenUs,
-youCallThisParty,
-goAway,
-oops,
-friendship,
-forgetfulness,
-recognitionTime,
-eventBack,
-panicBack,
-thing,
+	tenacity,
+	fear,
+	suspicion,
+	leaveMeAlone,
+	positionswap,
+	flamethrower,
+	reelFishingRods,
+	axe,
+	lookaround,
+	whiskey,
+	barricade,
+	seduction,
+	infect,
+	quarantine,
+	noFire,
+	analysis,
+	noThanks,
+	miss,
+	threeFour,
+	chainReaction,
+	blindDate,
+	oldRopes,
+	oneTwo,
+	onlyBetweenUs,
+	youCallThisParty,
+	goAway,
+	oops,
+	friendship,
+	forgetfulness,
+	recognitionTime,
+	eventBack,
+	panicBack,
+	thing,
 
-barricadeBadge
-}
+	glowEffect,
+	playerbadgeGlow,
+	deckCounterBg,
+	noise,
+
+	cardAct,
+	cardDiscard,
+	cardTrade,
+	cardSelect,
+
+	playerThing,
+	playerInfected,
+
+
+	okay,
+
+	playerBadges: {
+		0: playerBadge1,
+		1: playerBadge2,
+		2: playerBadge3,
+		3: playerBadge4,
+		4: playerBadge5,
+		5: playerBadge6,
+		6: playerBadge7,
+		7: playerBadge8,
+		8: playerBadge9,
+		9: playerBadge10,
+		10: playerBadge11,
+		'door': barricadeBadge,
+		'disconnected': disconnected,
+	}
+};
 
 export {resources};

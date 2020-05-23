@@ -8,18 +8,21 @@ interface INotificationActionCommon {
 interface INotificationActionInfo {
 	type: ENotificationAction.info
 }
-
+interface INotificationActionGameEnd {
+	type: ENotificationAction.gameEnd
+	menu : {text: string, action: string}[]
+}
 export interface INotificationActionDecision {
 	type: ENotificationAction.actionDecision,
 	menu : {text: string, action: string}[]
 }
 export interface INotificationActionOkayCard {
 	type: ENotificationAction.okayCard,
-	cards: ICardEvent[] | ICardPanic[];
+	cards: {[key:string]: ICardEvent | ICardPanic};
 }
 export interface INotificationActionSelectCard {
 	type: ENotificationAction.selectCard,
-	cards: ICardEvent[] | ICardPanic[];
+	cards: {[key:string]: ICardEvent | ICardPanic};
 }
 export interface INotificationActionPlayerSelect {
 	type: ENotificationAction.playerSelect,
@@ -37,15 +40,21 @@ export interface INotificationActionOffenseTradeCard {
 export interface INotificationActionTurnCard {
 	type: ENotificationAction.turnCard
 }
-
+export interface INotificationActionCardPick {
+	type: ENotificationAction.cardPick
+}
 type INotificationAction = INotificationActionCommon &
-	(INotificationActionDecision
-	| INotificationActionInfo
-	| INotificationActionOkayCard
-	| INotificationActionSelectCard
-	| INotificationActionPlayerSelect
-	| INotificationActionDefenseTradeCard
-	| INotificationActionOffenseTradeCard
-	| INotificationActionTurnCard);
+	(
+		INotificationActionCardPick
+		| INotificationActionDecision
+		| INotificationActionInfo
+		| INotificationActionOkayCard
+		| INotificationActionSelectCard
+		| INotificationActionPlayerSelect
+		| INotificationActionDefenseTradeCard
+		| INotificationActionOffenseTradeCard
+		| INotificationActionTurnCard
+		| INotificationActionGameEnd
+	);
 
 export default INotificationAction;

@@ -4,6 +4,7 @@ import {ECardType, EEventID, EEventType, EPanicID} from 'shared/enum/cards';
 import {ICardEvent, ICardPanic} from 'shared/interfaces/cards';
 
 export const cardAspectRatio = 1.46;
+export const cardWidthPercent = 25;
 
 const events: {[key: string]: ICardEvent} = {
   [EEventID.tenacity]: {
@@ -20,7 +21,7 @@ const events: {[key: string]: ICardEvent} = {
     eventType: EEventType.antiTrade,
     description:
       "Откажитесь от обмена картами и посмотрите карту, от которой отказались. Возьмите одну карту события.",
-    playersCount: [5,6,8,11],
+    playersCount: [4,6,8,11],
   },
   [EEventID.suspicion]: {
     type: ECardType.event,

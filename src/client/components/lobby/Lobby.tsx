@@ -51,14 +51,14 @@ export class Lobby extends React.Component<ILobbyProps, any> {
 		const isAllReady = this.props.controller.playersList.length > 3 && !some(this.props.controller.players, {isReady:false});
 		return (
 			<div className="launcher-wrapper">
+				<span className={'lobby-back'} onClick={this.props.controller.backToLauncher}>← назад</span>
 				<h1>Лобби игры</h1>
-				{currentPlayer.isHost ? (
+				{currentPlayer.isHost && (
 					<button className={'launcher-button'} disabled={!isAllReady} onClick={this.handleStartGame}>Начать игру</button>
-				): (
-					<button className={'launcher-button'} onClick={this.toggleReadyGame}>
-						{currentPlayer.isReady ? 'Не стартуйте пока' : 'Я готов к игре!'}
-					</button>
 				)}
+				<button className={'launcher-button'} onClick={this.toggleReadyGame}>
+					{currentPlayer.isReady ? 'Я пока не готов' : 'Я готов к игре!'}
+				</button>
 				{this.renderPlayersTable()}
 
 			</div>

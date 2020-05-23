@@ -6,4 +6,6 @@ export enum EServerEventType {
   lobbyUpdate = "lobbyUpdate",
   notification = "notification",
   commonError = "commonError",
+  soundNotification = "soundNotification",
+  timerNotification = "timerNotification",
 }
