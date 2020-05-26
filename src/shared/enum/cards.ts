@@ -4,6 +4,7 @@ export enum ECardType {
 	thing = 'thing',
 	back = 'back',
 }
+
 export enum EPanicID {
 	threeFour = 'threeFour',
 	chainReaction = 'chainReaction',
