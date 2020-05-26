@@ -1,4 +1,4 @@
-import {filter, each} from 'lodash';
+import {each} from 'lodash';
 import {ICardEventMenuItem} from 'shared/interfaces/cardMenu';
 import {ETurnState} from 'shared/enum/player';
 import {EEventID, EEventType} from 'shared/enum/cards';
@@ -7,6 +7,7 @@ import {Game} from 'server/models/Game';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {Player} from 'server/models/Player';
 import {ETurnContextType} from 'shared/enum/turnContextType';
+import {getNextChainReactionPlayer} from 'server/helpers/cardActions/panic/chainReaction';
 
 const infectsCount = (player: Player) => {
 	let infects = 0
@@ -30,11 +31,15 @@ const getTargetPlayer = (game:Game, player: Player): Player | null => {
 	const context = game.turnContext;
 	if (!context) return null;
 	switch (context.type) {
+		case ETurnContextType.chainReaction:
+			return getNextChainReactionPlayer({game, currentPlayer: player});
 		case ETurnContextType.trade:
 		case ETurnContextType.burn:
-		case ETurnContextType.positionswap:
+		case ETurnContextType.positionswap: {
 			if (context.defensePlayer === player) return context.offensePlayer;
 			if (context.offensePlayer === player) return context.defensePlayer;
+			break;
+		}
 	}
 	return null;
 };
