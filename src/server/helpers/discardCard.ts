@@ -11,7 +11,7 @@ import {findIndex} from 'lodash';
 
 export const discardCardAction = ({game, player, cardUniqueId}: {game: Game, player: Player, cardUniqueId: string}) => {
   //discardCard({game, player, cardUniqueId});
-  game.addLog(`Игрок ${player.nickname} сбросил карту карту и меняется картами`);
+  game.addLog(`Игрок ${player.nickname} сбросил карту и меняется картами`);
   player.discardCard(cardUniqueId);
   player.changeTurnState(ETurnState.inOffenseTrade);
 };
