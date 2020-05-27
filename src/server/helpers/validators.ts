@@ -25,7 +25,9 @@ export const isPlayerCanDiscardCard = (game: Game, player: Player, cardUniqueId:
 	//Проверяем есть ли у него на руках такая карта
 	const selectedCard = find(player.hand, {uniqueId:cardUniqueId});
 	if (!selectedCard) {
-		throw new Error(`У игрока ${player.nickname} нету карту ${cardUniqueId}`)
+		//throw new Error(`У игрока ${player.nickname} нету карту ${cardUniqueId}`)
+		console.error(`У игрока ${player.nickname} нету карту ${cardUniqueId}`)
+		return false;
 	}
 	if (player.currentAction.type !== ENotificationAction.turnCard) return false;
 
@@ -47,7 +49,9 @@ export const isPlayerCanActCard = (game: Game, player: Player, cardUniqueId: str
 	//Проверяем есть ли у него на руках такая карта
 	const selectedCard = find(player.hand, {uniqueId:cardUniqueId});
 	if (!selectedCard) {
-		throw new Error(`У игрока ${player.nickname} нету карту ${cardUniqueId}`)
+		//throw new Error(`У игрока ${player.nickname} нету карту ${cardUniqueId}`)
+		console.error(`У игрока ${player.nickname} нету карту ${cardUniqueId}`)
+		return false;
 	}
 	if (player.currentAction.type !== ENotificationAction.turnCard && player.currentAction.type !== ENotificationAction.defenseTradeCard) return false;
 	const cardActions = getCardActions(game, player, selectedCard);
@@ -68,7 +72,9 @@ export const isPlayerCanTradeCard = (game: Game, player: Player, cardUniqueId: s
 	//Проверяем есть ли у него на руках такая карта
 	const selectedCard = find(player.hand, {uniqueId:cardUniqueId});
 	if (!selectedCard) {
-		throw new Error(`У игрока ${player.nickname} нету карту ${cardUniqueId}`)
+		console.error(`У игрока ${player.nickname} нету карту ${cardUniqueId}`);
+		return false;
+		//throw new Error(`У игрока ${player.nickname} нету карту ${cardUniqueId}`)
 	}
 	const cardActions = getCardActions(game, player, selectedCard);
 	const actAction = find(cardActions, { menuType: EPlayerActionType.cardTrade});
@@ -93,7 +99,9 @@ export const isPlayerCanSelectPlayer = (game, player, selectedPlayerId) => {
 	//Проверяем есть ли в игре игрок с таким ID
 	const selectedPlayer = find(game.players, {id:selectedPlayerId});
 	if (!selectedPlayer) {
-		throw new Error(`Игрока с ID ${selectedPlayerId} не существует в игре`)
+		//throw new Error(`Игрока с ID ${selectedPlayerId} не существует в игре`)
+		console.error(`Игрока с ID ${selectedPlayerId} не существует в игре`);
+		return false;
 	}
 
 	const event = player.currentAction;
