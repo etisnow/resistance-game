@@ -152,9 +152,8 @@ const Room = observer(({controller} : IRoomProps) => {
 
 	const badgeDiagonal = playerRoomDiag(playersCount);
 	const badgeRadius = badgeDiagonal/2;
-	//const playerRoomHeight = (circRadius(playersCount) * 2) + badgeDiagonal;
 	const arrows = useTransition(tradeContext, ({offensePlayerId}) => offensePlayerId, {
-		enter: ({offensePlayerId, defensePlayerId, type}) => {
+		from: ({offensePlayerId, defensePlayerId, type}) => {
 			const {ax,ay, arrowRotation, color} = lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
 			return {
 				ax,
@@ -171,6 +170,9 @@ const Room = observer(({controller} : IRoomProps) => {
 				arrowHeight: 0,
 				color,
 			} as any
+		},
+		enter: ({offensePlayerId, defensePlayerId, type}) => {
+			return lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
 		},
 		update: ({offensePlayerId, defensePlayerId, type}) => {
 			return lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
