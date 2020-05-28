@@ -5,7 +5,6 @@ import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
 
 export const createBrutforceServer = (isTestTag = true): [GameServer, Game, ...Player[]] => {
-	//const gameServer = new GameServer();
 	gameServer.isMock = false;
 	gameServer.initialize(createMockSocketServer());
 	const neeronePlayer = createPlayer();

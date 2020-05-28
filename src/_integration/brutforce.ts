@@ -10,6 +10,7 @@ import {getCardActions} from 'server/formatters/formatCardActions';
 import {ICardEventMenuItem} from 'shared/interfaces/cardMenu';
 import {createBrutforceServer} from '_integration/createBrutforceServer';
 import {EPlayerState} from 'shared/enum/player';
+import {EEventID} from 'shared/enum/cards';
 
 
 type ArrayElement<A> = A extends readonly (infer T)[] ? T : never
@@ -34,6 +35,26 @@ let getFirstPlayableCardId = (game, player) => {
 	return preferredCard;
 }
 
+let getPrefferredPlayableCardId = (game, player) => {
+	const playableCards = map(player.hand, card => {
+		return {uniqueId: card.uniqueId, menu: getCardActions(game, player, card), type: card.id};
+	})
+	debugLog(player.nickname, playableCards)
+	const sortPlayableCards = sortBy(playableCards, ({uniqueId,menu}) => {
+		return menu.length
+	});
+	if (!sortPlayableCards[sortPlayableCards.length - 1]) {
+		throw new Error(`Игроку нечем ходить ${player.nickname}`);
+	}
+
+	if (player.isThing) {
+		const infectCard = find(playableCards, {id: EEventID.infect});
+		if (infectCard) return infectCard;
+	}
+
+	const preferredCard = find(player.hand, {uniqueId: sortPlayableCards[sortPlayableCards.length - 1].uniqueId})
+	return preferredCard;
+}
 
 /*
 *
@@ -68,7 +89,7 @@ const botSelectCardLogic = (gameServer: GameServer, player: Player, game: Game) 
 };
 
 const botTradeCardLogic = (gameServer: GameServer, player: Player, game: Game) => {
-	const preferredCard = getFirstPlayableCardId(game, player);
+	const preferredCard = getPrefferredPlayableCardId(game, player);
 	const cardActions: ICardEventMenuItem[] = getCardActions(game, player, preferredCard);
 	const currentAction = getRandomItemFromArray(cardActions);
 
@@ -145,6 +166,8 @@ const botAct = (gameServer: GameServer, player: Player, game: Game) => {
 	return false;
 };
 
+let thingWins = 0;
+
 const startBrutforce = () => {
 
 	let counter = 0;
@@ -180,7 +203,14 @@ const startBrutforce = () => {
 					clearDebugCache();
 					stop = true;
 					counter++;
-					console.log(`PLAYERS INFO over ${counter} iterations - ${game.gameLog[game.gameLog.length-1]}`)
+					const result = game.gameLog[game.gameLog.length-1];
+					console.log(`PLAYERS INFO over ${counter} iterations - ${result}`)
+					if (result === 'Нечто победило') {
+						thingWins++;
+						if (counter % 100 === 0) {
+							console.log(`Процент побед нечто ${thingWins/counter * 100} %`)
+						}
+					}
 					//printBruteforceReport(counter, game);
 				}
 			}
@@ -192,6 +222,7 @@ const startBrutforce = () => {
 
 }
 
+
 const printBruteforceReport = (counter, game:Game) => {
 	const lastLog = game.gameLog[game.gameLog.length-1];
 	printDebugCache();
@@ -201,13 +232,6 @@ const printBruteforceReport = (counter, game:Game) => {
 			PLAYER:  ${player.nickname} ${player.turnState.toUpperCase()} infected: ${player.isInfected} thing: ${player.isThing}  quarantine: ${player.quarantine} 
 			HAND`, player.hand && player.hand.map(c => c ? c.id : 'НЕ НАЙДЕНО'));
 	})
-	//console.log(lastLog, lastLog ==='Нечто победило', lastLog === 'Нечто проиграло')
-	//if (lastLog === 'Нечто победило' || lastLog === 'Нечто проиграло') {
-//
-	//} else {
-	//
-	//	throw new Error('Unexpected game end');
-	//}
 };
 
 startBrutforce();

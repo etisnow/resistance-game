@@ -1,19 +1,14 @@
 import {Player} from 'server/models/Player';
-import {EPlayerState} from 'shared/enum/player';
 
 class MockSocket {
-	spy: any
-	constructor() {
-		const mockCallback = jest.fn();
-		this.spy = mockCallback
-	}
 	on(eventType, payload) {
 		console.log('')
 	}
 	emit(eventType, payload) {
-		this.spy(eventType, payload)
+		//console.log('EMITED EVENT', eventType);
 	}
 	join(socketRoom) {
+		console.log('MOCKSOCKED JOINED', socketRoom)
 	}
 }
 
@@ -21,6 +16,8 @@ class MockSocketServer {
 	to(roomName) {
 		return {
 			emit: (eventType, eventPayload) => {
+				//console.log('BROADCASTED', eventType, eventPayload)
+				console.log('BROADCASTED', eventType)
 			}
 		}
 	}
@@ -29,14 +26,6 @@ class MockSocketServer {
 export const createPlayer = () => {
 	const socket = new MockSocket();
 	return new Player({ socket });
-}
-
-export const createDoor = () => {
-	const socket = new MockSocket();
-	const door = new Player({ socket });
-	door.state = EPlayerState.door;
-	door.nickname = 'ДВЕРЬ';
-	return door;
 }
 
 export const createMockSocketServer = () => {

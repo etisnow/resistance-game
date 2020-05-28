@@ -1,7 +1,7 @@
 import {gameServer} from 'server/server/GameServer';
 import {createDoor, createPlayer} from '_integration/mockSocket';
-import {EEventID} from 'shared/enum/cards';
-import {getCard} from 'shared/constant/cards';
+import {EEventID, EPanicID} from 'shared/enum/cards';
+import {getCard, getPanic} from 'shared/constant/cards';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {Player} from 'server/models/Player';
 import {ICardEvent, ICardPanic} from 'shared/interfaces/cards';
@@ -94,7 +94,10 @@ const testPanic = ({player, card}: {player:Player, card: ICardPanic}) => {
 	const game = gameServer.createGame({nickname: 'хост', player: host});
 	const quarantinedPlayer = createPlayer();
 	quarantinedPlayer.quarantine =3;
-	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'1'});
+	const player1 = createPlayer()
+	host.isInfected = true;
+	player1.isThing = true;
+	gameServer.connectGame({player: player1, gameId: game.id, nickname:'1'});
 	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'2'});
 	gameServer.connectGame({player: quarantinedPlayer, gameId: game.id, nickname:'3'});
 	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'4'});
@@ -103,10 +106,12 @@ const testPanic = ({player, card}: {player:Player, card: ICardPanic}) => {
 	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'7'});
 	gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'8'});
 	//gameServer.connectGame({player: createPlayer(), gameId: game.id, nickname:'9'});
-
+	each(game.players, pl => pl.isReady = true);
 	gameServer.startGame({player});
 
 	game.deck.unshift(card);
+	player.getCard(getCard(EEventID.infect));
+	player.getCard(getCard(EEventID.infect));
 	game.changeTurn(player.id)
 }
 
@@ -178,8 +183,8 @@ export function mockGameProcess(player) {
 		//	getCard(EEventID.barricade),
 		//]})
 
-		//testPanic({player, card: getPanic(EPanicID.youCallThisParty)})
-		interfaceTest({player, card: getCard(EEventID.suspicion)})
+		testPanic({player, card: getPanic(EPanicID.chainReaction)})
+		//interfaceTest({player, card: getCard(EEventID.suspicion)})
 
 	}, 500)
 }

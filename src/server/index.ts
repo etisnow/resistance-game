@@ -24,7 +24,7 @@ class App {
     this.io.on("connection", (socket: socketIO.Socket) => {
       const player = gameServer.initPlayer(socket);
       registerHandlers(player);
-      mockGameProcess(player);
+      //mockGameProcess(player);
     });
 
   }
