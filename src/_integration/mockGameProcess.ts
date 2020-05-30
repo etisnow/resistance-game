@@ -1,12 +1,11 @@
 import {gameServer} from 'server/server/GameServer';
-import {createDoor, createMockSocket, createPlayer} from '_integration/mockSocket';
+import {createMockSocket} from '_integration/mockSocket';
 import {EEventID, EPanicID} from 'shared/enum/cards';
 import {getCard, getPanic} from 'shared/constant/cards';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {Player} from 'server/models/Player';
 import {ICardEvent, ICardPanic} from 'shared/interfaces/cards';
 import {each} from 'lodash';
-import {ETurnState} from 'shared/enum/player';
 
 const testOffenseCard = ({player, cards}) => {
 		const [game, host] = gameServer.createGame({nickname: 'neerone', socket: createMockSocket()});
