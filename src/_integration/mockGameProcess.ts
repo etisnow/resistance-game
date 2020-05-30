@@ -23,22 +23,6 @@ const testOffenseCard = ({player, cards}) => {
 		game.updateGame();
 }
 
-const testAxeCard = ({player, cards}) => {
-		const [game, host] = gameServer.createGame({nickname: 'neerone', socket: createMockSocket()});
-		gameServer.connectGame({socket: createMockSocket(), gameId: game.id, nickname:'Петя'});
-		gameServer.connectGame({socket: createMockSocket(), gameId: game.id, nickname:'Гена'});
-		gameServer.connectGame({socket: createMockSocket(), gameId: game.id, nickname:'Вена'});
-		gameServer.connectGame({socket: createMockSocket(), gameId: game.id, nickname:'Инна'});
-		gameServer.connectGame({socket: createMockSocket(), gameId: game.id, nickname:'Гуля'});
-		gameServer.startGame({player: host});
-
-		//Подтасовываем карту
-		const pl = game.players[player.id];
-		pl.hand.splice(0,cards.length, ...cards);
-		host.quarantine = 3;
-		game.updateGame();
-}
-
 const testDefenseCard = ({player, cards, againstCardId}) => {
 		const [game, host] = gameServer.createGame({nickname: 'neerone', socket: createMockSocket()});
 		gameServer.connectGame({socket: createMockSocket(), gameId: game.id, nickname:'Петя'});
@@ -63,8 +47,6 @@ const testDefenseCard = ({player, cards, againstCardId}) => {
 		const randomTradeCard = host.hand[0];
 		gameServer.playerAction({player: host, actionType: EPlayerActionType.cardTrade, cardUniqueId: randomTradeCard.uniqueId});
 }
-
-
 
 
 const testDefenseActionCard = ({player, cards, againstCardId}) => {
