@@ -3,6 +3,7 @@ import http from "http";
 import socketIO from "socket.io";
 import { registerHandlers } from "server/handlers/handlers";
 import { gameServer } from "server/server/GameServer";
+import {mockGameProcess} from '_integration/mockGameProcess';
 
 const port: number = 30;
 
@@ -23,6 +24,7 @@ class App {
     this.io.on("connection", (socket: socketIO.Socket) => {
       gameServer.initSocket(socket);
       registerHandlers(gameServer, socket);
+      mockGameProcess(socket)
     });
 
   }
