@@ -82,6 +82,7 @@ const testPanic = ({socket, card}: {socket:socketIO.Socket, card: ICardPanic}) =
 	host.getCard(getCard(EEventID.infect));
 	game.changeTurn(host.id)
 }
+
 const interfaceTest = ({socket, card}: {socket:socketIO.Socket, card: ICardEvent}) => {
 	const [game, host] = gameServer.createGame({nickname: 'neerone', socket});
 	gameServer.connectGame({socket: createMockSocket(), gameId: game.id, nickname:'Петя'});
@@ -94,7 +95,6 @@ const interfaceTest = ({socket, card}: {socket:socketIO.Socket, card: ICardEvent
 
 	host.getCard(getCard(EEventID.flamethrower));
 }
-
 
 export function mockGameProcess(socket) {
 	setTimeout(() => {
