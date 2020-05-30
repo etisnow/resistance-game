@@ -1,6 +1,7 @@
 import {Game} from "server/models/Game";
 import {Player} from "server/models/Player";
 import {EPlayerActionType} from 'shared/enum/playerActions';
+import socketIO from "socket.io";
 import {formatCommonError, formatLobbyState} from 'server/formatters/formatOutgoingEvents';
 import {
   isPlayerCanActCard,
@@ -17,29 +18,35 @@ import {EGameState} from 'shared/enum/common';
 
 class GameServer {
   games: { [key: string]: Game } = {};
-  players: { [key: string]: Player } = {};
+  //players: { [key: string]: Player } = {};
+  sockets: Map<socketIO.Socket, Player | null>;
   isMock: boolean = false;
   ignoreChecks: boolean = false;
   io: any;
   initialize(io) {
     this.io = io;
+    this.sockets= new Map<socketIO.Socket, Player|null>();
   }
 
-  broadcast = ({ roomName, event }) => {
-    this.io.to(roomName).emit(event.type, event.payload);
-  };
 
-  getPlayerById(id) {
-    return this.players[id] || null;
-  }
-  initPlayer(socket) {
-    const player = new Player({ socket });
-    this.players[player.id] = player;
-    player.notify(formatLobbyState(gameServer));
-    return player;
+  initSocket(socket: socketIO.Socket) {
+    this.sockets.set(socket, null);
+    this.notifySocket(socket, formatLobbyState(gameServer));
+    return socket;
   }
 
-  createGame({ player, nickname }: { player: Player; nickname: string }) {
+  getPlayerBySocket(socket: socketIO.Socket) {
+    return this.sockets.get(socket) || null;
+  }
+
+  spawnPlayer(socket:socketIO.Socket) {
+    const player = new Player({socket})
+    this.sockets.set(socket, player);
+    return player
+  }
+
+  createGame({ socket, nickname }: { socket: socketIO.Socket; nickname: string }) {
+    const player = this.spawnPlayer(socket);
     const game = new Game({ player });
     game.hostPlayerId = player.id;
     player.isReady = true;
@@ -54,59 +61,62 @@ class GameServer {
       game.playerLeave({player});
     }
   }
+
   updateLobby = () => {
-    each(this.players, pl => {
-      if (!pl.game) {
-        pl.notify(formatLobbyState(gameServer));
+    this.sockets.forEach((player, socket) => {
+      if (!player) {
+        this.notifySocket(socket, formatLobbyState(gameServer));
       }
     })
-  }
-
-  reconnectPlayer = (connectedPlayer, player: Player) => {
-      //connectedPlayer.socket = player.socket;
-      each(Object.keys(connectedPlayer), key => {
-        if (key !== 'socket' && !isFunction(connectedPlayer[key])) {
-          player[key] = connectedPlayer[key];
-        }
-      });
-      player.isConnected = true;
-      player.game.players[player.id] = player;
-      player.game.updateGame();
   };
 
-  tryReconnectPlayer = (game, player, nickname) : boolean => {
-    const connectedPlayer = find(game.players, {nickname});
+
+
+  reconnectPlayer = (connectedPlayer: Player, socket: socketIO.Socket) => {
+    connectedPlayer.isConnected = true;
+    connectedPlayer.socket = socket;
+    this.sockets.set(socket, connectedPlayer);
+    connectedPlayer.game.updateGame();
+  };
+
+  notifySocket(socket, event) {
+    socket.emit(event.type, event.payload);
+  }
+
+  tryReconnectPlayer = (game, socket, nickname, connectedPlayer) : boolean => {
     if (game.state === EGameState.sarted) {
       if (!connectedPlayer || !connectedPlayer.socket.disconnected) {
-        player.notify(formatCommonError(`Игрок с ником ${nickname} еще онлайн.`))
+        this.notifySocket(socket, formatCommonError(`Игрок с ником ${nickname} еще онлайн.`))
         return false;
       }
-      this.reconnectPlayer(connectedPlayer, player);
+      this.reconnectPlayer(connectedPlayer, socket);
       return true;
     } else {
       if (connectedPlayer && !connectedPlayer.socket.disconnected) {
-        player.notify(formatCommonError(`Игрок с ником ${nickname} уже зарегистрирован в этой игре и находится онлайн. Если это вы -выйдите с другого устройства.`))
+        this.notifySocket(socket, formatCommonError(`Игрок с ником ${nickname} уже зарегистрирован в этой игре и находится онлайн. Если это вы -выйдите с другого устройства.`))
         return false;
       }
       if (!connectedPlayer) return false;
-      this.reconnectPlayer(connectedPlayer, player);
+      this.reconnectPlayer(connectedPlayer, socket);
       return true;
     }
   };
 
-  connectGame({nickname, player, gameId}: { player: Player; nickname: string, gameId: string }) {
+  connectGame({nickname, socket, gameId}: { socket: socketIO.Socket; nickname: string, gameId: string }) {
     const parsedGameId = gameId.trim();
     const game = this.games[parsedGameId] || this.games['game_' + parsedGameId];
     if (!game) return;
     const connectedPlayer = find(game.players, {nickname});
     if (connectedPlayer) {
-      this.tryReconnectPlayer(game, player, nickname)
+      this.tryReconnectPlayer(game, socket, nickname, connectedPlayer);
       return;
     } else if (game.state === EGameState.sarted) {
-      player.notify(formatCommonError(`Игрок с ником ${nickname} не был найден в этой игре, а она уже началась.`))
+      const error = formatCommonError(`Игрок с ником ${nickname} не был найден в этой игре, а она уже началась.`)
+      this.notifySocket(socket, error);
       return;
     }
-    player.register({ nickname, game });
+    const newPlayer = this.spawnPlayer(socket);
+    newPlayer.register({ nickname, game });
   }
 
   toggleReady({player}: { player: Player}) {
@@ -121,15 +131,19 @@ class GameServer {
     player.game.start();
   }
 
+  findPlayerById(playerId) {
+    let player = null;
+    this.sockets.forEach((pl) => {
+      if (!pl || pl.id !== playerId) return;
+      player = pl;
+    });
+    return player;
+  }
   kickPlayer({playerId}) {
-    const player = this.getPlayerById(playerId);
+    const player = this.findPlayerById(playerId);
     if (!player) return;
     const game = player.game;
     game.kickPlayer({player, notify: `Хост исключил тебя из игры`});
-  }
-
-  getGameById(id) {
-    return this.games[id] || null;
   }
 
   destroyGame(id) {

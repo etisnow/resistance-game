@@ -1,28 +1,34 @@
-import {gameServer} from 'server/server/GameServer';
-import {Player} from 'server/models/Player';
+import {GameServer} from 'server/server/GameServer';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
+import socketIO from "socket.io";
 
-export const registerHandlers = (player: Player) => {
-  player.socket.on(EClientEventType.createGame, ({ nickname }) => {
-    gameServer.createGame({nickname, player})
+export const registerHandlers = (gameServer: GameServer, socket: socketIO.Socket) => {
+  socket.on(EClientEventType.createGame, ({ nickname }) => {
+    gameServer.createGame({nickname, socket})
   });
-  player.socket.on(EClientEventType.leaveGame, function () {
+  socket.on(EClientEventType.leaveGame, function () {
+    const player = gameServer.getPlayerBySocket(socket);
+    if (!player) return;
     gameServer.leaveGame({player});
   });
-  player.socket.on(EClientEventType.connectGame, ({ nickname, gameId }) => {
-    gameServer.connectGame({nickname, player, gameId})
+  socket.on(EClientEventType.connectGame, ({ nickname, gameId }) => {
+    gameServer.connectGame({nickname, socket, gameId})
   });
-  player.socket.on(EClientEventType.kickPlayer, ({ playerId }) => {
+  socket.on(EClientEventType.kickPlayer, ({ playerId }) => {
     gameServer.kickPlayer({playerId})
   });
-  player.socket.on(EClientEventType.startGame, function () {
+  socket.on(EClientEventType.startGame, function () {
+    const player = gameServer.getPlayerBySocket(socket);
+    if (!player) return;
     gameServer.startGame({player});
   });
-  player.socket.on(EClientEventType.toggleReadyGame, function () {
+  socket.on(EClientEventType.toggleReadyGame, function () {
+    const player = gameServer.getPlayerBySocket(socket);
+    if (!player) return;
     gameServer.toggleReady({player});
   });
-  player.socket.on(EClientEventType.playerAction, function ({
+  socket.on(EClientEventType.playerAction, function ({
     actionType,
     cardUniqueId,
     selectedPlayerId,
@@ -34,9 +40,16 @@ export const registerHandlers = (player: Player) => {
     actionContext: any,
     action: string,
   }) {
+    const player = gameServer.getPlayerBySocket(socket);
+    if (!player) return;
     gameServer.playerAction({player, actionType, cardUniqueId, selectedPlayerId, action});
   });
-  player.socket.on("disconnect", function () {
+  socket.on("disconnect", function () {
+    const player = gameServer.getPlayerBySocket(socket);
+    if (!player) {
+      gameServer.sockets.delete(socket);
+      return;
+    }
     player.makeOffline();
   });
 };

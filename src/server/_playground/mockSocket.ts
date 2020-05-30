@@ -16,7 +16,6 @@ class MockSocketServer {
 	to(roomName) {
 		return {
 			emit: (eventType, eventPayload) => {
-				//console.log('BROADCASTED', eventType, eventPayload)
 				console.log('BROADCASTED', eventType)
 			}
 		}
