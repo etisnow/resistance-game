@@ -1,5 +1,4 @@
 import React from 'react';
-import './styles.scss';
 import {range, map} from 'lodash';
 import { Container, Text, Graphics, Sprite } from 'react-pixi-fiber';
 import Circle from 'client/components/pixiPrimitives/Circle';

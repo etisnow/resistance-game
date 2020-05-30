@@ -2,7 +2,6 @@ import {AnimatedPixi, getPixiTexture} from 'client/components/table/pixiInjected
 import React from 'react';
 import { Container } from 'react-pixi-fiber';
 import {clamp, map} from 'lodash';
-import './styles.scss';
 import {observer} from "mobx-react-lite";
 import {config, useTransition, interpolate} from 'react-spring/universal';
 import {

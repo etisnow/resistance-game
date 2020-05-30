@@ -1,14 +1,10 @@
 import React, {useEffect, useState} from 'react';
-import './styles.scss';
 import { observer } from "mobx-react-lite"
 import {cardAspectRatio, fulldeck, thingCard} from 'shared/constant/cards';
 import {resources} from 'client/resources/resources';
 import {EEventID} from 'shared/enum/cards';
-import { Container, Sprite } from 'react-pixi-fiber';
-import * as PIXI from 'pixi.js'
+import { Container } from 'react-pixi-fiber';
 import {AnimatedPixi, getPixiTexture} from '../pixiInjected';
-import {interpolate} from 'react-spring/universal';
-
 
 interface ICardProps {
 	id: string;

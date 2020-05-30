@@ -12,6 +12,7 @@ import ActionInteracter from 'client/components/table/ActionInteracter/ActionInt
 import { Stage  } from "react-pixi-fiber";
 import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
 import ActionTimer from 'client/components/table/ActionTimer/ActionTimer';
+import ActionCanceler from 'client/components/table/ActionCanceler/ActionCanceler';
 
 
 interface ITableProps {
@@ -39,6 +40,7 @@ const Table = observer(({controller} : ITableProps) => {
 				    }}
 				>
 					<Deck controller={controller} />
+					<ActionCanceler controller={controller} />
 					<Room controller={controller} />
 					<Hand controller={controller} />
 					<Notifier controller={controller} />

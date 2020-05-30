@@ -15,7 +15,7 @@ interface IDeckProps {
 }
 
 
-const Deck = observer(({controller}: IDeckProps) => {
+const ActionCanceler = observer(({controller}: IDeckProps) => {
 	const {playersList, deck} = controller;
 	const width = playerRoomDiag(playersList.length);
 	const topCardType = deck.topCardType;
@@ -39,4 +39,4 @@ const Deck = observer(({controller}: IDeckProps) => {
 	)
 });
 
-export default Deck;
+export default ActionCanceler;

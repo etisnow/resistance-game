@@ -1,5 +1,4 @@
 import React from 'react';
-import './styles.scss';
 import {observer} from "mobx-react-lite";
 import GameController from 'client/controllers/gameController';
 import HandComponent from 'client/components/table/Hand/HandComponent';
