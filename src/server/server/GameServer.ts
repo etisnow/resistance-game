@@ -45,7 +45,7 @@ class GameServer {
     return player
   }
 
-  createGame({ socket, nickname }: { socket: socketIO.Socket; nickname: string }) {
+  createGame({ socket, nickname }: { socket: socketIO.Socket; nickname: string }): [Game, Player] {
     const player = this.spawnPlayer(socket);
     const game = new Game({ player });
     game.hostPlayerId = player.id;
@@ -53,7 +53,7 @@ class GameServer {
     player.register({ nickname, game });
     this.games[game.id] = game;
     this.updateLobby();
-    return game;
+    return [game, player];
   }
   leaveGame({ player }: { player: Player }) {
     const game = player.game;
@@ -77,46 +77,45 @@ class GameServer {
     connectedPlayer.socket = socket;
     this.sockets.set(socket, connectedPlayer);
     connectedPlayer.game.updateGame();
+    return connectedPlayer;
   };
 
   notifySocket(socket, event) {
     socket.emit(event.type, event.payload);
   }
 
-  tryReconnectPlayer = (game, socket, nickname, connectedPlayer) : boolean => {
+  tryReconnectPlayer = (game, socket, nickname, connectedPlayer) : null | Player => {
     if (game.state === EGameState.sarted) {
       if (!connectedPlayer || !connectedPlayer.socket.disconnected) {
         this.notifySocket(socket, formatCommonError(`Игрок с ником ${nickname} еще онлайн.`))
-        return false;
+        return null;
       }
-      this.reconnectPlayer(connectedPlayer, socket);
-      return true;
+      return this.reconnectPlayer(connectedPlayer, socket);
     } else {
       if (connectedPlayer && !connectedPlayer.socket.disconnected) {
         this.notifySocket(socket, formatCommonError(`Игрок с ником ${nickname} уже зарегистрирован в этой игре и находится онлайн. Если это вы -выйдите с другого устройства.`))
-        return false;
+        return null;
       }
-      if (!connectedPlayer) return false;
-      this.reconnectPlayer(connectedPlayer, socket);
-      return true;
+      if (!connectedPlayer) return null;
+      return this.reconnectPlayer(connectedPlayer, socket);
     }
   };
 
-  connectGame({nickname, socket, gameId}: { socket: socketIO.Socket; nickname: string, gameId: string }) {
+  connectGame({nickname, socket, gameId}: { socket: socketIO.Socket; nickname: string, gameId: string }) : Player | null {
     const parsedGameId = gameId.trim();
     const game = this.games[parsedGameId] || this.games['game_' + parsedGameId];
     if (!game) return;
     const connectedPlayer = find(game.players, {nickname});
     if (connectedPlayer) {
-      this.tryReconnectPlayer(game, socket, nickname, connectedPlayer);
-      return;
+      return this.tryReconnectPlayer(game, socket, nickname, connectedPlayer);
     } else if (game.state === EGameState.sarted) {
       const error = formatCommonError(`Игрок с ником ${nickname} не был найден в этой игре, а она уже началась.`)
       this.notifySocket(socket, error);
-      return;
+      return null;
     }
     const newPlayer = this.spawnPlayer(socket);
     newPlayer.register({ nickname, game });
+    return newPlayer;
   }
 
   toggleReady({player}: { player: Player}) {
@@ -130,6 +129,14 @@ class GameServer {
     }
     player.game.start();
   }
+
+  forceStartGame({player}: {player:Player}) {
+    each(player.game.players, (pl) => {
+      pl.isReady = true;
+    });
+    player.game.start();
+  }
+
 
   findPlayerById(playerId) {
     let player = null;

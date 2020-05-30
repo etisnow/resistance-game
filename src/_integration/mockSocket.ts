@@ -41,6 +41,11 @@ export const createPlayer = (isTestTag = false) => {
 	return pl;
 }
 
+export const createMockSocket = (isTestTag = false) => {
+	const socket = new MockSocket(isTestTag);
+	return socket;
+}
+
 export const createDoor = (isTestTag = false) => {
 	const socket = new MockSocket(isTestTag);
 	const door = new Player({ socket });
