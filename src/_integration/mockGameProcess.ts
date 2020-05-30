@@ -93,7 +93,8 @@ const interfaceTest = ({socket, card}: {socket:socketIO.Socket, card: ICardEvent
 
 	gameServer.forceStartGame({player: host});
 
-	host.getCard(getCard(EEventID.flamethrower));
+	host.getCard(getCard(EEventID.tenacity));
+	host.getCard(getCard(EEventID.analysis));
 }
 
 export function mockGameProcess(socket) {

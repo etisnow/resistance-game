@@ -12,8 +12,8 @@ export const reelFishingRodsAct = ({card, game, player} : {card:ICardEvent, game
 		type: ETurnContextType.positionswap,
 		offensePlayer: player,
 		defensePlayer: null,
+		cardUniqueId: card.uniqueId,
 	};
-	player.discardCard(card.uniqueId);
 	player.changeTurnState(ETurnState.inCardActionProgress);
 	const allPlayersExeptCurrent = player.getAllPlayablePlayersExceptCurrent();
     player.notify(formatPlayerNotification({

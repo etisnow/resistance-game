@@ -15,8 +15,9 @@ export const positionswapAct = ({card, game, player} : {card:ICardEvent, game: G
 		type: ETurnContextType.positionswap,
 		offensePlayer: player,
 		defensePlayer: null,
+		cardUniqueId: card.uniqueId,
 	};
-	player.discardCard(card.uniqueId);
+
 	player.changeTurnState(ETurnState.inCardActionProgress);
     player.notify(formatPlayerNotification({
       player: player,
@@ -32,11 +33,13 @@ export const positionswapSelect = ({game, player, selectedPlayerId} : {game: Gam
 	if (game.turnContext.type !== ETurnContextType.positionswap) {
 		throw new Error('Смена места произошла без контекста positionswap');
 	}
+	player.discardCard(game.turnContext.cardUniqueId);
 	const defensePlayer = game.players[selectedPlayerId];
 	game.turnContext = {
 		type: ETurnContextType.positionswap,
 		offensePlayer: player,
 		defensePlayer: defensePlayer,
+		cardUniqueId: game.turnContext.cardUniqueId
 	};
     const hasLeaveMeAloneCard = !!find(defensePlayer.hand, {id: EEventID.leaveMeAlone});
     let text = `Игрок ${player.nickname} предлагает поменяться местами`

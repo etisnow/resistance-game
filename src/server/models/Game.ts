@@ -187,6 +187,9 @@ export class Game {
   makePanic = (player: Player, panicCard: ICardPanic) => {
     this.discardedDeckPush(panicCard);
     panicAction({player, game: this, panicCard});
+    if (player.quarantine > 0) {
+      player.quarantine = player.quarantine - 1;
+    }
     this.updateGame();
   };
   resetGameState = () => {
@@ -303,6 +306,9 @@ export class Game {
     const nextPlayer = endTurnPlayer.getNextAlivePlayer();
     debugLog(`Игрок ${endTurnPlayer.nickname} заканчивает ход`, map(endTurnPlayer.hand, card=> card.id))
     debugLog(`След. игрок ${nextPlayer.nickname}`)
+    if (endTurnPlayer.hand.length > 4) {
+      throw new Error(`У игрока ${endTurnPlayer.nickname} на руке ${endTurnPlayer.hand.length} карт`)
+    }
     this.changeTurn(nextPlayer.id);
     checkAllDeckCards(this, !gameServer.isMock);
   }
@@ -380,6 +386,12 @@ export class Game {
       debugLog(`Player ${player.nickname} выбирает ${action}`);
     }
     switch (actionType) {
+      case EPlayerActionType.actionCancel:
+        debugLog(`Игрок ${player.nickname} пытается отменить действие`)
+        player.changeTurnState(ETurnState.inCardAction);
+        this.turnContext = null;
+        this.updateGame();
+        return;
       case EPlayerActionType.cardPick:
         if (!player.currentAction || player.currentAction.type !== ENotificationAction.cardPick) {
           throw new Error('ПОПЫТКА ВЗЯТЬ КАРТУ ВНЕ КОНТЕКСТА cardPick у игрока ' + player.nickname)

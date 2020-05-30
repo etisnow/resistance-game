@@ -15,18 +15,21 @@ export interface ITurnContextPositionSwap {
 	type: ETurnContextType.positionswap,
 	offensePlayer: Player,
 	defensePlayer: Player | null,
+	cardUniqueId: string,
 }
 
 export interface ITurnContextBurn {
 	type: ETurnContextType.burn,
 	offensePlayer: Player,
 	defensePlayer: Player | null,
+	cardUniqueId: string;
 }
 
 export interface ITurnContextSeduction {
 	type: ETurnContextType.seduction,
 	offensePlayer: Player,
 	defensePlayer: Player | null,
+	cardUniqueId: string,
 }
 
 export interface ITurnContextTenacityCardSelect {
@@ -37,28 +40,33 @@ export interface ITurnContextTenacityCardSelect {
 
 export interface ITurnContextSuspicionPersonSelect {
 	type: ETurnContextType.suspicionPersonSelect,
-	playerId: Player['id']
+	playerId: Player['id'],
+	cardUniqueId: string,
 }
 
 
 
 export interface ITurnContextBarricadeSelect {
 	type: ETurnContextType.barricadePersonSelect,
-	playerId: Player['id']
+	playerId: Player['id'],
+	cardUniqueId: string,
 }
 
 export interface ITurnContextQuarantineSelect {
 	type: ETurnContextType.quarantinePersonSelect,
 	playerId: Player['id'],
+	cardUniqueId: string,
 }
 export interface ITurnContextAxeSelect {
 	type: ETurnContextType.axePersonSelect,
 	playerId: Player['id'],
+	cardUniqueId: string,
 }
 
 export interface ITurnContextAnalysisSelect {
 	type: ETurnContextType.analysisPersonSelect,
 	playerId: Player['id'],
+	cardUniqueId: string,
 }
 
 
@@ -91,6 +99,12 @@ export interface ITurnContextForgetfullnessCardSelect {
 	cards: string[],
 }
 
+export interface ITurnContextFriendshipSeduction {
+	type: ETurnContextType.friendshipSeduction,
+	offensePlayer: Player,
+	defensePlayer: Player | null,
+}
+
 export type ITurnContext =
 	ITurnContextTrade
 	| ITurnContextPositionSwap
@@ -103,6 +117,7 @@ export type ITurnContext =
 	| ITurnContextAxeSelect
 	| ITurnContextAnalysisSelect
 	/*PANICS*/
+	| ITurnContextFriendshipSeduction
 	| ITurnContextBlindDateCardSelect
 	| ITurnContextChainReaction
 	| ITurnContextOneTwoPersonSelect

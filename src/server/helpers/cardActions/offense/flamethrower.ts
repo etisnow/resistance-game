@@ -16,9 +16,10 @@ export const flamethrowerAct = ({card, game, player} : {card:ICardEvent, game: G
 		type: ETurnContextType.burn,
 		offensePlayer: player,
 		defensePlayer: null,
+		cardUniqueId: card.uniqueId,
 	};
 
-	player.discardCard(card.uniqueId);
+
 	player.changeTurnState(ETurnState.inCardActionProgress);
     player.notify(formatPlayerNotification({
       player: player,
@@ -34,12 +35,14 @@ export const flamethrowerSelect = ({game, player, selectedPlayerId} : {game: Gam
 	if (!game.turnContext || game.turnContext.type !== ETurnContextType.burn) {
 		throw new Error('Выбор огнемета произошел без контекста flamethrowerSelect');
 	}
+	player.discardCard(game.turnContext.cardUniqueId);
 	const defensePlayer = game.players[selectedPlayerId];
 	player.currentAction = null;
 	game.turnContext = {
 		type: ETurnContextType.burn,
 		offensePlayer: player,
 		defensePlayer: defensePlayer,
+		cardUniqueId: game.turnContext.cardUniqueId
 	};
     let decisionMenu = [{
 		text: 'Сгореть',
@@ -55,6 +58,7 @@ export const flamethrowerSelect = ({game, player, selectedPlayerId} : {game: Gam
 		});
 		text = `Игрок ${player.nickname} использует на тебе огнемет, но у тебя есть "Никакого шашлыка"`
 	}
+	player.changeTurnState(ETurnState.idle);
     defensePlayer.notify(formatPlayerNotification({
 		player: player,
 		notification: {

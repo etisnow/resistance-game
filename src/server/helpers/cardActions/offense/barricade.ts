@@ -11,8 +11,9 @@ export const barricadeAct = ({card, game, player} : {card:ICardEvent, game: Game
 	game.turnContext = {
 		type: ETurnContextType.barricadePersonSelect,
 		playerId: player.id,
+		cardUniqueId: card.uniqueId,
 	};
-	player.discardCard(card.uniqueId);
+
 	player.changeTurnState(ETurnState.inCardActionProgress);
     player.notify(formatPlayerNotification({
       player: player,
@@ -28,6 +29,7 @@ export const barricadeSelect = ({game, player, selectedPlayerId} : {game: Game, 
 	if (game.turnContext.type !== ETurnContextType.barricadePersonSelect) {
 		throw new Error('Смена места произошла без контекста zakolochennayaDverPersonSelect');
 	}
+	player.discardCard(game.turnContext.cardUniqueId);
 	game.turnContext = null;
 	const doorPlayer = new Player({socket: null, playerState: EPlayerState.door});
 	doorPlayer.game = game;

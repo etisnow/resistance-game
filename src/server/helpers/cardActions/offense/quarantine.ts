@@ -14,9 +14,9 @@ export const quarantineAct = ({card, game, player} : {card:ICardEvent, game: Gam
 	game.turnContext = {
 		type: ETurnContextType.quarantinePersonSelect,
 		playerId: player.id,
+		cardUniqueId: card.uniqueId,
 	};
 
-	player.discardCard(card.uniqueId);
 	player.changeTurnState(ETurnState.inCardActionProgress);
     player.notify(formatPlayerNotification({
       player: player,
@@ -32,6 +32,7 @@ export const quarantineSelect = ({game, player, selectedPlayerId} : {game: Game,
 	if (game.turnContext.type !== ETurnContextType.quarantinePersonSelect) {
 		throw new Error('Выбор quarantine произошел без контекста quarantinePersonSelect');
 	}
+	player.discardCard(game.turnContext.cardUniqueId);
 	const selectedPlayer = game.players[selectedPlayerId];
 	selectedPlayer.quarantine = 3;
 	game.turnContext = null;

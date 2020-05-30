@@ -13,9 +13,9 @@ export const friendshipAct = ({game, player} : {game: Game, player: Player}) => 
 		return game.endTurn(player.id)
 	}
 	game.turnContext = {
-		type: ETurnContextType.seduction,
+		type: ETurnContextType.friendshipSeduction,
 		offensePlayer: player,
-		defensePlayer: null
+		defensePlayer: null,
 	};
     player.notify(formatPlayerNotification({
       player: player,

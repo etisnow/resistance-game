@@ -12,9 +12,10 @@ export const suspicionAct = ({card, game, player} : {card:ICardEvent, game: Game
 	game.turnContext = {
 		type: ETurnContextType.suspicionPersonSelect,
 		playerId: player.id,
+		cardUniqueId: card.uniqueId,
 	};
 
-	player.discardCard(card.uniqueId);
+
 	player.changeTurnState(ETurnState.inCardActionProgress);
     player.notify(formatPlayerNotification({
       player: player,
@@ -30,6 +31,7 @@ export const suspicionSelect = ({game, player, selectedPlayerId} : {game: Game, 
 	if (game.turnContext.type !== ETurnContextType.suspicionPersonSelect) {
 		throw new Error('Выбор подозрения произошел без контекста suspicionPersonSelect');
 	}
+	player.discardCard(game.turnContext.cardUniqueId);
 	const playerToView= game.players[selectedPlayerId];
 	const cardToView = playerToView.getRandomCard();
 	game.turnContext = null;

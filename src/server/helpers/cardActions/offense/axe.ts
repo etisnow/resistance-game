@@ -11,9 +11,10 @@ export const axeAct = ({card, game, player} : {card:ICardEvent, game: Game, play
 	game.turnContext = {
 		type: ETurnContextType.axePersonSelect,
 		playerId: player.id,
+		cardUniqueId: card.uniqueId
 	};
 
-	player.discardCard(card.uniqueId);
+
 	player.changeTurnState(ETurnState.inCardActionProgress);
 
 	const axeTargets = player.getAxeTargets();
@@ -32,6 +33,7 @@ export const axeSelect = ({game, player, selectedPlayerId} : {game: Game, player
 	if (game.turnContext.type !== ETurnContextType.axePersonSelect) {
 		throw new Error('Выбор подозрения произошел без контекста axePersonSelect');
 	}
+	player.discardCard(game.turnContext.cardUniqueId);
 	const selectedPlayer = game.players[selectedPlayerId];
 	game.turnContext = null;
 	if (selectedPlayer.state === EPlayerState.door) {

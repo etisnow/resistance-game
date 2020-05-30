@@ -35,6 +35,7 @@ export default class GameController {
 	@observable cardInPreview: string | null = null;
 	@observable cardInNotificationPreview: string | null = null;
 	@observable hostPlayerId: string = '';
+	@observable isPlayerCanCancel: boolean = false;
 
 	constructor(root: RootController) {
 		this.root = root;
@@ -149,13 +150,14 @@ export default class GameController {
 		this.handActions = handActions
 	};
 
-	updateGame = ({tradeContext, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions, hostPlayerId}) => {
+	updateGame = ({tradeContext, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions, hostPlayerId, isPlayerCanCancel}) => {
 		this.updatePlayers(players);
 		this.updateHand(hand);
 		this.updateHandActions(handActions);
 		this.hostPlayerId = hostPlayerId;
 		this.playersList = playersList;
 		this.deck = deck;
+		this.isPlayerCanCancel = isPlayerCanCancel;
 		this.currentPlayerId = currentPlayer.id;
 		this.tradeContext = tradeContext;
 		this.currentAction = currentAction;
@@ -167,5 +169,9 @@ export default class GameController {
 		this.socket.sendToServer(EClientEventType.leaveGame, {})
 		this.root.launcherController.state = EAsyncState.idle;
 		this.root.state = EAppState.launcher;
+	}
+
+	actionCancel = () => {
+		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.actionCancel});
 	}
 }

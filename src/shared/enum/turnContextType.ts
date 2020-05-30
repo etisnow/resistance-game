@@ -11,6 +11,7 @@ export enum ETurnContextType {
 	analysisPersonSelect = 'analysisPersonSelect',
 
 	/*PANICS */
+	friendshipSeduction = 'friendshipSeduction',
 	chainReaction = 'chainReaction',
 	blindDateCardSelect = 'blindDateCardSelect',
 	oneTwoPersonSelect = 'oneTwoPersonSelect',

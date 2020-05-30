@@ -40,9 +40,9 @@ const Table = observer(({controller} : ITableProps) => {
 				    }}
 				>
 					<Deck controller={controller} />
-					<ActionCanceler controller={controller} />
 					<Room controller={controller} />
 					<Hand controller={controller} />
+					<ActionCanceler controller={controller} />
 					<Notifier controller={controller} />
 				</Stage>
 

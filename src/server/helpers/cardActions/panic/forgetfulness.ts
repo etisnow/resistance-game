@@ -10,6 +10,7 @@ import {EPlayerActionType} from 'shared/enum/playerActions';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import INotificationAction from 'shared/interfaces/notification';
 import {formatCards} from 'server/helpers/cardHelpers';
+import {debugLog} from 'server/helpers/util';
 
 export const notifyPlayerDiscardCards = ({game, player}: {game:Game, player:Player}) : INotificationAction => {
 	const clonedPlayer = clone(player);
@@ -51,6 +52,7 @@ export const forgetfullnessSelect = ({game, cardUniqueId, player}: {game:Game, p
 	if (!game.turnContext || game.turnContext.type !== ETurnContextType.forgetfullnessSelect) {
 		throw new Error('Забывчивость зафакапилась')
 	}
+	debugLog('FORGORFULLNESS SELECT')
 	//discardCard({game, player, cardUniqueId: cardUniqueId});
 	player.discardCard(cardUniqueId)
 	game.turnContext.cards.push(cardUniqueId);

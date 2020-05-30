@@ -3,13 +3,13 @@ import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {GameServer} from 'server/server/GameServer';
-import {clearDebugCache, debugCache, debugLog, printDebugCache, shuffle} from 'server/helpers/util';
+import {clearDebugCache, debugLog, printDebugCache, shuffle} from 'server/helpers/util';
 import {INotificationActionSelectCard} from 'shared/interfaces/notification';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {getCardActions} from 'server/formatters/formatCardActions';
 import {ICardEventMenuItem} from 'shared/interfaces/cardMenu';
 import {createBrutforceServer} from '_integration/createBrutforceServer';
-import {EPlayerState} from 'shared/enum/player';
+import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {EEventID} from 'shared/enum/cards';
 
 
@@ -24,7 +24,7 @@ let getFirstPlayableCardId = (game, player) => {
 	const playableCards = map(player.hand, card => {
 		return {uniqueId: card.uniqueId, menu: getCardActions(game, player, card), type: card.id};
 	})
-	debugLog(player.nickname, playableCards)
+	debugLog(player.nickname, 'ALL CARDS', playableCards)
 	const sortPlayableCards = sortBy(playableCards, ({uniqueId,menu}) => {
 		return menu.length
 	});
@@ -80,7 +80,8 @@ const checkLastAction = (player, actions) => {
 
 const botSelectCardLogic = (gameServer: GameServer, player: Player, game: Game) => {
 	const action = player.currentAction as INotificationActionSelectCard;
-	const cardUniqueId = getRandomItemFromArray(Object.values(action.cards)).uniqueId;
+	const randomCard = getRandomItemFromArray(Object.values(action.cards))
+	const cardUniqueId = randomCard.uniqueId;
 	gameServer.playerAction({
 		player,
 		actionType: EPlayerActionType.cardSelect,
@@ -137,6 +138,18 @@ const botPlayerTurnCardLogic = (gameServer: GameServer, player: Player, game: Ga
 };
 
 const botAct = (gameServer: GameServer, player: Player, game: Game) => {
+
+	if (player.turnState === ETurnState.inCardActionProgress) {
+		const desicion = Math.random();
+		if (desicion > 0.5) {
+			gameServer.playerAction({
+				player,
+				actionType: EPlayerActionType.actionCancel,
+			});
+			return true;
+		}
+	}
+
 	if (!player.currentAction) return false;
 	if (player.state === EPlayerState.door) return false;
 	switch (player.currentAction.type) {

@@ -23,6 +23,7 @@ const Hand = observer(({controller} : IHandProps) => {
 	};
 
 	const handleCardAction = (cardUniqueId: string, cardAction: EPlayerActionType) => {
+		controller.cardInPreview = null;
 		controller.cardAction(cardAction, cardUniqueId)
 	};
 

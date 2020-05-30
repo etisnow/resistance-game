@@ -12,8 +12,8 @@ export const analysisAct = ({card, game, player} : {card:ICardEvent, game: Game,
 	game.turnContext = {
 		type: ETurnContextType.analysisPersonSelect,
 		playerId: player.id,
+		cardUniqueId: card.uniqueId,
 	};
-	player.discardCard(card.uniqueId);
 	player.changeTurnState(ETurnState.inCardActionProgress);
     player.notify(formatPlayerNotification({
       player: player,
@@ -29,6 +29,7 @@ export const analysisSelect = ({game, player, selectedPlayerId} : {game: Game, p
 	if (game.turnContext.type !== ETurnContextType.analysisPersonSelect) {
 		throw new Error('Карта сыграна без контекста analysisPersonSelect');
 	}
+	player.discardCard(game.turnContext.cardUniqueId);
 	game.turnContext = null;
 	const selectedPlayer = game.players[selectedPlayerId];
 	game.addLog(`Игрок ${player.nickname} играет карту Анализ на игрока ${selectedPlayer.nickname}`)

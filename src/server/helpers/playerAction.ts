@@ -89,6 +89,8 @@ export const selectPlayer = ({game, selectedPlayerId, player, actionContext} : {
 			return barricadeSelect({game, selectedPlayerId, player})
 		case ETurnContextType.seduction:
 			return seductionSelect({game, selectedPlayerId, player})
+		case ETurnContextType.friendshipSeduction:
+			return seductionSelect({game, selectedPlayerId, player})
 		case ETurnContextType.quarantinePersonSelect:
 			return quarantineSelect({game, selectedPlayerId, player})
 		case ETurnContextType.axePersonSelect:

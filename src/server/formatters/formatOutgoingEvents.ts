@@ -10,6 +10,7 @@ import {IFormatTradeContext} from 'shared/interfaces/common';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {getNextChainReactionPlayer} from 'server/helpers/cardActions/panic/chainReaction';
 import {getCardActions} from 'server/formatters/formatCardActions';
+import {isPlayerCanCancel} from 'server/helpers/validators';
 
 function formatEvent(type, payload) {
 	return {
@@ -97,6 +98,7 @@ const formatUpdatePlayerPayload = ({ game, viewer }: {game: Game, viewer: Player
 		tradeContext: formatTradeContext(game),
 		deck: formatDeck(game),
 		currentAction: viewer.currentAction,
+		isPlayerCanCancel: isPlayerCanCancel(game, viewer),
 	}
 };
 

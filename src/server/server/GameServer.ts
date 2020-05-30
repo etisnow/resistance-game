@@ -4,7 +4,7 @@ import {EPlayerActionType} from 'shared/enum/playerActions';
 import socketIO from "socket.io";
 import {formatCommonError, formatLobbyState} from 'server/formatters/formatOutgoingEvents';
 import {
-  isPlayerCanActCard,
+  isPlayerCanActCard, isPlayerCanCancel,
   isPlayerCanDiscardCard,
   isPlayerCanSelectCard,
   isPlayerCanSelectDesicion,
@@ -176,6 +176,12 @@ class GameServer {
     const game = player.game;
     if (game) {
       switch(actionType) {
+        case EPlayerActionType.actionCancel:
+          if (!isPlayerCanCancel(game, player)) {
+            debugLog(`Игрок ${player.nickname} не может отменить действие`);
+            return;
+          }
+          break;
         case EPlayerActionType.cardAct:
           if (!isPlayerCanActCard(game, player, cardUniqueId)) {
             debugLog(`Игрок ${player.nickname} не может discard ${cardUniqueId}`);

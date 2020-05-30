@@ -1,12 +1,12 @@
 import {Game} from 'server/models/Game';
-import {GameServer} from 'server/server/GameServer';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {Player} from 'server/models/Player';
 import {ETurnState} from 'shared/enum/player';
-import {find, findLast} from 'lodash';
+import {find} from 'lodash';
 import {getCardActions} from 'server/formatters/formatCardActions';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {debugLog} from 'server/helpers/util';
+import {ETurnContextType} from 'shared/enum/turnContextType';
 
 interface IActionPayload  {
 	player:Player,
@@ -66,6 +66,26 @@ export const isPlayerCanActCard = (game: Game, player: Player, cardUniqueId: str
 		default:
 			return false;
 	}
+};
+
+export const isPlayerCanCancel = (game: Game, player: Player) => {
+	switch (player.turnState) {
+		case ETurnState.inCardActionProgress:
+			if (game.turnContext) {
+				switch (game.turnContext.type) {
+					case ETurnContextType.analysisPersonSelect:
+					case ETurnContextType.axePersonSelect:
+					case ETurnContextType.barricadePersonSelect:
+					case ETurnContextType.burn:
+					case ETurnContextType.positionswap:
+					case ETurnContextType.quarantinePersonSelect:
+					case ETurnContextType.seduction:
+					case ETurnContextType.suspicionPersonSelect:
+						return true;
+				}
+			}
+	}
+	return false;
 };
 
 export const isPlayerCanTradeCard = (game: Game, player: Player, cardUniqueId: string) => {
