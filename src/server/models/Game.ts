@@ -123,6 +123,7 @@ export class Game {
   }
 
   updateGame = () => {
+    if (!this.gameInProcess) return;
     const players = this.players;
     each(players, (player: Player) => {
       player.notify(formatUpdateGameEvent({game: this, viewer: player}))

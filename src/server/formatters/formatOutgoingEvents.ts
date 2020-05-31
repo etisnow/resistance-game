@@ -1,7 +1,7 @@
 import {EServerEventType} from 'shared/enum/enumServerEvents';
 import {Player} from 'server/models/Player';
 import {Game} from 'server/models/Game';
-import {find, map, mapValues, reduce} from 'lodash';
+import {find, map, mapValues, reduce, filter} from 'lodash';
 import {GameServer} from 'server/server/GameServer';
 import INotificationAction from 'shared/interfaces/notification';
 import {formatHand} from 'server/formatters/formatHand';
@@ -151,8 +151,9 @@ const getGameHost = (game: Game) => {
 }
 
 export const formatLobbyState = (gameServer: GameServer) => {
+	const filteredGames = filter(gameServer.games, {gameInProcess:true})
 	return formatEvent(EServerEventType.lobbyUpdate, {
-		games: map(gameServer.games, (game: Game) => {
+		games: map(filteredGames, (game: Game) => {
 			const hostPlayer = getGameHost(game);
 			return {
 				gameId: game.id,
