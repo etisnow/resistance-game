@@ -10,7 +10,13 @@ import INotificationAction from 'shared/interfaces/notification';
 import {processTurnContext} from 'server/helpers/playerHelpers';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import {formatSoundNotification, formatTimerNotification} from 'server/formatters/formatOutgoingEvents';
+import {
+	formatSoundNotification,
+	formatTimerNotification,
+	formatUpdateGameEvent,
+} from 'server/formatters/formatOutgoingEvents';
+import {EPlayerMark} from 'shared/enum/playerMarks';
+
 //import {formatPlayerConnectedEvent} from 'server/formatters/formatOutgoingEvents';
 
 export class Player {
@@ -29,6 +35,7 @@ export class Player {
 	isReady: boolean = false;
 	currentAction: INotificationAction;
 	isConnected: boolean = true;
+	marks: {[key:string]: EPlayerMark} = {};
 
 	constructor({ socket, playerState = EPlayerState.dummy }) {
 		this.state = playerState;
@@ -288,4 +295,23 @@ export class Player {
 		//this.game.notifyAllPlayers(formatPlayerConnectedEvent({viewer: this, game: this.game}))
 	}
 
+	markPlayer = (markPlayerId) => {
+		this.marks[markPlayerId] = getNextMark(this.marks[markPlayerId]);
+		this.notify(formatUpdateGameEvent({game: this.game, viewer: this}));
+	}
+
+}
+
+
+function getNextMark(currentMark: EPlayerMark | undefined) {
+	switch (currentMark) {
+		case undefined:
+			return EPlayerMark.question;
+		case EPlayerMark.question:
+			return EPlayerMark.infected;
+		case EPlayerMark.infected:
+			return EPlayerMark.thing;
+		case EPlayerMark.thing:
+			return EPlayerMark.none;
+	}
 }

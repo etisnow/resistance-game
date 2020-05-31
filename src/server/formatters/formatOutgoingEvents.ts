@@ -118,13 +118,12 @@ const formatPlayer = (game: Game, viewer: Player) => (player: Player) => {
 		isYou: player === viewer,
 		color: player.color,
 		turnState: player.turnState,
-		//isInfected: true,
 		isInfected: player.isThing ? null : (isViewerThing || isViewer ? player.isInfected : null),
-		//isThing: true,
 		isThing: isViewerThing || isViewerInfected ? player.isThing : null,
 		quarantine: player.quarantine,
 		isReady: player.isReady,
 		isConnected: player.isConnected,
+		marks: isViewer ? player.marks : null,
 	}
 };
 

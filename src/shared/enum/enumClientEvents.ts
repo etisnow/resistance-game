@@ -8,4 +8,5 @@ export enum EClientEventType {
   startGame = "startGame",
   playerAction = "playerAction",
   actionDecision = "actionDecision",
+  markPlayer = "markPlayer",
 }

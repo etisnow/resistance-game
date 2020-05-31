@@ -76,9 +76,6 @@ const lineAnimation = ({type, newPlayerList, badgeRadius, offensePlayerId, defen
 	const {x:ax,y:ay} = getPositionFromPlayerList({players, playerId: offensePlayerId, playerList: newPlayerList});
 	const {x:bx,y:by} = getPositionFromPlayerList({players, playerId: defensePlayerId, playerList: newPlayerList});
 
-	//const AbadgeDeg = getPlayerDeg(offensePlayerId, newPlayerList);
-	//const BbadgeDeg = getPlayerDeg(defensePlayerId, newPlayerList);
-
 	var angleBetweenPointsDeg = Math.atan2(by - ay, bx - ax) * 180 / Math.PI;
 
 
@@ -120,6 +117,7 @@ const Room = observer(({controller} : IRoomProps) => {
 	const { currentPlayer, currentPlayerId } = controller;
 	const { playersList, players } = controller;
 	if (!currentPlayer || !currentPlayerId || !playersList) return null;
+	const {marks} = currentPlayer;
 	const tradeContext = controller.tradeContext || [];
 	let newPlayerList = clone(playersList);
 	if (controller.isLayoutSequential && currentPlayer.turnState !== ETurnState.dead) {
@@ -235,6 +233,8 @@ const Room = observer(({controller} : IRoomProps) => {
 							quarantine={player.quarantine}
 							isDoor={state === EPlayerState.door}
 							onSelect={controller.selectPlayer}
+							onLongPress={controller.changePlayerMark}
+							mark={marks[player.id]}
 						/>
 					</AnimatedPixi.Container>
 				)

@@ -32,7 +32,6 @@ import eventBack from "client/resources/cards/eventBack.png";
 import panicBack from "client/resources/cards/panicBack.png";
 import thing from "client/resources/cards/thing.png";
 
-
 import barricadeBadge from "client/resources/images/barricade_badge.png";
 import disconnected from "client/resources/images/disconnected.png";
 import glowEffect from "client/resources/images/gloweffect.png";
@@ -42,6 +41,7 @@ import deckCounterBg from "client/resources/images/deckCounterBg.png";
 
 import playerThing from "client/resources/images/thing.svg";
 import playerInfected from "client/resources/images/infected.svg";
+import questionMark from "client/resources/images/questionMark.svg";
 
 
 
@@ -112,7 +112,7 @@ const resources = {
 
 	playerThing,
 	playerInfected,
-
+	questionMark,
 
 	okay,
 

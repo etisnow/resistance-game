@@ -1,11 +1,10 @@
-import React from 'react';
-import {range, map} from 'lodash';
-import { Container, Text, Graphics, Sprite } from 'react-pixi-fiber';
+import React, {useCallback, useEffect, useState} from 'react';
+import {map, range} from 'lodash';
+import {Container, Sprite, Text} from 'react-pixi-fiber';
 import Circle from 'client/components/pixiPrimitives/Circle';
 import {resources} from 'client/resources/resources';
-import * as PIXI from 'pixi.js'
 import {getPixiTexture} from 'client/components/table/pixiInjected';
-import Rectangle from 'client/components/pixiPrimitives/Rectangle';
+import {EPlayerMark} from 'shared/enum/playerMarks';
 
 interface IPlayerBadgeProps {
 	id: string;
@@ -15,16 +14,25 @@ interface IPlayerBadgeProps {
 	canBeSelected: boolean;
 	isDoor: boolean;
 	onSelect: ((playerId: string) => void) | null;
+	onLongPress: ((playerId: string) => void) | null;
 	quarantine: number;
 	isYou: boolean;
 	isInfected: boolean;
 	isThing: boolean;
 	isConnected: boolean;
+	mark: EPlayerMark | undefined;
 	style: {
 		width:number;
 		height: number;
 	}
 }
+
+
+const playerGlowTexture = getPixiTexture(resources.playerbadgeGlow);
+const playerThingTexture = getPixiTexture(resources.playerThing);
+const playerInfectedTexture = getPixiTexture(resources.playerInfected);
+const questionMarkTexture = getPixiTexture(resources.questionMark);
+
 
 const formatNickname = (nickname) => {
 	if (!nickname) return null;
@@ -44,15 +52,73 @@ const Quarantine = ({quarantine, badgeRadius}) => {
 	) :  null;
 }
 
-const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, onSelect = null, id, isDoor, quarantine, isYou, isInfected, isThing, isConnected, style}: IPlayerBadgeProps) => {
+const getMarkTexture = (mark: EPlayerMark | undefined) => {
+	switch (mark) {
+		case EPlayerMark.question:
+			return questionMarkTexture;
+		case EPlayerMark.infected:
+			return playerInfectedTexture;
+		case EPlayerMark.thing:
+			return playerThingTexture;
+	}
+}
+
+function useLongPress(callback = () => {}, ms = 700) {
+	const [startLongPress, setStartLongPress] = useState(false);
+
+	useEffect(() => {
+		let timerId;
+		if (startLongPress) {
+			timerId = setTimeout(callback, ms);
+		} else {
+			clearTimeout(timerId);
+		}
+		return () => {
+			clearTimeout(timerId);
+		};
+	}, [callback, ms, startLongPress]);
+
+	const start = useCallback(() => {
+		setStartLongPress(true);
+	}, []);
+	const stop = useCallback(() => {
+		setStartLongPress(false);
+	}, []);
+
+	return {
+		interactive: true,
+		buttonMode: true,
+		pointerdown: start,
+		pointerup: stop,
+	};
+}
+
+const PlayerBadge = ({
+		nickname,
+		color,
+		inTurn = false,
+		canBeSelected = false,
+		onSelect = null,
+		id,
+		isDoor,
+		quarantine,
+		isYou,
+		isInfected,
+		isThing,
+		isConnected,
+		style,
+		onLongPress = null,
+		mark,
+	}: IPlayerBadgeProps) => {
+	const playerBadgeTexture = getPixiTexture(isDoor ? resources.playerBadges['door'] : isConnected ? resources.playerBadges[color] : resources.playerBadges['disconnected']);
+	const longPress = useLongPress(() => {
+		if (canBeSelected || isYou) return;
+		onLongPress && onLongPress(id);
+	});
 	if (!color && !isDoor) return null;
 	const nick = isYou ? 'ТЫ' : formatNickname(nickname)
-	const playerBadgeTexture = getPixiTexture(isDoor ? resources.playerBadges['door'] : isConnected ? resources.playerBadges[color] : resources.playerBadges['disconnected']);
-	const playerGlowTexture = getPixiTexture(resources.playerbadgeGlow);
-	const playerThingTexture = getPixiTexture(resources.playerThing);
-	const playerInfectedTexture = getPixiTexture(resources.playerInfected);
 	return (
-		<Container>
+		<Container {...longPress}>
 			{canBeSelected && (
 				<Sprite
 					texture={playerGlowTexture}
@@ -73,7 +139,6 @@ const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, on
 				pointerdown={() => (onSelect && canBeSelected) ? onSelect(id) : null}
 			/>
 			{!isDoor && (
-
 				<React.Fragment>
 					<Text text={nick} anchor={0.5} style={{fontFamily : 'Arial', fontSize: 14, fill : 0xFFFFFF, align : 'center'}}/>
 					<Quarantine quarantine={quarantine} badgeRadius={style.height/2} />
@@ -94,6 +159,15 @@ const PlayerBadge = ({nickname, color, inTurn = false, canBeSelected = false, on
 							texture={playerInfectedTexture}
 							anchor={0.5}
 							y={style.height/2}
+							width={style.height * 0.2}
+							height={style.height * 0.2}
+						/>
+					)}
+					{(mark && mark !==EPlayerMark.none) && (
+						<Sprite
+							texture={getMarkTexture(mark)}
+							anchor={0.5}
+							y={-style.height/4}
 							width={style.height * 0.2}
 							height={style.height * 0.2}
 						/>

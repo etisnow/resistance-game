@@ -223,6 +223,11 @@ class GameServer {
     player.game.cardAction({player, actionType, cardUniqueId, selectedPlayerId, action})
   }
 
+  markPlayer({player, markPlayerId}) {
+    if (!player) return;
+    player.markPlayer(markPlayerId)
+  }
+
 }
 
 const gameServer = new GameServer();

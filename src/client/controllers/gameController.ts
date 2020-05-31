@@ -174,4 +174,8 @@ export default class GameController {
 	actionCancel = () => {
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.actionCancel});
 	}
+
+	changePlayerMark = (playerId) => {
+		this.socket.sendToServer(EClientEventType.markPlayer, {playerId});
+	}
 }

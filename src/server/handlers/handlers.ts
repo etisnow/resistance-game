@@ -28,6 +28,11 @@ export const registerHandlers = (gameServer: GameServer, socket: socketIO.Socket
     if (!player) return;
     gameServer.toggleReady({player});
   });
+  socket.on(EClientEventType.markPlayer, function ({playerId}) {
+    const player = gameServer.getPlayerBySocket(socket);
+    if (!player) return;
+    gameServer.markPlayer({player, markPlayerId: playerId});
+  });
   socket.on(EClientEventType.playerAction, function ({
     actionType,
     cardUniqueId,

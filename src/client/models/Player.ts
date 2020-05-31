@@ -1,6 +1,6 @@
 import {observable} from "mobx";
 import {EPlayerState, ETurnState} from 'shared/enum/player';
-import {ICardEvent} from 'shared/interfaces/cards';
+import {EPlayerMark} from 'shared/enum/playerMarks';
 
 
 export default class Player {
@@ -17,4 +17,5 @@ export default class Player {
 	@observable isYou: boolean = false;
 	@observable isReady: boolean = false;
 	@observable isConnected: boolean = true;
+	@observable marks: {[key:string]: EPlayerMark} = {};
 }
