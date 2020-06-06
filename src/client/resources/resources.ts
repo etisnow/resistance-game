@@ -41,9 +41,6 @@ import deckCounterBg from "client/resources/images/deckCounterBg.png";
 
 import playerThing from "client/resources/images/thing.svg";
 import playerInfected from "client/resources/images/infected.svg";
-import questionMark from "client/resources/images/questionMark.svg";
-
-
 
 import playerBadge1 from "client/resources/images/playerBadges/1.png";
 import playerBadge2 from "client/resources/images/playerBadges/2.png";
@@ -64,6 +61,12 @@ import cardSelect from "client/resources/images/buttons/select.png";
 
 import okay from "client/resources/images/buttons/okay.png";
 
+
+/* PLAYER STATUSES */
+import playerStatusQuestion from 'client/resources/images/playerStatuses/question.png';
+import playerStatusThing from 'client/resources/images/playerStatuses/thing.png';
+import playerStatusInfected from 'client/resources/images/playerStatuses/infected.png';
+import playerStatusClear from 'client/resources/images/playerStatuses/clear.png';
 
 const resources = {
 	tenacity,
@@ -112,9 +115,13 @@ const resources = {
 
 	playerThing,
 	playerInfected,
-	questionMark,
 
 	okay,
+
+	playerStatusQuestion,
+	playerStatusThing,
+	playerStatusInfected,
+	playerStatusClear,
 
 	playerBadges: {
 		0: playerBadge1,

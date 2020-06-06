@@ -92,9 +92,10 @@ const interfaceTest = ({socket, card}: {socket:socketIO.Socket, card: ICardEvent
 	gameServer.connectGame({socket: createMockSocket(), gameId: game.id, nickname:'Гуля'});
 
 	gameServer.forceStartGame({player: host});
-
+	host.quarantine = 3;
 	host.getCard(getCard(EEventID.tenacity));
 	host.getCard(getCard(EEventID.analysis));
+	game.updateGame();
 }
 
 export function mockGameProcess(socket) {

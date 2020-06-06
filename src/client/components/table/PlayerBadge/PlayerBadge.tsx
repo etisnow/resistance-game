@@ -31,8 +31,11 @@ interface IPlayerBadgeProps {
 const playerGlowTexture = getPixiTexture(resources.playerbadgeGlow);
 const playerThingTexture = getPixiTexture(resources.playerThing);
 const playerInfectedTexture = getPixiTexture(resources.playerInfected);
-const questionMarkTexture = getPixiTexture(resources.questionMark);
-
+/*Marks*/
+const playerStatusQuestion = getPixiTexture(resources.playerStatusQuestion);
+const playerStatusThing = getPixiTexture(resources.playerStatusThing);
+const playerStatusInfected = getPixiTexture(resources.playerStatusInfected);
+const playerStatusClear = getPixiTexture(resources.playerStatusClear);
 
 const formatNickname = (nickname) => {
 	if (!nickname) return null;
@@ -55,11 +58,13 @@ const Quarantine = ({quarantine, badgeRadius}) => {
 const getMarkTexture = (mark: EPlayerMark | undefined) => {
 	switch (mark) {
 		case EPlayerMark.question:
-			return questionMarkTexture;
+			return playerStatusQuestion;
 		case EPlayerMark.infected:
-			return playerInfectedTexture;
+			return playerStatusInfected;
 		case EPlayerMark.thing:
-			return playerThingTexture;
+			return playerStatusThing;
+		case EPlayerMark.clear:
+			return playerStatusClear;
 	}
 }
 
@@ -111,14 +116,17 @@ const PlayerBadge = ({
 		mark,
 	}: IPlayerBadgeProps) => {
 	const playerBadgeTexture = getPixiTexture(isDoor ? resources.playerBadges['door'] : isConnected ? resources.playerBadges[color] : resources.playerBadges['disconnected']);
-	const longPress = useLongPress(() => {
+/*	const longPress = useLongPress(() => {
+	});*/
+	const markPlayer = () => {
 		if (canBeSelected || isYou) return;
 		onLongPress && onLongPress(id);
-	});
+	}
+
 	if (!color && !isDoor) return null;
 	const nick = isYou ? 'ТЫ' : formatNickname(nickname)
 	return (
-		<Container {...longPress}>
+		<Container pointerdown={markPlayer} buttonMode={true} interactive={true}>
 			{canBeSelected && (
 				<Sprite
 					texture={playerGlowTexture}

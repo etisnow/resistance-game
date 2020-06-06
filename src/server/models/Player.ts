@@ -306,6 +306,8 @@ export class Player {
 function getNextMark(currentMark: EPlayerMark | undefined) {
 	switch (currentMark) {
 		case undefined:
+			return EPlayerMark.clear;
+		case EPlayerMark.clear:
 			return EPlayerMark.question;
 		case EPlayerMark.question:
 			return EPlayerMark.infected;
@@ -313,5 +315,7 @@ function getNextMark(currentMark: EPlayerMark | undefined) {
 			return EPlayerMark.thing;
 		case EPlayerMark.thing:
 			return EPlayerMark.none;
+
 	}
+	return EPlayerMark.clear;
 }

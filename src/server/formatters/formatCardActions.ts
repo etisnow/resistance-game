@@ -62,6 +62,7 @@ export const getCardActions = (game: Game, player: Player, card: ICardEvent): IC
 	const canDiscardInfect = !isCurrentPlayerInfected || infectsCount(player) > 1 || isCurrentPlayerThing;
 	const canTradeInfect = isCurrentPlayerThing || (infectsCount(player) > 1 && isCurrentPlayerInfected && isTargetPlayerThing);
 
+	const isPlayerQuarantined = player.quarantine > 0;
 
 
 	switch (player.turnState) {
@@ -74,10 +75,9 @@ export const getCardActions = (game: Game, player: Player, card: ICardEvent): IC
 
 			const targets = player.getCardTargets(card);
 			const isNonTargetCard = player.isCardNonTarget(card);
-			if (targets.length > 0 || isNonTargetCard) {
+			if ((targets.length > 0 || isNonTargetCard) && !isPlayerQuarantined) {
 				actions.push({ menuType: EPlayerActionType.cardAct});
 			}
-
 			actions.push({ menuType: EPlayerActionType.cardDiscard});
 			return actions;
 		case ETurnState.inOffenseTrade:
