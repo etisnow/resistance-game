@@ -16,7 +16,7 @@ class App {
   constructor(port: number) {
     this.port = port;
 
-    const app = express();
+  const app = express();
 
     this.server = new http.Server(app);
     this.io = socketIO(this.server);

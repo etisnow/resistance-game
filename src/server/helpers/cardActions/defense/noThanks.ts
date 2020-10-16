@@ -15,7 +15,7 @@ export const noThanksAct = ({card, game, player} : {card:ICardEvent, game: Game,
 		throw  new Error('Fear использован вне контекста торговли')
 	}
 	player.discardCard(card.uniqueId);
-	game.addLog(`${player.nickname}: используя карту Мимо отказывается от обмена с игроком ${context.offensePlayer.nickname}`);
+	game.addLog(`${player.nickname}: используя карту "Нет уж спасибо" отказывается от обмена с игроком ${context.offensePlayer.nickname}`);
 	game.grabEventCardFromDeck({player});
     game.notifyAllPlayersExeptPlayer(formatPlayerNotification({
       player: player,

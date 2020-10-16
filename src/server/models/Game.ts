@@ -395,7 +395,7 @@ export class Game {
         return;
       case EPlayerActionType.cardPick:
         if (!player.currentAction || player.currentAction.type !== ENotificationAction.cardPick) {
-          throw new Error('ПОПЫТКА ВЗЯТЬ КАРТУ ВНЕ КОНТЕКСТА cardPick у игрока ' + player.nickname)
+          console.error('ПОПЫТКА ВЗЯТЬ КАРТУ ВНЕ КОНТЕКСТА cardPick у игрока ' + player.nickname)
           return;
         }
         if (player.currentAction.type === ENotificationAction.cardPick) {
