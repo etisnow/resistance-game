@@ -71,7 +71,7 @@ export default class SocketController {
 	socket: SocketIOClient.Socket;
 
 	constructor(root, parent) {
-		var socket = io.connect('http://nechto.duckdns.org:30');
+		var socket = io.connect('http://194.67.105.199:30');
 		this.root = root;
 		this.parent = parent;
 		this.socket = socket;
