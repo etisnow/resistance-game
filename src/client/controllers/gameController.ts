@@ -10,8 +10,15 @@ import {EPlayerActionType} from 'shared/enum/playerActions';
 import type {IFormatTradeContext} from 'shared/interfaces/common';
 import fscreen from 'fscreen';
 import {each, merge} from "lodash";
-import type {ICardEvent} from 'shared/interfaces/cards';
 import {EAsyncState} from 'shared/enum/async';
+import type {
+	IDeckPayload,
+	IGameUpdatePayload,
+	IHandActionsMap,
+	IHandMap,
+	IPlayersMap,
+} from 'client/controllers/socketTypes';
+import {ENotificationAction} from 'shared/enum/notifications';
 
 export default class GameController {
 	root: RootController;
@@ -19,19 +26,19 @@ export default class GameController {
 
 	@observable state: EGameState = EGameState.lobby;
 	@observable id : string | null = null;
-	@observable players: {[key: string]: Player | null } = {};
+	@observable players: IPlayersMap = {};
 	@observable currentPlayerId : string | null = null;
 	@observable playersList: string[] = [];
 	@observable gameLog: string[] = [];
-	@observable deck: {count: number, topCardType: ECardType} = {count: 0, topCardType: ECardType.event};
+	@observable deck: IDeckPayload = {count: 0, topCardType: ECardType.event};
 	@observable notifications: INotificationAction[] = [];
 	@observable playersToSelect: string[] = [];
 	@observable isLayoutSequential: boolean = true;
 	@observable isFullScreen: boolean = false;
 	@observable tradeContext: IFormatTradeContext[] | null = null;
 	@observable currentAction: INotificationAction | null = null;
-	@observable hand: {[key:string]: ICardEvent} = {};
-	@observable handActions: {[key: string]: any[] } = {};
+	@observable hand: IHandMap = {};
+	@observable handActions: IHandActionsMap = {};
 	@observable cardInPreview: string | null = null;
 	@observable cardInNotificationPreview: string | null = null;
 	@observable hostPlayerId: string = '';
@@ -51,7 +58,7 @@ export default class GameController {
 	}
 
 
-	kickPlayer = (playerId) => {
+	kickPlayer = (playerId: string) => {
 		this.socket.sendToServer(EClientEventType.kickPlayer, { playerId })
 	};
 
@@ -67,12 +74,14 @@ export default class GameController {
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType, cardUniqueId})
 	};
 
-	activatePlayerSelectMode = (notification) => {
-		this.playersToSelect = notification.playersToSelect;
+	activatePlayerSelectMode = (notification: INotificationAction) => {
+		this.playersToSelect = notification.type === ENotificationAction.playerSelect
+			? notification.playersToSelect
+			: [];
 		this.notifications.splice(0, 1);
 	};
 
-	selectNotificationCardPreview = (index) => {
+	selectNotificationCardPreview = (index: string) => {
 		if (this.cardInNotificationPreview === index) {
 			this.cardInNotificationPreview = null;
 		} else {
@@ -84,7 +93,7 @@ export default class GameController {
 		this.notifications.splice(0, 1);
 	};
 
-	selectCard = (notification, cardUniqueId) => {
+	selectCard = (notification: INotificationAction, cardUniqueId: string) => {
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.cardSelect, actionContext: notification, cardUniqueId});
 		this.hidENotificationAction();
 	};
@@ -130,27 +139,27 @@ export default class GameController {
 		}
 	};
 
-	updateHand = (newHand) => {
+	updateHand = (newHand: IHandMap) => {
 		each(this.hand, card => {
-			if (!newHand[card.uniqueId]) delete this.hand[card.uniqueId]
+			if (card.uniqueId && !newHand[card.uniqueId]) delete this.hand[card.uniqueId]
 		});
 		merge(this.hand, newHand)
 	};
 
-	updatePlayers = (newPlayers) => {
+	updatePlayers = (newPlayers: IPlayersMap) => {
 		merge(this.players, newPlayers);
-		each(this.players, ({id}) => {
-			if (!newPlayers[id]) {
-				delete this.players[id];
+		each(this.players, (player) => {
+			if (player && !newPlayers[player.id]) {
+				delete this.players[player.id];
 			}
 		})
 	};
 
-	updateHandActions = (handActions) => {
+	updateHandActions = (handActions: IHandActionsMap) => {
 		this.handActions = handActions
 	};
 
-	updateGame = ({tradeContext, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions, hostPlayerId, isPlayerCanCancel}) => {
+	updateGame = ({tradeContext, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions, hostPlayerId, isPlayerCanCancel}: IGameUpdatePayload) => {
 		this.updatePlayers(players);
 		this.updateHand(hand);
 		this.updateHandActions(handActions);
@@ -175,7 +184,7 @@ export default class GameController {
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.actionCancel});
 	}
 
-	changePlayerMark = (playerId) => {
+	changePlayerMark = (playerId: string) => {
 		this.socket.sendToServer(EClientEventType.markPlayer, {playerId});
 	}
 }

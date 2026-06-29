@@ -10,6 +10,7 @@ import {formatCards} from 'server/helpers/cardHelpers';
 
 export const lookAroundAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	//player.discardCard(card.uniqueId);
+	if (!card.uniqueId) return;
 	player.discardCard(card.uniqueId);
 	game.isClockwise = !game.isClockwise;
 	player.changeTurnState(ETurnState.inCardActionProgress);

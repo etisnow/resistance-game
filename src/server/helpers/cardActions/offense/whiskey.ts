@@ -8,13 +8,14 @@ import {formatCards} from 'server/helpers/cardHelpers';
 
 
 export const whiskeyAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
+	if (!card.uniqueId) return;
 	player.discardCard(card.uniqueId);
 	player.changeTurnState(ETurnState.inOffenseTrade);
     game.notifyAllPlayers(formatPlayerNotification({
       player: player,
       notification: {
 		type: ENotificationAction.okayCard,
-        cards: formatCards(player.hand as ICardEvent[]),
+        cards: formatCards(player.hand),
 		text: `${player.nickname}: я слишком пьян для этого дерьма! Вот мои карты.`
       },
     }));

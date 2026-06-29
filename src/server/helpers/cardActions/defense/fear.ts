@@ -11,9 +11,11 @@ import {formatCards} from 'server/helpers/cardHelpers';
 
 export const fearAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	const context = game.turnContext;
-	if (context.type !== ETurnContextType.trade) {
+	if (!context || context.type !== ETurnContextType.trade) {
 		throw  new Error('Fear использован вне контекста торговли')
 	}
+	if (!card.uniqueId) return;
+	if (!context.offenseCard) return;
 	//player.discardCard(card.uniqueId);
 	player.changeTurnState(ETurnState.idle);
 	player.discardCard(card.uniqueId);

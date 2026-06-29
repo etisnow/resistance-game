@@ -20,7 +20,9 @@ export const tenacityAct = ({card, game, player} : {card:ICardEvent, game: Game,
 		playerId: player.id,
 	};
 	player.changeTurnState(ETurnState.inCardActionProgress);
-	player.discardCard(card.uniqueId);
+	if (card.uniqueId) {
+		player.discardCard(card.uniqueId);
+	}
     player.notify(formatPlayerNotification({
       player: player,
       notification: {
@@ -32,7 +34,7 @@ export const tenacityAct = ({card, game, player} : {card:ICardEvent, game: Game,
 };
 
 export const tenacitySelect = ({game, player, cardUniqueId} : {game: Game, player: Player, cardUniqueId: string}) => {
-	if (game.turnContext.type !== ETurnContextType.tenacityCardSelect) {
+	if (!game.turnContext || game.turnContext.type !== ETurnContextType.tenacityCardSelect) {
 		throw new Error('Выбор упорства произошел без контекста tenacityCardSelect');
 	}
 	game.addLog(`Игрок ${player.nickname} играет карту "Упорство"`);

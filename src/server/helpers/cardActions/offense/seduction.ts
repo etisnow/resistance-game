@@ -9,6 +9,7 @@ import {ETurnState} from 'shared/enum/player';
 export const seductionAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	player.changeTurnState(ETurnState.inCardActionProgress);
 	const allPlayersExeptCurrent = player.getAllPlayablePlayersExceptCurrent();
+	if (!card.uniqueId) return;
 	game.turnContext = {
 		type: ETurnContextType.seduction,
 		offensePlayer: player,
@@ -35,6 +36,7 @@ export const seductionSelect = ({game, player, selectedPlayerId} : {game: Game, 
 				player.discardCard(game.turnContext.cardUniqueId);
 			}
 			const playerToTrade = game.players[selectedPlayerId];
+			if (!playerToTrade) return;
 			if (player === playerToTrade) {
 				game.turnContext = null;
 				game.endTurn(player.id);

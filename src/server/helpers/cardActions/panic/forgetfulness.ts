@@ -3,7 +3,7 @@ import {Player} from 'server/models/Player';
 import {ETurnState} from 'shared/enum/player';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ENotificationAction} from 'shared/enum/notifications';
-import {clone, each, find} from 'lodash';
+import {clone, find} from 'lodash';
 import {getCardActions} from 'server/formatters/formatCardActions';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 

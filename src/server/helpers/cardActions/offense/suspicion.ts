@@ -9,6 +9,7 @@ import {formatCards} from 'server/helpers/cardHelpers';
 
 
 export const suspicionAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
+	if (!card.uniqueId) return;
 	game.turnContext = {
 		type: ETurnContextType.suspicionPersonSelect,
 		playerId: player.id,
@@ -28,13 +29,15 @@ export const suspicionAct = ({card, game, player} : {card:ICardEvent, game: Game
 };
 
 export const suspicionSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
-	if (game.turnContext.type !== ETurnContextType.suspicionPersonSelect) {
+	if (!game.turnContext || game.turnContext.type !== ETurnContextType.suspicionPersonSelect) {
 		throw new Error('Выбор подозрения произошел без контекста suspicionPersonSelect');
 	}
 	player.discardCard(game.turnContext.cardUniqueId);
 	const playerToView= game.players[selectedPlayerId];
+	if (!playerToView) return;
 	const cardToView = playerToView.getRandomCard();
 	game.turnContext = null;
+	if (!cardToView) return;
     player.notify(formatPlayerNotification({
       player: player,
       notification: {

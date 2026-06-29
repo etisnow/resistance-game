@@ -12,7 +12,7 @@ import {formatCards} from 'server/helpers/cardHelpers';
 export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Player, cardUniqueId: string}) => {
 
   const tradingCard = player.getCardByUniqueId(cardUniqueId);
-  if (tradingCard.type !== ECardType.event) {
+  if (!tradingCard || tradingCard.type !== ECardType.event) {
     throw new Error(`Попытка обменяться НЕ картой эвента ${JSON.stringify(tradingCard)}`);
   }
   const context = game.turnContext;
@@ -21,7 +21,12 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
   }
   const isOffenseTrade = player.turnState === ETurnState.inOffenseTrade;
 
-  let playerToTrade: Player = context.defensePlayer;
+  const playerToTrade = context.defensePlayer;
+  if (!playerToTrade) {
+    debugLog('Нет защищающегося игрока для обмена');
+    game.endTurn(player.id);
+    return;
+  }
 
   if (game.turnContext && game.turnContext.type === ETurnContextType.trade && game.turnContext.defensePlayer === player && game.turnContext.offensePlayer === player) {
     debugLog('Трейд против себя')
@@ -61,6 +66,10 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
 
 
   const offensePlayerCard = context.offenseCard;
+  if (!offensePlayerCard) {
+    console.error('Нет карты атакующего для обмена у игрока', player.id);
+    return;
+  }
   const defensePlayerCard = tradingCard;
   /* OFFENSE CARD PUSH */
   offensePlayer.getCard(defensePlayerCard);

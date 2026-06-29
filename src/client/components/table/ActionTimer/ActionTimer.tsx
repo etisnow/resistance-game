@@ -2,9 +2,6 @@ import React from 'react';
 import './styles.scss';
 import GameController from 'client/controllers/gameController';
 import {observer} from 'mobx-react-lite';
-import type INotificationAction from 'shared/interfaces/notification';
-import {ENotificationAction} from 'shared/enum/notifications';
-import { map } from 'lodash';
 import {getZIndex} from 'client/components/gameLog/GameLog';
 
 
@@ -12,25 +9,7 @@ interface IActionInteracterProps {
 	controller:  GameController;
 }
 
-const renderAction = (action: INotificationAction, controller: GameController) => {
-	if (action.type !== ENotificationAction.actionDecision) return null;
-	return (
-		<div className={"menu-wrapper"}>
-			<div className={"centeredNotificationRow column"}>
-				{map(action.menu, ({text, action}) => {
-					return (<div
-						className={'okayNotificationButton'}
-						onClick={() => controller.actionDecision(action)}
-					>
-						{text}
-					</div>)
-				})}
-			</div>
-		</div>
-	);
-}
-
-function getColor(value){
+function getColor(value: number){
 	if (value > 1) value = 1;
     var hue=((1-value)*40).toString(10);
     return ["hsl(",hue,",100%,50%)"].join("");

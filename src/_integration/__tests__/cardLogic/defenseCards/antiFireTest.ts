@@ -4,7 +4,7 @@ import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
 import {find} from 'lodash';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {checkAllDeckCardsTestEdition} from '_integration/helpers';
+import {requirePlayer} from '_integration/helpers';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 import {ETurnContextType} from 'shared/enum/turnContextType';
@@ -13,10 +13,11 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 describe('antifire test',  () => {
 
 	it('antifire cancel burn', () => {
-		const [gameServer, game, defensePlayer] = createMockGameServer();
+		const [gameServer, game, defensePlayerMaybe] = createMockGameServer();
+		const defensePlayer = requirePlayer(game, defensePlayerMaybe?.id);
 		defensePlayer.hand.splice(0,1);
 		defensePlayer.hand.splice(0,1, getCard(EEventID.noFire));
-		expect(defensePlayer.hand[0].id).toBe(EEventID.noFire);
+		expect(defensePlayer.hand[0]?.id).toBe(EEventID.noFire);
 
 		const offensePlayer = game.getPlayerByPosition({isNext: false, playerId: defensePlayer.id})
 		offensePlayer.hand.splice(0,1, getCard(EEventID.flamethrower));
@@ -29,9 +30,10 @@ describe('antifire test',  () => {
 		let flamethrower = find(offensePlayer.hand, {id: EEventID.flamethrower});
 
 		expect(flamethrower).not.toBe(undefined);
+		if (!flamethrower) throw new Error('flamethrower card not found');
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
-			cardUniqueId: flamethrower.uniqueId,
+			cardUniqueId: flamethrower.uniqueId ?? undefined,
 			actionType: EPlayerActionType.cardAct
 		});
 		testPlayerAction(gameServer, game, {
@@ -43,6 +45,7 @@ describe('antifire test',  () => {
 		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: flamethrower.uniqueId}));
 
 		let noFire = find(defensePlayer.hand, {id: EEventID.noFire});
+		if (!noFire) throw new Error('noFire card not found');
 		expect(offensePlayer.turnState).toBe(ETurnState.inCardActionProgress);
 
 
@@ -64,7 +67,7 @@ describe('antifire test',  () => {
 		});
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
-		expect(game.turnContext.type).toBe(ETurnContextType.trade)
+		expect(game.turnContext?.type).toBe(ETurnContextType.trade)
 		expect(defensePlayer.turnState).toBe(ETurnState.idle);
 
 		expect(defensePlayer.hand).not.toContainEqual(expect.objectContaining({ uniqueId: noFire.uniqueId }));
@@ -77,11 +80,12 @@ describe('antifire test',  () => {
 	});
 
 	it('antifire burn', () => {
-		const [gameServer, game, defensePlayer] = createMockGameServer();
+		const [gameServer, game, defensePlayerMaybe] = createMockGameServer();
+		const defensePlayer = requirePlayer(game, defensePlayerMaybe?.id);
 		defensePlayer.isThing = false;
 		defensePlayer.hand.splice(0,1);
 		defensePlayer.hand.splice(0,1, getCard(EEventID.noFire));
-		expect(defensePlayer.hand[0].id).toBe(EEventID.noFire);
+		expect(defensePlayer.hand[0]?.id).toBe(EEventID.noFire);
 
 		const offensePlayer = game.getPlayerByPosition({isNext: false, playerId: defensePlayer.id})
 		offensePlayer.hand.splice(0,1, getCard(EEventID.flamethrower));
@@ -94,9 +98,10 @@ describe('antifire test',  () => {
 		let flamethrower = find(offensePlayer.hand, {id: EEventID.flamethrower});
 
 		expect(flamethrower).not.toBe(undefined);
+		if (!flamethrower) throw new Error('flamethrower card not found');
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
-			cardUniqueId: flamethrower.uniqueId,
+			cardUniqueId: flamethrower.uniqueId ?? undefined,
 			actionType: EPlayerActionType.cardAct
 		});
 		testPlayerAction(gameServer, game, {
@@ -107,7 +112,7 @@ describe('antifire test',  () => {
 
 		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: flamethrower.uniqueId}));
 
-		let noFire = find(defensePlayer.hand, {id: EEventID.noFire});
+		find(defensePlayer.hand, {id: EEventID.noFire});
 		expect(offensePlayer.turnState).toBe(ETurnState.inCardActionProgress);
 
 
@@ -131,7 +136,7 @@ describe('antifire test',  () => {
 		expect(game.playersList).not.toContain(defensePlayer.id);
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
-		expect(game.turnContext.type).toBe(ETurnContextType.trade)
+		expect(game.turnContext?.type).toBe(ETurnContextType.trade)
 
 
 		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: flamethrower.uniqueId}));

@@ -3,29 +3,34 @@ import {EEventID} from 'shared/enum/cards';
 import {createMockGameServer} from '_integration/createGameServer';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {checkAllDeckCardsTestEdition} from '_integration/helpers';
 import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 import {ETurnContextType} from 'shared/enum/turnContextType';
+import {requirePlayer} from '_integration/helpers';
 
 describe('axe test',  () => {
 
 	it('axe should break the door', () => {
-		const [gameServer, game, defensePlayer, a, b, c, d, offensePlayer] = createMockGameServer();
+		const [gameServer, game, defensePlayerMaybe, , , , , offensePlayerMaybe] = createMockGameServer();
+		const defensePlayer = requirePlayer(game, defensePlayerMaybe?.id);
+		const offensePlayer = requirePlayer(game, offensePlayerMaybe?.id);
 		defensePlayer.hand.splice(0,1);
 		defensePlayer.hand.splice(0,1, getCard(EEventID.axe));
-		expect(defensePlayer.hand[0].id).toBe(EEventID.axe);
+		const defenseFirstCard = defensePlayer.hand[0];
+		expect(defenseFirstCard?.id).toBe(EEventID.axe);
 
 		offensePlayer.hand.splice(0,1, getCard(EEventID.barricade));
-		expect(offensePlayer.hand[0].id).toBe(EEventID.barricade);
+		const offenseFirstCard = offensePlayer.hand[0];
+		expect(offenseFirstCard?.id).toBe(EEventID.barricade);
 
 		game.changeTurn(offensePlayer.id);
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inCardAction);
-		let barricade = offensePlayer.hand[0];
+		const barricade = offensePlayer.hand[0];
 		expect(barricade).not.toBe(undefined);
+		if (!barricade) throw new Error('barricade card not found');
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
-			cardUniqueId: barricade.uniqueId,
+			cardUniqueId: barricade.uniqueId ?? undefined,
 			actionType: EPlayerActionType.cardAct
 		});
 		testPlayerAction(gameServer, game, {
@@ -47,11 +52,12 @@ describe('axe test',  () => {
 		expect(defensePlayer.turnState).toBe(ETurnState.inCardAction);
 		expect(defensePlayer.hand.length).toBe(5);
 
-		let axe = defensePlayer.hand[0];
+		const axe = defensePlayer.hand[0];
+		if (!axe) throw new Error('axe card not found');
 
 		testPlayerAction(gameServer, game, {
 			player:defensePlayer,
-			cardUniqueId: axe.uniqueId,
+			cardUniqueId: axe.uniqueId ?? undefined,
 			actionType: EPlayerActionType.cardAct
 		});
 		testPlayerAction(gameServer, game, {
@@ -67,14 +73,15 @@ describe('axe test',  () => {
 
 
 		expect(defensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
-		expect(game.turnContext.type).toBe(ETurnContextType.trade)
+		expect(game.turnContext?.type).toBe(ETurnContextType.trade)
 		expect(offensePlayer.hand.length).toBe(4);
 
 
 	});
 
 	it('axe should break the quarantine', () => {
-		const [gameServer, game, defensePlayer] = createMockGameServer();
+		const [gameServer, game, defensePlayerMaybe] = createMockGameServer();
+		const defensePlayer = requirePlayer(game, defensePlayerMaybe?.id);
 
 		defensePlayer.hand.splice(0,1);
 		const offensePlayer = game.getPlayerByPosition({playerId:defensePlayer.id, isNext:false});
@@ -84,18 +91,20 @@ describe('axe test',  () => {
 
 
 		offensePlayer.hand.splice(0,1, getCard(EEventID.axe));
-		expect(offensePlayer.hand[0].id).toBe(EEventID.axe);
+		const firstCard = offensePlayer.hand[0];
+		expect(firstCard?.id).toBe(EEventID.axe);
 
 
 
 		offensePlayer.quarantine = 3;
 		expect(offensePlayer.quarantine).toBe(3);
 		expect(offensePlayer.turnState).toBe(ETurnState.inCardAction);
-		let axe = offensePlayer.hand[0];
+		const axe = offensePlayer.hand[0];
 		expect(axe).not.toBe(undefined);
+		if (!axe) throw new Error('axe card not found');
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
-			cardUniqueId: axe.uniqueId,
+			cardUniqueId: axe.uniqueId ?? undefined,
 			actionType: EPlayerActionType.cardAct
 		});
 		testPlayerAction(gameServer, game, {
@@ -105,7 +114,7 @@ describe('axe test',  () => {
 		});
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
-		expect(game.turnContext.type).toBe(ETurnContextType.trade)
+		expect(game.turnContext?.type).toBe(ETurnContextType.trade)
 		expect(offensePlayer.hand.length).toBe(4);
 		expect(offensePlayer.quarantine).toBe(0);
 

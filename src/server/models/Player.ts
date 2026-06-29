@@ -16,19 +16,21 @@ import {
 	formatUpdateGameEvent,
 } from 'server/formatters/formatOutgoingEvents';
 import {EPlayerMark} from 'shared/enum/playerMarks';
-
-//import {formatPlayerConnectedEvent} from 'server/formatters/formatOutgoingEvents';
+import type {IGameSocket, IServerEvent} from 'shared/interfaces/socket';
 
 export class Player {
-	id = null;
-	socket: any;
+	// Real players get a unique id; the door placeholder keeps '' (it is
+	// identified by state === door, never looked up by id).
+	id: string = '';
+	socket: IGameSocket | null = null;
 	state: EPlayerState = EPlayerState.dummy;
 	turnState: ETurnState = ETurnState.idle;
 	nickname: string = '';
 	color:string = '';
-	game: Game = null;
-	isYou: boolean;
-	hand: ICardEvent[];
+	// Always assigned via register() before the player participates in a game.
+	game!: Game;
+	isYou: boolean = false;
+	hand: ICardEvent[] = [];
 	isInfected: boolean = false;
 	isThing: boolean = false;
 	quarantine: number = 0;
@@ -36,20 +38,20 @@ export class Player {
 	// counter doesn't tick on the very turn-start that immediately follows.
 	quarantineFresh: boolean = false;
 	isReady: boolean = false;
-	currentAction: INotificationAction;
+	currentAction: INotificationAction | null = null;
 	isConnected: boolean = true;
 	marks: {[key:string]: EPlayerMark} = {};
 
-	constructor({ socket, playerState = EPlayerState.dummy }) {
+	constructor({ socket, playerState = EPlayerState.dummy }: { socket?: IGameSocket | null; playerState?: EPlayerState }) {
 		this.state = playerState;
 		if (playerState === EPlayerState.door) {
 			return;
 		}
 		this.id = _.uniqueId('player_');
-		this.socket = socket;
+		this.socket = socket ?? null;
 	}
 
-	notify = (event) => {
+	notify = (event: IServerEvent) => {
 		if (event.type === 'notification') {
 			this.processNotificationAction(event.payload as INotificationAction);
 		}
@@ -91,7 +93,7 @@ export class Player {
 
 	processTimer(turnState: ETurnState) {
 		const {game} = this;
-		let timerNotification = null;
+		let timerNotification: { text: string; seconds: number } | null = null;
 		if (game.turnContext && game.turnContext.type === ETurnContextType.chainReaction) {
 			timerNotification = { text: `${this.nickname} все передают карту по кругу`, seconds: 30 };
 		} else {
@@ -110,6 +112,7 @@ export class Player {
 					return;
 			}
 		}
+		if (!timerNotification) return;
 		this.notify(formatSoundNotification());
 		this.game.notifyAllPlayers(formatTimerNotification(timerNotification));
 	}
@@ -117,9 +120,9 @@ export class Player {
 	interruptTrade = () => {
 		if (!this.game.turnContext || this.game.turnContext.type !== ETurnContextType.trade || this.game.turnContext.offensePlayer !== this) {
 			throw new Error(`Интеррупт произошел вне контекста trade у игрока ${this.nickname}`)
-			return;
 		}
-		this.getCard(this.game.turnContext.offenseCard);
+		const offenseCard = this.game.turnContext.offenseCard;
+		if (offenseCard) this.getCard(offenseCard);
 		this.game.endTurn(this.id);
 	}
 
@@ -163,8 +166,9 @@ export class Player {
 		const game = this.game;
 		if (!game.gameInProcess) return;
 		const card = this.getCardByUniqueId(cardUniqueId);
+		if (!card) return;
 
-		const discardCardIndex = findIndex(this.hand, (card) => card.uniqueId === cardUniqueId);
+		const discardCardIndex = findIndex(this.hand, (handCard) => handCard.uniqueId === cardUniqueId);
 		debugLog(`Игрок ${this.nickname} убрал в колоду ${card.id}`)
 		this.game.discardedDeckPush(card);
 		this.hand.splice(discardCardIndex, 1);
@@ -176,10 +180,10 @@ export class Player {
 		this.game = game;
 		game.connectPlayer({player: this});
 	};
-	getCardById = (id) => {
+	getCardById = (id: EEventID): ICardEvent | undefined => {
 		return find(this.hand, {id});
 	};
-	getCardByUniqueId = (uniqueId: string) : ICardEvent => {
+	getCardByUniqueId = (uniqueId: string) : ICardEvent | undefined => {
 		return find(this.hand, {uniqueId});
 	};
 
@@ -192,34 +196,30 @@ export class Player {
 
 
 
-	getNeighbours = () => {
+	private neighbourIds = (): string[] => {
 		const game = this.game;
 		if (!game) { throw new Error('Не забиндена игра у игрока'); }
-		const currentPlayerIndex = findIndex(game.playersList, (playerId) => this.id === playerId );
-		const rightId = game.playersList[currentPlayerIndex + 1] || game.playersList[0];
-		const leftId = game.playersList[currentPlayerIndex - 1] || game.playersList[game.playersList.length - 1];
-		return [rightId, leftId];
+		const i = findIndex(game.playersList, (playerId) => this.id === playerId);
+		const rightId = game.playersList[i + 1] ?? game.playersList[0];
+		const leftId = game.playersList[i - 1] ?? game.playersList[game.playersList.length - 1];
+		return [rightId, leftId].filter((id): id is string => !!id);
 	};
 
-	getPlayabeNeighbours = (ignoreOptions?: { ignoreDoors:boolean, ignoreQuarantine:boolean }) : string[] => {
+	getNeighbours = (): string[] => this.neighbourIds();
+
+	getPlayabeNeighbours = (): string[] => {
 		const game = this.game;
-		if (!game) { throw new Error('Не забиндена игра у игрока'); }
-		const currentPlayerIndex = findIndex(game.playersList, (playerId) => this.id === playerId );
-		const rightId = game.playersList[currentPlayerIndex + 1] || game.playersList[0];
-		const leftId = game.playersList[currentPlayerIndex - 1] || game.playersList[game.playersList.length - 1];
-		const rightPlayer = game.players[rightId];
-		const leftPlayer = game.players[leftId];
-		const nighbours = [rightPlayer, leftPlayer]
-			.filter((p) => p.state !== EPlayerState.door && p.quarantine === 0)
-			.map(p => p.id);
-		return nighbours;
+		return this.neighbourIds()
+			.map((id) => game.players[id])
+			.filter((p): p is Player => !!p && p.state !== EPlayerState.door && p.quarantine === 0)
+			.map((p) => p.id);
 	};
 
-	getAxeTargets = () => {
+	getAxeTargets = (): string[] => {
 		const game = this.game;
-		const neighbours = this.getNeighbours().filter((n:string) => {
-			const neigbh = game.players[n];
-			return neigbh.quarantine > 0 || neigbh.state === EPlayerState.door;
+		const neighbours = this.neighbourIds().filter((n) => {
+			const neigh = game.players[n];
+			return !!neigh && (neigh.quarantine > 0 || neigh.state === EPlayerState.door);
 		});
 
 		const axeTargets = [...neighbours];
@@ -228,10 +228,10 @@ export class Player {
 		}
 		return axeTargets;
 	}
-	getAllPlayablePlayersExceptCurrent() {
+	getAllPlayablePlayersExceptCurrent(): string[] {
 		return this.game.playersList.filter(pId => {
 			const iterPlayer = this.game.players[pId];
-			return pId !== this.id && iterPlayer.quarantine === 0 && iterPlayer.state === EPlayerState.dummy;
+			return !!iterPlayer && pId !== this.id && iterPlayer.quarantine === 0 && iterPlayer.state === EPlayerState.dummy;
 		});
 	}
 	getCardTargets = (card: ICardEvent) => {
@@ -271,21 +271,22 @@ export class Player {
 		return this.game.getPlayerByPosition({playerId: this.id, isNext:true});
 	}
 
-	getNextAlivePlayer = () => {
+	getNextAlivePlayer = (): Player => {
 		const nextPlayer = this.getNextPlayer();
 		if (!nextPlayer.isAlive()) return nextPlayer.getNextAlivePlayer();
 		return nextPlayer
 	}
 
-	getPrevPlayer = () => {
+	getPrevPlayer = (): Player => {
 		return this.game.getPlayerByPosition({playerId: this.id, isNext:false});
 	}
-	getRandomCard = () => {
+	getRandomCard = (): ICardEvent | undefined => {
 		const randomCard = shuffle(this.hand)[0];
 		return randomCard;
 	}
-	getRandomPlayableCard = () => {
+	getRandomPlayableCard = (): ICardEvent | undefined => {
 		const randomCard = shuffle(this.hand)[0];
+		if (!randomCard) return undefined;
 		if (getCardActions(this.game, this, randomCard).length > 0) {
 			return randomCard;
 		}
@@ -298,7 +299,7 @@ export class Player {
 		//this.game.notifyAllPlayers(formatPlayerConnectedEvent({viewer: this, game: this.game}))
 	}
 
-	markPlayer = (markPlayerId) => {
+	markPlayer = (markPlayerId: string) => {
 		this.marks[markPlayerId] = getNextMark(this.marks[markPlayerId]);
 		this.notify(formatUpdateGameEvent({game: this.game, viewer: this}));
 	}

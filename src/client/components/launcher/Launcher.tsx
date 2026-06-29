@@ -11,7 +11,12 @@ interface ILauncherProps {
 	controller: LauncherController
 }
 
-const GamesList = observerLite(({games, controller}: {games:any[], controller: LauncherController}) => {
+interface IGameListItem {
+	gameId: string;
+	hostName: string;
+}
+
+const GamesList = observerLite(({games, controller}: {games: IGameListItem[], controller: LauncherController}) => {
 	if (!games || games.length === 0) return null;
 
 	return (
@@ -36,7 +41,7 @@ const GamesList = observerLite(({games, controller}: {games:any[], controller: L
 
 @observer
 class Launcher extends React.Component<ILauncherProps> {
-	render() {
+	override render() {
 		if (!this.props.controller) return null;
 		if (this.props.controller.state === EAsyncState.pending) return <Loader/>;
 		const {games} = this.props.controller;

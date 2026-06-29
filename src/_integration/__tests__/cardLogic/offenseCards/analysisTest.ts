@@ -2,10 +2,8 @@ import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
 import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
-import {find} from 'lodash';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {checkAllDeckCardsTestEdition, expectOkayCard} from '_integration/helpers';
-import {ENotificationAction} from 'shared/enum/notifications';
+import {expectOkayCard, requirePlayer} from '_integration/helpers';
 import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 
@@ -13,19 +11,20 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 describe('analysis test',  () => {
 
 	it('analysis card', () => {
-		const [gameServer, game, defensePlayer] = createMockGameServer();
+		const [gameServer, game, defensePlayerMaybe] = createMockGameServer();
+		const defensePlayer = requirePlayer(game, defensePlayerMaybe?.id);
 		defensePlayer.hand.splice(0,1);
 		defensePlayer.hand.splice(0,4, getCard(EEventID.fear), getCard(EEventID.flamethrower), getCard(EEventID.noFire), getCard(EEventID.leaveMeAlone));
-		expect(defensePlayer.hand[0].id).toBe(EEventID.fear);
-		expect(defensePlayer.hand[1].id).toBe(EEventID.flamethrower);
-		expect(defensePlayer.hand[2].id).toBe(EEventID.noFire);
-		expect(defensePlayer.hand[3].id).toBe(EEventID.leaveMeAlone);
+		expect(defensePlayer.hand[0]?.id).toBe(EEventID.fear);
+		expect(defensePlayer.hand[1]?.id).toBe(EEventID.flamethrower);
+		expect(defensePlayer.hand[2]?.id).toBe(EEventID.noFire);
+		expect(defensePlayer.hand[3]?.id).toBe(EEventID.leaveMeAlone);
 
 
 		const offensePlayer = game.getPlayerByPosition({isNext: false, playerId: defensePlayer.id});
 		offensePlayer.hand.splice(0,1, getCard(EEventID.analysis));
-		expect(offensePlayer.hand[0].id).toBe(EEventID.analysis);
-		
+		expect(offensePlayer.hand[0]?.id).toBe(EEventID.analysis);
+
 		game.changeTurn(offensePlayer.id);
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inCardAction);
@@ -34,7 +33,7 @@ describe('analysis test',  () => {
 		expect(analysis).not.toBe(undefined);
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
-			cardUniqueId: analysis.uniqueId,
+			cardUniqueId: analysis?.uniqueId ?? undefined,
 			actionType: EPlayerActionType.cardAct
 		});
 		testPlayerAction(gameServer, game, {
@@ -53,10 +52,10 @@ describe('analysis test',  () => {
 		]))
 
 		//Не должно быть старой картой анализа, но должна быть новая
-		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: analysis.uniqueId}));
+		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: analysis?.uniqueId}));
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
-		expect(game.turnContext.type).toBe(ETurnContextType.trade)
+		expect(game.turnContext?.type).toBe(ETurnContextType.trade)
 
 		expect(defensePlayer.turnState).toBe(ETurnState.idle);
 		expect(offensePlayer.hand.length).toBe(4);

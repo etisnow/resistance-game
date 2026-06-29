@@ -1,4 +1,4 @@
-import React, {useEffect, useRef} from 'react';
+import React from 'react';
 import './style.scss';
 import {observer} from 'mobx-react-lite';
 import GameController from 'client/controllers/gameController';

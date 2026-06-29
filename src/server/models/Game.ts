@@ -27,10 +27,11 @@ import {checkAllDeckCards} from '_integration/helpers';
 import clc from 'cli-color';
 import {EGameState} from 'shared/enum/common';
 import {formatCards} from 'server/helpers/cardHelpers';
+import type {IServerEvent} from 'shared/interfaces/socket';
 
 
 export class Game {
-  id = null;
+  id: string = '';
   state: EGameState = EGameState.lobby;
   players: { [key: string]: Player } = {};
   playersList: string[] = [];
@@ -42,18 +43,18 @@ export class Game {
   gameLog: string[] = [];
   turnContext: ITurnContext | null = null;
   gameInProcess:boolean = true;
-  constructor({ player }) {
+  constructor({ player }: { player: Player }) {
     this.id = uniqueId("game_");
     this.players[player.id] = player;
   }
 
-  notifyAllPlayers = (event) => {
+  notifyAllPlayers = (event: IServerEvent) => {
     each(this.players, (p) => {
       p.notify(event);
     })
   };
 
-  notifyAllPlayersExeptPlayer = (event, player) => {
+  notifyAllPlayersExeptPlayer = (event: IServerEvent, player: Player) => {
     each(this.players, (p) => {
       if (p === player) return;
       p.notify(event);
@@ -64,7 +65,7 @@ export class Game {
     player.notify(formatPlayerNotification({ player, notification }));
   }
 
-  killPlayer = (player) => {
+  killPlayer = (player: Player) => {
     player.currentAction = null;
 	if (player.isThing) {
 		this.end('Нечто проиграло');
@@ -73,7 +74,7 @@ export class Game {
 
     const discardCardIds = player.hand.map(cardToDiscard => cardToDiscard.uniqueId);
     each(discardCardIds, cardUniqueId => {
-        player.discardCard(cardUniqueId)
+        if (cardUniqueId) player.discardCard(cardUniqueId)
     });
     //Если он до этого торговал в offense trade и в стейте застряла его карта - дискардим карту
     if (this.turnContext && this.turnContext.type === ETurnContextType.trade && this.turnContext.offensePlayer === player) {
@@ -85,9 +86,9 @@ export class Game {
 
     player.changeTurnState(ETurnState.dead)
     this.playersList = this.playersList.filter(pId => pId !== player.id);
-    const alivePlayers = filter(clone(this.playersList), pId => this.players[pId].isAlive());
+    const alivePlayers = filter(clone(this.playersList), pId => !!this.players[pId]?.isAlive());
 
-    const cleanPlayers = filter(alivePlayers, pId => !this.players[pId].isInfected);
+    const cleanPlayers = filter(alivePlayers, pId => !this.players[pId]?.isInfected);
     if (cleanPlayers.length === 0) {
       return this.end('Нечто победило');
     }
@@ -137,32 +138,34 @@ export class Game {
     }
   }
 
-  end = (lastMessage) => {
+  end = (lastMessage: string) => {
     const thingPlayer = find(this.players, {isThing:true});
 
     const conditionText = lastMessage === 'Нечто проиграло' ? 'не справился' : 'справился';
 
-	this.notifyAllPlayers(formatPlayerNotification({
-	  player: thingPlayer,
-	  notification: {
-		type: ENotificationAction.gameEnd,
-        menu: [{
-		  action: 'exit',
-          text: 'Выход',
-        }, {
-		  action: 'hide',
-          text: 'Скрыть',
-        }],
-		text: `Игра закончена! ${thingPlayer.nickname} ${conditionText} со своим коварным заданием...`,
-	  },
-	}));
+    if (thingPlayer) {
+      this.notifyAllPlayers(formatPlayerNotification({
+        player: thingPlayer,
+        notification: {
+          type: ENotificationAction.gameEnd,
+          menu: [{
+            action: 'exit',
+            text: 'Выход',
+          }, {
+            action: 'hide',
+            text: 'Скрыть',
+          }],
+          text: `Игра закончена! ${thingPlayer.nickname} ${conditionText} со своим коварным заданием...`,
+        },
+      }));
+    }
 
 
     this.addLog(lastMessage ? lastMessage : 'Игра закончена.', true)
 
     each(this.playersList, (pId) => {
       const pl = this.players[pId];
-      pl.changeTurnState(ETurnState.idle);
+      if (pl) pl.changeTurnState(ETurnState.idle);
     });
 	this.gameInProcess = false;
     gameServer.destroyGame(this.id)
@@ -174,7 +177,8 @@ export class Game {
     this.addLog('Игра началась');
     this.state = EGameState.sarted;
     gameStarter(this);
-    this.changeTurn(this.playersList[0]);
+    const firstPlayerId = this.playersList[0];
+    if (firstPlayerId) this.changeTurn(firstPlayerId);
     checkAllDeckCards(this, !gameServer.isMock);
     this.notifyAllPlayers(formatStartGameEvent({players}))
     this.updateGame();
@@ -202,7 +206,7 @@ export class Game {
       }
     })
   };
-  discardedDeckPush(card) {
+  discardedDeckPush(card: ICardAny | undefined | null) {
     //debugLog('DISCARDED CARD', card)
     if (!card) {
       throw new Error('Попытка задискардить undefined')
@@ -215,45 +219,37 @@ export class Game {
   getPlayerByPosition = ({playerId, isNext}: {playerId: string, isNext: boolean}) : Player => {
     const currentPlayerIndex = this.playersList.indexOf(playerId);
 
-    const clockwiseNext = this.playersList[currentPlayerIndex + 1] || this.playersList[0];
-    const clockwisePrev = this.playersList[currentPlayerIndex - 1] || this.playersList[this.playersList.length - 1];
+    const clockwiseNext = this.playersList[currentPlayerIndex + 1] ?? this.playersList[0];
+    const clockwisePrev = this.playersList[currentPlayerIndex - 1] ?? this.playersList[this.playersList.length - 1];
 
-
-    let getPlayerId = null;
+    let getPlayerId: string | undefined;
     if (this.isClockwise) {
-      //По часовой стрелке
-      if (isNext) {
-        getPlayerId = clockwiseNext;
-      } else {
-        getPlayerId = clockwisePrev;
-      }
+      getPlayerId = isNext ? clockwiseNext : clockwisePrev;
     } else {
-      //Против часовой стрелки
-      if (isNext) {
-        getPlayerId = clockwisePrev;
-      } else {
-        getPlayerId = clockwiseNext;
-      }
+      getPlayerId = isNext ? clockwisePrev : clockwiseNext;
     }
 
-    if (!getPlayerId) { console.error('Ошибка! Не удалось получить следующего игрока') }
-    return this.players[getPlayerId];
+    const player = getPlayerId ? this.players[getPlayerId] : undefined;
+    if (!player) {
+      throw new Error('Не удалось получить игрока по позиции');
+    }
+    return player;
   };
 
 
 
   infectPlayer = (playerId: string) => {
-    if (!this.players[playerId]) {
+    const notificationPlayer = this.players[playerId];
+    if (!notificationPlayer) {
       console.error('Неудалось заразить игрока, т.к не было найдено его ID', playerId);
       return;
     }
-    this.players[playerId].isInfected = true;
+    notificationPlayer.isInfected = true;
 
     const cleanPlayerId = find(this.playersList, (pId) => {
       const pl = this.players[pId];
-      return pl.state === EPlayerState.dummy && !pl.isThing && !pl.isInfected
+      return !!pl && pl.state === EPlayerState.dummy && !pl.isThing && !pl.isInfected
     });
-    const notificationPlayer = this.players[playerId];
     if (!cleanPlayerId) {
       this.notifyAllPlayers(formatPlayerNotification({
         player: notificationPlayer,
@@ -303,6 +299,7 @@ export class Game {
     if (!this.gameInProcess) return
     this.turnContext = null;
     const endTurnPlayer = this.players[playerId];
+    if (!endTurnPlayer) return;
     endTurnPlayer.changeTurnState(ETurnState.idle);
     const nextPlayer = endTurnPlayer.getNextAlivePlayer();
     debugLog(`Игрок ${endTurnPlayer.nickname} заканчивает ход`, map(endTurnPlayer.hand, card=> card.id))
@@ -314,13 +311,14 @@ export class Game {
     checkAllDeckCards(this, !gameServer.isMock);
   }
 
-  changeTurn(playerId: string) {
+  changeTurn(playerId: string): void {
     if (!this.gameInProcess) return;
     const player = this.players[playerId];
-    debugLog('CHANGE TURN ', player.nickname)
     if (!player) {
-      debugLog(this.players)
+      debugLog('CHANGE TURN: игрок не найден', playerId)
+      return;
     }
+    debugLog('CHANGE TURN ', player.nickname)
     player.currentAction = null;
     this.resetGameState()
     this.turnPlayerId = playerId;
@@ -381,8 +379,8 @@ export class Game {
   }: {
     player:Player,
     actionType: EPlayerActionType,
-    cardUniqueId: string,
-    selectedPlayerId:string,
+    cardUniqueId?: string,
+    selectedPlayerId?: string,
     action? : string;
   }) {
     if (!this.gameInProcess) return;
@@ -392,7 +390,7 @@ export class Game {
     }
     if (selectedPlayerId) {
       const selectedPlayer = this.players[selectedPlayerId]
-      debugLog(`Player ${player.nickname} выбирает игрока ${selectedPlayer.nickname}`);
+      debugLog(`Player ${player.nickname} выбирает игрока ${selectedPlayer?.nickname}`);
     }
     if (action) {
       debugLog(`Player ${player.nickname} выбирает ${action}`);
@@ -415,10 +413,12 @@ export class Game {
         }
         return;
       case EPlayerActionType.cardDiscard:
+        if (!cardUniqueId) return;
         discardCardAction({game: this, player, cardUniqueId});
         this.updateGame();
         return;
       case EPlayerActionType.cardTrade:
+        if (!cardUniqueId) return;
         if (this.turnContext && this.turnContext.type === ETurnContextType.chainReaction) {
           chainReactionTrade({game: this, player, cardUniqueId});
         } else {
@@ -427,27 +427,33 @@ export class Game {
         this.updateGame();
         return;
       case EPlayerActionType.cardAct:
+        if (!cardUniqueId) return;
         actCard({game: this, player, cardUniqueId});
         this.updateGame();
         return;
       case EPlayerActionType.cardSelect:
+        if (!cardUniqueId) return;
         selectCard({game: this, player, cardUniqueId});
         this.updateGame();
         return;
       case EPlayerActionType.playerSelect:
+        if (!selectedPlayerId) return;
         selectPlayer({game: this, player, selectedPlayerId});
         this.updateGame();
         return;
       case EPlayerActionType.actionDecision:
-        playerActionDecision({game: this, player, action});
-        this.updateGame();
+        if (action !== undefined) {
+          playerActionDecision({game: this, player, action});
+          this.updateGame();
+        }
         return;
     }
   };
 
-  swapPlayers = (AId,BId) => {
+  swapPlayers = (AId: string, BId: string) => {
     const AIndex = this.playersList.indexOf(AId);
     const BIndex = this.playersList.indexOf(BId);
+    if (AIndex === -1 || BIndex === -1) return;
     this.playersList[AIndex] = BId;
     this.playersList[BIndex] = AId;
   };

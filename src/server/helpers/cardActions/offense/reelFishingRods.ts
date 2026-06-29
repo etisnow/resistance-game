@@ -8,6 +8,7 @@ import {ETurnState} from 'shared/enum/player';
 
 
 export const reelFishingRodsAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
+	if (!card.uniqueId) return;
 	game.turnContext = {
 		type: ETurnContextType.positionswap,
 		offensePlayer: player,

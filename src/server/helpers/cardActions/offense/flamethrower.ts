@@ -8,10 +8,11 @@ import {ETurnState} from 'shared/enum/player';
 
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
-import {each, find, map} from 'lodash';
+import {find} from 'lodash';
 import {formatCards} from 'server/helpers/cardHelpers';
 
 export const flamethrowerAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
+	if (!card.uniqueId) return;
 	game.turnContext = {
 		type: ETurnContextType.burn,
 		offensePlayer: player,
@@ -37,6 +38,7 @@ export const flamethrowerSelect = ({game, player, selectedPlayerId} : {game: Gam
 	}
 	player.discardCard(game.turnContext.cardUniqueId);
 	const defensePlayer = game.players[selectedPlayerId];
+	if (!defensePlayer) return;
 	player.currentAction = null;
 	game.turnContext = {
 		type: ETurnContextType.burn,
@@ -77,6 +79,7 @@ export const flamethrowerFinish = ({game, player, action} : {game: Game, player:
 		throw new Error('Выбор огнемета произошел без контекста flamethrowerSelect');
 	}
 	const {defensePlayer, offensePlayer} = game.turnContext;
+	if (!defensePlayer) return;
 	switch (action) {
 		case "burn": {
 			game.killPlayer(defensePlayer)
@@ -104,7 +107,9 @@ export const flamethrowerFinish = ({game, player, action} : {game: Game, player:
 				},
 		    }));
 			//discardCard({player: defensePlayer, cardUniqueId: noFireCard.uniqueId, game});
-			defensePlayer.discardCard(noFireCard.uniqueId)
+			if (noFireCard && noFireCard.uniqueId) {
+				defensePlayer.discardCard(noFireCard.uniqueId)
+			}
 			game.grabEventCardFromDeck({player});
 			break;
 		}

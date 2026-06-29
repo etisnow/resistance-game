@@ -29,7 +29,7 @@ const MIME: Record<string, string> = {
 
 // Resolve a request URL to a file inside CLIENT_DIR, guarding against traversal.
 function resolveStaticPath(urlPath: string): string | null {
-  const clean = decodeURIComponent(urlPath.split("?")[0]);
+  const clean = decodeURIComponent(urlPath.split("?")[0] ?? "");
   const rel = normalize(clean).replace(/^(\.\.[/\\])+/, "");
   const abs = join(CLIENT_DIR, rel);
   if (!abs.startsWith(CLIENT_DIR)) return null;
@@ -90,8 +90,21 @@ const io = new SocketIOServer(httpServer, {
 gameServer.initialize(io);
 
 io.on("connection", (socket: Socket) => {
-  gameServer.initSocket(socket as any);
-  registerHandlers(gameServer, socket as any);
+  try {
+    gameServer.initSocket(socket);
+    registerHandlers(gameServer, socket);
+  } catch (err) {
+    console.error("Connection setup error:", err);
+  }
+});
+
+// Last-resort safety net: never let an unexpected error or rejection take the
+// whole server process down — log it and keep serving other players.
+process.on("uncaughtException", (err) => {
+  console.error("uncaughtException (server kept alive):", err);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("unhandledRejection (server kept alive):", reason);
 });
 
 httpServer.listen(PORT, HOST, () => {

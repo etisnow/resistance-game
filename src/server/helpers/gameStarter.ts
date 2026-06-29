@@ -1,13 +1,12 @@
 import {Game} from 'server/models/Game';
-import {fullDeckObject, getCard, getPanic, handCardsCount, thingCard} from 'shared/constant/cards';
-import {concat, each, find, range, reduce, clone} from 'lodash';
+import {fullDeckObject, instantiateCard, handCardsCount, thingCard} from 'shared/constant/cards';
+import {concat, each, range, reduce, clone} from 'lodash';
 import {ICardAny, ICardEvent} from 'shared/interfaces/cards';
 import {shuffle} from 'server/helpers/util';
-import chroma from 'chroma-js';
 import {gameServer} from 'server/server/GameServer';
-import {ECardType, EEventID, EPanicID} from 'shared/enum/cards';
+import {ECardType, EEventID} from 'shared/enum/cards';
 
-export let initialDeck = [];
+export let initialDeck: ICardAny[] = [];
 
 export const gameStarter = (game: Game) => {
 	const players = game.players;
@@ -17,10 +16,10 @@ export const gameStarter = (game: Game) => {
 	const playersCount = Object.keys(players).length || 0;
 	if (!playersCount) throw new Error("количество игроков равно нулю");
 
-	const filteredDeck = reduce(fullDeckObject, (acc, card: ICardAny) => {
+	const filteredDeck = reduce(fullDeckObject, (acc: ICardAny[], card: ICardAny) => {
 		each(card.playersCount, (count) => {
 			if (count <= playersCount) {
-				acc.push(getCard(card.id))
+				acc.push(instantiateCard(card))
 			}
 		});
 		return acc
@@ -67,9 +66,10 @@ export const gameStarter = (game: Game) => {
 	const playersIdsArray = Object.keys(game.players)
 	each(range(playersCount), (playerIndex) => {
 		const currentPlayerId = playersIdsArray[playerIndex];
-		const currentPlayer = game.players[currentPlayerId];
+		const currentPlayer = currentPlayerId ? game.players[currentPlayerId] : undefined;
+		if (!currentPlayer) return;
 
-		let currentPlayerHand = playersHands.slice(0, handCardsCount);
+		const currentPlayerHand = playersHands.slice(0, handCardsCount);
 		playersHands.splice(0, handCardsCount);
 		currentPlayer.hand = currentPlayerHand;
 		each(currentPlayerHand, (card: ICardEvent) => {
@@ -80,21 +80,13 @@ export const gameStarter = (game: Game) => {
 		});
 	});
 
-	const playerColors = chroma.cubehelix()
-		.start(200)
-		.rotations(-0.5)
-		.lightness([0.4, 0.6])
-		.scale()
-		.colors(playersIdsArray.length);
-
 	initialDeck = clone(game.deck);
 
 	each(playersIdsArray, (playerId, index) => {
-		//const color = playerColors[index];
-		//const secondColor = chroma.mix(color, '00a70c').hex();
-		initialDeck = concat([], clone(initialDeck), clone(game.players[playerId].hand))
-		game.players[playerId].color = index+''
-		//game.players[playerId].color = `linear-gradient(${color}, ${secondColor})`
+		const player = game.players[playerId];
+		if (!player) return;
+		initialDeck = concat([], clone(initialDeck), clone(player.hand))
+		player.color = index+''
 	});
 
 };

@@ -8,6 +8,7 @@ import {ICardEvent} from 'shared/interfaces/cards';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 
 export const barricadeAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
+	if (!card.uniqueId) return;
 	game.turnContext = {
 		type: ETurnContextType.barricadePersonSelect,
 		playerId: player.id,
@@ -26,7 +27,7 @@ export const barricadeAct = ({card, game, player} : {card:ICardEvent, game: Game
 };
 
 export const barricadeSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
-	if (game.turnContext.type !== ETurnContextType.barricadePersonSelect) {
+	if (!game.turnContext || game.turnContext.type !== ETurnContextType.barricadePersonSelect) {
 		throw new Error('Смена места произошла без контекста zakolochennayaDverPersonSelect');
 	}
 	player.discardCard(game.turnContext.cardUniqueId);
@@ -56,6 +57,7 @@ export const barricadeSelect = ({game, player, selectedPlayerId} : {game: Game, 
 
 
 	const selectedPlayer = game.players[selectedPlayerId];
+	if (!selectedPlayer) return;
 	game.addLog(`Игрок ${player.nickname} забарикадировался от  ${selectedPlayer.nickname}`);
 	player.changeTurnState(ETurnState.inOffenseTrade)
 };

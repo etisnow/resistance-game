@@ -33,7 +33,8 @@ const renderAction = (action: INotificationAction, controller: GameController) =
 
 const ActionInteracter = observer(({controller}: IActionInteracterProps) => {
 	const notifications = controller.notifications;
-	const endGameNotification = (notifications.length && notifications[0].type === ENotificationAction.gameEnd) ? notifications[0] : null;
+	const firstNotification = notifications[0];
+	const endGameNotification = (firstNotification && firstNotification.type === ENotificationAction.gameEnd) ? firstNotification : null;
 	const action = endGameNotification ? endGameNotification : controller.currentAction
 	if  (!action) return null;
 	return <div className={"interaction-badge-wrapper"} style={{zIndex: getZIndex(controller)}}>

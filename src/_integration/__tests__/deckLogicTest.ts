@@ -1,24 +1,37 @@
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {ETurnState} from 'shared/enum/player';
 import {createMockGameServer} from '_integration/createGameServer';
-import {checkAllDeckCardsTestEdition} from '_integration/helpers';
 import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
+import {GameServer} from 'server/server/GameServer';
+import {Game} from 'server/models/Game';
+import {Player} from 'server/models/Player';
+import {ICardAny} from 'shared/interfaces/cards';
 
 let counter = 0;
 
-const testPlayerLogic = (gameServer, game, player) => {
+function assertDefined<T>(value: T, message: string): asserts value is NonNullable<T> {
+	if (value === null || value === undefined) throw new Error(message);
+}
+
+const cardUid = (card: ICardAny | undefined): string => {
+	assertDefined(card, 'Нет карты для розыгрыша');
+	assertDefined(card.uniqueId, 'У карты нет uniqueId');
+	return card.uniqueId;
+};
+
+const testPlayerLogic = (gameServer: GameServer, game: Game, player: Player): void => {
 	let randomCard = player.getRandomPlayableCard();
 	if (player.turnState === ETurnState.inDefenseTrade) {
 		testPlayerAction(gameServer, game, {
 			player:player,
-			cardUniqueId: randomCard.uniqueId,
+			cardUniqueId: cardUid(randomCard),
 			actionType: EPlayerActionType.cardTrade
 		});
 	}
 	randomCard = player.getRandomPlayableCard();
 	testPlayerAction(gameServer, game, {
 		player:player,
-		cardUniqueId: randomCard.uniqueId,
+		cardUniqueId: cardUid(randomCard),
 		actionType: EPlayerActionType.cardDiscard
 	});
 
@@ -26,7 +39,7 @@ const testPlayerLogic = (gameServer, game, player) => {
 	randomCard = player.getRandomPlayableCard();
 	testPlayerAction(gameServer, game, {
 		player:player,
-		cardUniqueId: randomCard.uniqueId,
+		cardUniqueId: cardUid(randomCard),
 		actionType: EPlayerActionType.cardTrade
 	});
 
@@ -38,7 +51,8 @@ const testPlayerLogic = (gameServer, game, player) => {
 
 describe('trade logic',  () => {
 	it('deck should be consistent', () => {
-		const [gameServer, game, APlayer, BPlayer, CPlayer, DPlayer, EPlayer] = createMockGameServer(true);
+		const [gameServer, game, APlayer] = createMockGameServer(true);
+		assertDefined(APlayer, 'APlayer не найден');
 		APlayer.hand.splice(0,1);
 		game.changeTurn(APlayer.id);
 		testPlayerLogic(gameServer, game, APlayer)

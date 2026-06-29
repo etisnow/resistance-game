@@ -12,26 +12,50 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {AnimatedPixi} from 'client/components/table/pixiInjected';
 import {Container} from 'react-pixi-fiber';
 import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
+import type {IPlayersMap} from 'client/controllers/socketTypes';
+import type {IFormatTradeContext} from 'shared/interfaces/common';
+import type Player from 'client/models/Player';
 
 interface IRoomProps {
 	controller: GameController
 }
 
-const getPlayerDeg = (playerId, playerList) => {
+interface IPoint {
+	x: number;
+	y: number;
+}
+
+interface IArrowShape {
+	ax: number;
+	ay: number;
+	bx: number;
+	by: number;
+	mid1X: number;
+	mid1Y: number;
+	mid2X: number;
+	mid2Y: number;
+	arrowX: number;
+	arrowY: number;
+	arrowRotation: number;
+	arrowHeight: number;
+	color: number;
+}
+
+const getPlayerDeg = (playerId: string, playerList: string[]): number => {
 	const playersCount = playerList.length;
 	const degDelta = 360 / playersCount;
 	const currentDeg = (degDelta * playerList.indexOf(playerId))  + 90;
 	return currentDeg;
 }
 
-const getCirclePoint = (radius, deg, centerX, centerY) => {
+const getCirclePoint = (radius: number, deg: number, centerX: number, centerY: number): IPoint => {
 	const currentRad = degToRag(deg);
 	const x = radius*Math.cos(currentRad) + centerX;
 	const y = radius*Math.sin(currentRad) + centerY;
 	return {x,y};
 }
 
-const getPositionFromPlayerList = ({players, playerId, playerList}) => {
+const getPositionFromPlayerList = ({players, playerId, playerList}: {players: IPlayersMap, playerId: string, playerList: string[]}): IPoint => {
 	const player = players[playerId];
 	if (!player) return {x: 0, y:0};
 	const playersCount = playerList.length;
@@ -43,21 +67,18 @@ const getPositionFromPlayerList = ({players, playerId, playerList}) => {
 }
 
 
-const midpoint = (x1,y1,x2,y2) => {
+const midpoint = (x1: number, y1: number, x2: number, y2: number): IPoint => {
 	return {
 		x: (x1+x2) /2,
 		y: (y1+y2) /2
 	}
 }
 
-//const arrowHeight = 0.05;
-const arrowWidth = 10;
-
-const getDistanceBetweenPoints = (x1,y1,x2,y2) => {
+const getDistanceBetweenPoints = (x1: number, y1: number, x2: number, y2: number): number => {
 	return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
 }
 
-const getColorByArrowType = (arrowType) => {
+const getColorByArrowType = (arrowType: ETurnContextType): number => {
 	switch (arrowType) {
 		case ETurnContextType.positionswap:
 			return 0x00adff;
@@ -68,13 +89,20 @@ const getColorByArrowType = (arrowType) => {
 	}
 }
 
-const lineAnimation = ({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players}) => {
-	const biggerBadgeRad = badgeRadius + 5;
-	const playersCount = newPlayerList.length;
-	const iterateDegree = 360 / playersCount;
+interface ILineAnimationArgs {
+	type: ETurnContextType;
+	newPlayerList: string[];
+	badgeRadius: number;
+	offensePlayerId: string | null;
+	defensePlayerId: string | null;
+	players: IPlayersMap;
+}
 
-	const {x:ax,y:ay} = getPositionFromPlayerList({players, playerId: offensePlayerId, playerList: newPlayerList});
-	const {x:bx,y:by} = getPositionFromPlayerList({players, playerId: defensePlayerId, playerList: newPlayerList});
+const lineAnimation = ({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players}: ILineAnimationArgs): IArrowShape => {
+	const biggerBadgeRad = badgeRadius + 5;
+
+	const {x:ax,y:ay} = getPositionFromPlayerList({players, playerId: offensePlayerId ?? '', playerList: newPlayerList});
+	const {x:bx,y:by} = getPositionFromPlayerList({players, playerId: defensePlayerId ?? '', playerList: newPlayerList});
 
 	var angleBetweenPointsDeg = Math.atan2(by - ay, bx - ax) * 180 / Math.PI;
 
@@ -108,7 +136,7 @@ const lineAnimation = ({type, newPlayerList, badgeRadius, offensePlayerId, defen
 		arrowRotation: angleBetweenPointsDeg + 90,
 		arrowHeight: arrowHeight,
 		color: getColorByArrowType(type),
-	} as any
+	}
 }
 
 
@@ -118,7 +146,7 @@ const Room = observer(({controller} : IRoomProps) => {
 	const { playersList, players } = controller;
 	if (!currentPlayer || !currentPlayerId || !playersList) return null;
 	const {marks} = currentPlayer;
-	const tradeContext = controller.tradeContext || [];
+	const tradeContext: IFormatTradeContext[] = controller.tradeContext || [];
 	let newPlayerList = clone(playersList);
 	if (controller.isLayoutSequential && currentPlayer.turnState !== ETurnState.dead) {
 		const indexOfCurrentPlayer = playersList.indexOf(currentPlayerId);
@@ -129,28 +157,42 @@ const Room = observer(({controller} : IRoomProps) => {
 
 
 	const playersCount = newPlayerList.length;
-	const degDelta = 360 / playersCount;
 
-	const transitions = useTransition(newPlayerList, playerId=>playerId, {
+	const transitions = useTransition<string, IPoint>(newPlayerList, playerId => playerId, {
+		x: 0,
+		y: 0,
 		from: {
-			x:0, y:0
-		} as any,
+			x: 0, y: 0
+		},
 		enter: playerId => {
-			return getPositionFromPlayerList({players, playerId, playerList: newPlayerList}) as any;
+			return getPositionFromPlayerList({players, playerId, playerList: newPlayerList});
 		},
 		update: playerId => {
-			return getPositionFromPlayerList({players, playerId, playerList: newPlayerList}) as any;
+			return getPositionFromPlayerList({players, playerId, playerList: newPlayerList});
 		},
-		leave: player => {
+		leave: () => {
 			return {
-				x:0, y:0
-			} as any
+				x: 0, y: 0
+			}
 		},
-	} as any);
+	});
 
 	const badgeDiagonal = playerRoomDiag(playersCount);
 	const badgeRadius = badgeDiagonal/2;
-	const arrows = useTransition(tradeContext, ({offensePlayerId}) => offensePlayerId, {
+	const arrows = useTransition<IFormatTradeContext, IArrowShape>(tradeContext, ({offensePlayerId}) => offensePlayerId ?? '', {
+		ax: 0,
+		ay: 0,
+		bx: 0,
+		by: 0,
+		mid1X: 0,
+		mid1Y: 0,
+		mid2X: 0,
+		mid2Y: 0,
+		arrowX: 0,
+		arrowY: 0,
+		arrowRotation: 0,
+		arrowHeight: 0,
+		color: 0,
 		from: ({offensePlayerId, defensePlayerId, type}) => {
 			const {ax,ay, arrowRotation, color} = lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
 			return {
@@ -167,7 +209,7 @@ const Room = observer(({controller} : IRoomProps) => {
 				arrowRotation,
 				arrowHeight: 0,
 				color,
-			} as any
+			}
 		},
 		enter: ({offensePlayerId, defensePlayerId, type}) => {
 			return lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
@@ -191,14 +233,14 @@ const Room = observer(({controller} : IRoomProps) => {
 				arrowRotation,
 				arrowHeight: 0,
 				color,
-			} as any
+			}
 		},
 		config: config.stiff
-	} as any);
+	});
 
 
 
-	const canPlayerBeSelected = (player) => {
+	const canPlayerBeSelected = (player: Player): boolean => {
 		if (controller.currentAction && controller.currentAction.type === ENotificationAction.playerSelect) {
 			return controller.currentAction.playersToSelect.includes(player.id)
 		}
@@ -239,8 +281,8 @@ const Room = observer(({controller} : IRoomProps) => {
 					</AnimatedPixi.Container>
 				)
 			})}
-			{map(arrows, ({item: arrow, key, props }) => {
-				if (!props.bx || !props.by || !props.bx || !props.by) return
+			{map(arrows, ({key, props }) => {
+				if (!props.bx || !props.by) return null
 				return (
 					<Container key={key}>
 						<AnimatedPixi.Arrow
@@ -254,4 +296,3 @@ const Room = observer(({controller} : IRoomProps) => {
 });
 
 export default Room;
-

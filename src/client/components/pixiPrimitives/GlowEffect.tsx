@@ -1,18 +1,34 @@
 import { CustomPIXIComponent, withApp } from "react-pixi-fiber";
 import * as PIXI from "pixi.js";
 import {resources} from 'client/resources/resources';
-import { each, find } from "lodash";
+import { find } from "lodash";
 
 /*
 
 * */
 
+interface GlowEffectProps {
+	app: PIXI.Application;
+	[key: string]: unknown;
+}
+
+// The custom container caches its ticker callback on itself.
+type AnimatedContainer = PIXI.Container & { animate?: () => void };
+
+interface GlowEffectBehaviorThis {
+	applyDisplayObjectProps(oldProps: GlowEffectProps, newProps: GlowEffectProps): void;
+}
 
 const TYPE = "GlowEffect";
 export const behavior = {
-  customDisplayObject: props => new PIXI.Container(),
-  customApplyProps: function(container, oldProps, newProps) {
-    const { app, ...styles } = newProps;
+  customDisplayObject: (_props: GlowEffectProps) => new PIXI.Container() as AnimatedContainer,
+  customApplyProps: function(
+    this: GlowEffectBehaviorThis,
+    container: AnimatedContainer,
+    oldProps: GlowEffectProps,
+    newProps: GlowEffectProps,
+  ) {
+    const { app } = newProps;
 	const addedDisplacement = find(container.children, (child) => child instanceof PIXI.Sprite)
 	//
 	if (!addedDisplacement) {
@@ -42,17 +58,18 @@ export const behavior = {
 		displacementFilter.scale.x = 30;
 		displacementFilter.scale.y = 30;
 
-		container.animate = () => {
+		const animate = () => {
 			try {
 			    displacementSprite.x++;
 			    // Reset x to 0 when it's over width to keep values from going to very huge numbers.
 			    if (displacementSprite.x > displacementSprite.width) { displacementSprite.x = 0; }
 			} catch (e) {
-				app.ticker.remove(container.animate);
+				app.ticker.remove(animate);
 			}
 
 		}
-		app.ticker.add(container.animate);
+		container.animate = animate;
+		app.ticker.add(animate);
 	    return this.applyDisplayObjectProps(oldProps, newProps);
 	}
     return this.applyDisplayObjectProps(oldProps, newProps);

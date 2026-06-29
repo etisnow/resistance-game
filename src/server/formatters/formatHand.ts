@@ -3,9 +3,9 @@ import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
 import {ICardEvent} from 'shared/interfaces/cards';
 
-export const formatHand = (game:Game, player:Player): {[key:string]: ICardEvent} => {
-	return reduce(player.hand, (acc, card) => {
-		acc[card.uniqueId] = card;
+export const formatHand = (_game:Game, player:Player): {[key:string]: ICardEvent} => {
+	return reduce(player.hand, (acc: {[key:string]: ICardEvent}, card) => {
+		if (card.uniqueId) acc[card.uniqueId] = card;
 		return acc;
 	}, {})
 };

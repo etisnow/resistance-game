@@ -1,17 +1,12 @@
 import {observable} from 'mobx';
 import SocketController from 'client/controllers/socketController';
 import RootController from 'client/controllers/rootController';
-import {EAsyncState} from 'shared/enum/async';
-import {EClientEventType} from 'shared/enum/enumClientEvents';
-import localforage from 'localforage';
-import * as UIfxNS from 'uifx'
+import type {ITimerPayload} from 'client/controllers/socketTypes';
+import UIfx from 'uifx'
 import bellAudio from '../resources/sound/beep.mp3'
 
-// uifx is a CJS module exposing `.default`; normalise across bundler interop.
-const UIfx: any = (UIfxNS as any).default || UIfxNS;
-
 // Sound is non-critical — never let it break app startup.
-let bell: any = null;
+let bell: UIfx | null = null;
 try {
   bell = new UIfx(bellAudio, {
     volume: 0.2, // number between 0.0 ~ 1.0
@@ -32,10 +27,11 @@ export default class TimerController {
 	@observable currentSeconds: number = 0;
 	@observable text: string = '';
 
-	timer: any = null;
-	constructor(root: RootController, parent) {
+	timer: ReturnType<typeof setInterval> | null = null;
+	constructor(root: RootController, parent: RootController) {
 		this.root = root;
 		this.parent = parent;
+		this.socket = root.socketController;
 	}
 
 	playSound = () => {
@@ -48,7 +44,7 @@ export default class TimerController {
 		this.currentSeconds = 0;
 		this.isActive = false;
 	};
-	initTimer = ({text, seconds}) => {
+	initTimer = ({text, seconds}: ITimerPayload) => {
 		if (this.timer) clearInterval(this.timer);
 		this.text = text;
 		this.initSeconds = seconds;

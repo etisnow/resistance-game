@@ -14,7 +14,7 @@ const Hand = observer(({controller} : IHandProps) => {
 	const {currentPlayer:player, hand} = controller;
 	if (!player || !hand) return null;
 
-	const cardSelection = (index) => {
+	const cardSelection = (index: string) => {
 		if (selectedCardIndex === index) {
 			controller.cardInPreview = null;
 		} else {

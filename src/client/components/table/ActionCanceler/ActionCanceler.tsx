@@ -2,12 +2,10 @@ import React from 'react';
 import {observer} from "mobx-react-lite";
 import GameController from 'client/controllers/gameController';
 import {playerRoomDiag} from 'client/helpers/roomHelpers';
-import {Container, Text} from 'react-pixi-fiber';
+import {Text} from 'react-pixi-fiber';
 import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
 import Circle from 'client/components/pixiPrimitives/Circle';
-import {ETurnState} from 'shared/enum/player';
 import { AnimatedPixi } from '../pixiInjected';
-import {config, useTransition} from 'react-spring';
 
 interface IDeckProps {
 	controller: GameController
@@ -15,7 +13,7 @@ interface IDeckProps {
 
 
 const ActionCanceler = observer(({controller}: IDeckProps) => {
-	const {currentPlayer:player, playersList, isPlayerCanCancel} = controller;
+	const {playersList, isPlayerCanCancel} = controller;
 	const width = playerRoomDiag(playersList.length);
 	const fontSize = width/3;
 	if (!isPlayerCanCancel) return null;

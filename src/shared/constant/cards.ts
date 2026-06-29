@@ -1,7 +1,7 @@
 import {each, uniqueId} from 'lodash';
 
 import {ECardType, EEventID, EEventType, EPanicID} from 'shared/enum/cards';
-import {ICardEvent, ICardPanic} from 'shared/interfaces/cards';
+import {ICardAny, ICardEvent, ICardPanic} from 'shared/interfaces/cards';
 
 export const cardAspectRatio = 1.46;
 export const cardWidthPercent = 25;
@@ -241,7 +241,13 @@ const panic = {
   //},
 };
 
-const cardBacks : {[key: string]: any} = {
+interface ICardBack {
+  type: ECardType.back;
+  id: string;
+  description: string;
+  playersCount: number[];
+}
+const cardBacks : {[key: string]: ICardBack} = {
   eventBack: {
     type: ECardType.back,
     id: "eventBack",
@@ -264,25 +270,34 @@ const thingCard : ICardEvent = {
   playersCount: [0],
 };
 
-const fulldeck = Object.assign({}, events, panic, cardBacks) as {[key: string]: ICardEvent};
+const fulldeck = Object.assign({}, events, panic, cardBacks) as Record<string, ICardAny>;
 
 export const handCardsCount = 4;
 
-let fullDeckObject = {};
-each(fulldeck, card => {
+const fullDeckObject: Record<string, ICardAny> = {};
+each(fulldeck, (card: ICardAny) => {
 	fullDeckObject[card.id] = card
 });
 
-export const getCard = (cardId) : ICardEvent => {
-  if (!fullDeckObject[cardId]) {
+export const getCard = (cardId: EEventID) : ICardEvent => {
+  const card = fullDeckObject[cardId];
+  if (!card || card.type !== ECardType.event) {
     console.error('Не удается найти карту ',  cardId)
     throw new Error('Алярм')
   }
-  return {...fullDeckObject[cardId], uniqueId: uniqueId('card_')}
+  return {...card, uniqueId: uniqueId('card_')}
 }
 
-export const getPanic = (cardId) : ICardPanic => {
-  return {...fullDeckObject[cardId], uniqueId: uniqueId('card_')}
+// Clone any deck card with a fresh unique id (works for events and panics).
+export const instantiateCard = (card: ICardAny): ICardAny => ({...card, uniqueId: uniqueId('card_')});
+
+export const getPanic = (cardId: EPanicID) : ICardPanic => {
+  const card = fullDeckObject[cardId];
+  if (!card || card.type !== ECardType.panic) {
+    console.error('Не удается найти панику ',  cardId)
+    throw new Error('Алярм')
+  }
+  return {...card, uniqueId: uniqueId('card_')}
 }
 
 export { fulldeck, thingCard, cardBacks, fullDeckObject };

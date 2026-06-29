@@ -1,8 +1,25 @@
 import { CustomPIXIComponent } from "react-pixi-fiber";
 import * as PIXI from "pixi.js";
 import {degToRag} from 'client/helpers/roomHelpers';
+import type { GraphicsBehaviorThis } from "./behaviorTypes";
 
-const getCirclePoint = (radius, deg, centerX, centerY) => {
+interface ArrowProps {
+	color: number;
+	ax: number;
+	ay: number;
+	mid1X: number;
+	mid1Y: number;
+	mid2X: number;
+	mid2Y: number;
+	bx: number;
+	by: number;
+	arrowX: number;
+	arrowY: number;
+	arrowHeight: number;
+	arrowRotation: number;
+}
+
+const getCirclePoint = (radius: number, deg: number, centerX: number, centerY: number) => {
 	const currentRad = degToRag(deg);
 	const x = radius*Math.cos(currentRad) + centerX;
 	const y = radius*Math.sin(currentRad) + centerY;
@@ -12,8 +29,13 @@ const getCirclePoint = (radius, deg, centerX, centerY) => {
 
 const TYPE = "Arrow";
 export const behavior = {
-  customDisplayObject: props => new PIXI.Graphics(),
-  customApplyProps: function(instance, oldProps, newProps) {
+  customDisplayObject: (_props: ArrowProps) => new PIXI.Graphics(),
+  customApplyProps: function(
+    this: GraphicsBehaviorThis<ArrowProps>,
+    instance: PIXI.Graphics,
+    oldProps: ArrowProps | undefined,
+    newProps: ArrowProps,
+  ) {
     const { color, ax, ay,mid1X, mid1Y, mid2X, mid2Y, bx, by, arrowX, arrowY, arrowHeight, arrowRotation } = newProps;
     if (typeof oldProps !== "undefined") {
       instance.clear();

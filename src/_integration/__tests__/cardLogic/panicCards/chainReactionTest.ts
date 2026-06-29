@@ -8,14 +8,17 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 import {Player} from 'server/models/Player';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {getNextChainReactionPlayer} from 'server/helpers/cardActions/panic/chainReaction';
-import {checkAllDeckCardsTestEdition} from '_integration/helpers';
+import {requirePlayer} from '_integration/helpers';
 import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 
 
 describe('chainReaction test',  () => {
 
 	it('chainReaction card', () => {
-		const [gameServer, game, offensePlayer, door, BPlayer, CPlayer] = createMockGameServer();
+		const [gameServer, game, offensePlayerMaybe, doorMaybe, BPlayerMaybe] = createMockGameServer();
+		const offensePlayer = requirePlayer(game, offensePlayerMaybe?.id);
+		const door = requirePlayer(game, doorMaybe?.id);
+		const BPlayer = requirePlayer(game, BPlayerMaybe?.id);
 		door.state = EPlayerState.door;
 		BPlayer.quarantine = 3;
 		offensePlayer.hand.splice(0,1);
@@ -25,9 +28,13 @@ describe('chainReaction test',  () => {
 
 
 		expect(game.turnContext).not.toBe(undefined);
-		expect(game.turnContext.type).toBe(ETurnContextType.chainReaction);
+		expect(game.turnContext?.type).toBe(ETurnContextType.chainReaction);
 
-		const startPlayer = (game.turnContext as any).startPlayer;
+		const initialContext = game.turnContext;
+		if (!initialContext || initialContext.type !== ETurnContextType.chainReaction) {
+			throw new Error('Ожидался контекст chainReaction');
+		}
+		const startPlayer = initialContext.startPlayer;
 		expect(startPlayer).not.toBe(undefined);
 
 		let tradedCards: {player: Player, card: ICardEvent}[] = [];
@@ -35,24 +42,26 @@ describe('chainReaction test',  () => {
 		each(game.players, pl => {
 			if (pl.state === EPlayerState.door) return;
 			const card = pl.getRandomPlayableCard();
+			if (!card) throw new Error('Ожидалась карта для обмена');
 			tradedCards.push({player: pl, card});
 			console.log(pl.nickname)
 			expect(pl.turnState).toBe(ETurnState.inOffenseTrade);
-			expect(game.turnContext.type).toBe(ETurnContextType.chainReaction);
+			expect(game.turnContext?.type).toBe(ETurnContextType.chainReaction);
 
 			testPlayerAction(gameServer, game, {
 				player:pl,
-				cardUniqueId: card.uniqueId,
+				cardUniqueId: card.uniqueId ?? undefined,
 				actionType: EPlayerActionType.cardTrade
 			});
-			if ((game.turnContext as any) && (game.turnContext as any).playersPick) {
-				expect(isEqual((game.turnContext as any).playersPick, tradedCards)).toBe(true);
+			const context = game.turnContext;
+			if (context && context.type === ETurnContextType.chainReaction) {
+				expect(isEqual(context.playersPick, tradedCards)).toBe(true);
 			} else {
 
 				expect(game.turnContext).toBe(null);
 				each(tradedCards, ({player: tradedPlayer, card:tradedCard}) => {
 					const nextPlayer = getNextChainReactionPlayer({currentPlayer: tradedPlayer, game});
-					expect(nextPlayer.hand).toContainEqual(
+					expect(nextPlayer?.hand).toContainEqual(
 						expect.objectContaining({uniqueId: tradedCard.uniqueId})
 					)
 				})
@@ -73,7 +82,9 @@ describe('chainReaction test',  () => {
 
 
 	it('chainReaction card', () => {
-		const [gameServer, game, offensePlayer, APlayer, BPlayer, CPlayer] = createMockGameServer();
+		const [gameServer, game, offensePlayerMaybe, , BPlayerMaybe] = createMockGameServer();
+		const offensePlayer = requirePlayer(game, offensePlayerMaybe?.id);
+		const BPlayer = requirePlayer(game, BPlayerMaybe?.id);
 		BPlayer.quarantine = 3;
 		offensePlayer.hand.splice(0,1);
 
@@ -82,9 +93,13 @@ describe('chainReaction test',  () => {
 
 
 		expect(game.turnContext).not.toBe(undefined);
-		expect(game.turnContext.type).toBe(ETurnContextType.chainReaction);
+		expect(game.turnContext?.type).toBe(ETurnContextType.chainReaction);
 
-		const startPlayer = (game.turnContext as any).startPlayer;
+		const initialContext = game.turnContext;
+		if (!initialContext || initialContext.type !== ETurnContextType.chainReaction) {
+			throw new Error('Ожидался контекст chainReaction');
+		}
+		const startPlayer = initialContext.startPlayer;
 		expect(startPlayer).not.toBe(undefined);
 
 		let tradedCards: {player: Player, card: ICardEvent}[] = [];
@@ -92,23 +107,25 @@ describe('chainReaction test',  () => {
 		each(game.players, pl => {
 			if (pl.state === EPlayerState.door) return;
 			const card = pl.getRandomPlayableCard();
+			if (!card) throw new Error('Ожидалась карта для обмена');
 			tradedCards.push({player: pl, card});
 			expect(pl.turnState).toBe(ETurnState.inOffenseTrade);
-			expect(game.turnContext.type).toBe(ETurnContextType.chainReaction);
+			expect(game.turnContext?.type).toBe(ETurnContextType.chainReaction);
 
 			testPlayerAction(gameServer, game, {
 				player:pl,
-				cardUniqueId: card.uniqueId,
+				cardUniqueId: card.uniqueId ?? undefined,
 				actionType: EPlayerActionType.cardTrade
 			});
-			if ((game.turnContext as any) && (game.turnContext as any).playersPick) {
-				expect(isEqual((game.turnContext as any).playersPick, tradedCards)).toBe(true);
+			const context = game.turnContext;
+			if (context && context.type === ETurnContextType.chainReaction) {
+				expect(isEqual(context.playersPick, tradedCards)).toBe(true);
 			} else {
 
 				expect(game.turnContext).toBe(null);
 				each(tradedCards, ({player: tradedPlayer, card:tradedCard}) => {
 					const nextPlayer = getNextChainReactionPlayer({currentPlayer: tradedPlayer, game});
-					expect(nextPlayer.hand).toContainEqual(
+					expect(nextPlayer?.hand).toContainEqual(
 						expect.objectContaining({uniqueId: tradedCard.uniqueId})
 					)
 				})

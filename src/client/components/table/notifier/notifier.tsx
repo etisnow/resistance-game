@@ -3,6 +3,7 @@ import {observer} from 'mobx-react-lite';
 import './styles.scss';
 import {reduce} from 'lodash';
 import type INotificationAction from 'shared/interfaces/notification';
+import type {IHandActionsMap} from 'client/controllers/socketTypes';
 import GameController from 'client/controllers/gameController';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {Container, Sprite, Text} from 'react-pixi-fiber';
@@ -24,7 +25,7 @@ interface INotifierProps {
 	controller:  GameController;
 }
 
-const getFontStyle = (fontSize, maxWidth) => ({
+const getFontStyle = (fontSize: number, maxWidth: number) => ({
     align: "center",
     dropShadow: true,
     dropShadowAngle: 90,
@@ -87,12 +88,16 @@ const Notification = observer(({notification, controller}: {notification: INotif
 		case ENotificationAction.selectCard:
 			//const menu = (cardUniqueId) => generateCardMenuByNotificationType(controller, notification, cardUniqueId);
 			cardHeight = autoWidthCard(Object.keys(notification.cards).length) * cardAspectRatio;
+			const menuAccumulator: IHandActionsMap = {};
 			const menu = reduce(notification.cards, (acc, card) => {
-				acc[card.uniqueId] = [{menuType: 'select'}]
+				const uniqueId = card.uniqueId;
+				if (uniqueId) {
+					acc[uniqueId] = [{type: EPlayerActionType.cardSelect, menuType: EPlayerActionType.cardSelect}]
+				}
 				return acc;
-			}, {});
+			}, menuAccumulator);
 
-			const handleCardSelect = (cardUniqueId, actionType) => {
+			const handleCardSelect = (cardUniqueId: string, _actionType: EPlayerActionType) => {
 				controller.cardAction(EPlayerActionType.cardSelect, cardUniqueId)
 				controller.hidENotificationAction();
 			}
@@ -135,7 +140,7 @@ const Notification = observer(({notification, controller}: {notification: INotif
 	return (
 		<Container width={getWindowWidth()} height={getWindowHeight()}>
 			<Container alpha={0.7} pointerdown={() => {}}>
-				<Rectangle xCoord={0} yCoord={0} width={getWindowWidth()} height={getWindowHeight()}/>
+				<Rectangle xCoord={0} yCoord={0} width={getWindowWidth()} height={getWindowHeight()} color={0}/>
 			</Container>
 			<Container width={getWindowWidth()} height={getWindowHeight()}>
 				{notificationContent}
@@ -146,8 +151,8 @@ const Notification = observer(({notification, controller}: {notification: INotif
 
 const Notifier = observer(({controller}: INotifierProps) => {
 	const notifications = controller.notifications;
-	if (notifications.length === 0) return null;
 	const notification = notifications[0];
+	if (!notification) return null;
 	return <Notification notification={notification} controller={controller}/>;
 });
 

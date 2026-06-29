@@ -24,7 +24,7 @@ const processDeathByOverinfection = (player:Player) => {
 	}
 }
 
-const processOffenseTrade = (player) => {
+const processOffenseTrade = (player: Player) => {
 	const context = player.game.turnContext;
 	let playerToTrade: Player | null =  null;
 	if (context && context.type === ETurnContextType.trade && context.defensePlayer) {
@@ -56,7 +56,8 @@ const processOffenseTrade = (player) => {
 	      type: ETurnContextType.trade,
 	      defensePlayer: playerToTrade,
 	      offensePlayer: player,
-	      offenseCardId: null,
+	      offenseCard: null,
+	      defenseCard: null,
 	    };
     }
     return;

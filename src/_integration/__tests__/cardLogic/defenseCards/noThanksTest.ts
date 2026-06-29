@@ -4,7 +4,7 @@ import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
 import {find} from 'lodash';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {checkAllDeckCardsTestEdition} from '_integration/helpers';
+import {requirePlayer} from '_integration/helpers';
 import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 
@@ -12,10 +12,11 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 describe('nothanks test',  () => {
 
 	it('nothanks card', () => {
-		const [gameServer, game, defensePlayer] = createMockGameServer();
+		const [gameServer, game, defensePlayerMaybe] = createMockGameServer();
+		const defensePlayer = requirePlayer(game, defensePlayerMaybe?.id);
 		defensePlayer.hand.splice(0,1);
 		defensePlayer.hand.splice(0,1, getCard(EEventID.noThanks));
-		expect(defensePlayer.hand[0].id).toBe(EEventID.noThanks);
+		expect(defensePlayer.hand[0]?.id).toBe(EEventID.noThanks);
 
 		const offensePlayer = game.getPlayerByPosition({isNext: false, playerId: defensePlayer.id})
 		offensePlayer.hand.splice(0,2, getCard(EEventID.analysis), getCard(EEventID.barricade));
@@ -26,21 +27,23 @@ describe('nothanks test',  () => {
 		let barricade = find(offensePlayer.hand, {id: EEventID.barricade});
 
 		expect(barricade).not.toBe(undefined);
+		if (!barricade) throw new Error('barricade card not found');
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
-			cardUniqueId: barricade.uniqueId,
+			cardUniqueId: barricade.uniqueId ?? undefined,
 			actionType: EPlayerActionType.cardDiscard
 		});
 
 
 		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: barricade.uniqueId}));
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
-		expect(game.turnContext.type).toBe(ETurnContextType.trade)
+		expect(game.turnContext?.type).toBe(ETurnContextType.trade)
 		let analysis = find(offensePlayer.hand, {id: EEventID.analysis});
+		if (!analysis) throw new Error('analysis card not found');
 		const analysisId = analysis.uniqueId
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
-			cardUniqueId: analysis.uniqueId,
+			cardUniqueId: analysis.uniqueId ?? undefined,
 			selectedPlayerId:defensePlayer.id,
 			actionType: EPlayerActionType.cardTrade
 		});
@@ -50,10 +53,11 @@ describe('nothanks test',  () => {
 		expect(offensePlayer.turnState).toBe(ETurnState.idle);
 
 		expect(defensePlayer.turnState).toBe(ETurnState.inDefenseTrade);
-		expect(game.turnContext.type).toBe(ETurnContextType.trade)
+		expect(game.turnContext?.type).toBe(ETurnContextType.trade)
+		if (!noThanksCard) throw new Error('noThanks card not found');
 		testPlayerAction(gameServer, game, {
 			player:defensePlayer,
-			cardUniqueId: noThanksCard.uniqueId,
+			cardUniqueId: noThanksCard.uniqueId ?? undefined,
 			selectedPlayerId:offensePlayer.id,
 			actionType: EPlayerActionType.cardAct
 		});

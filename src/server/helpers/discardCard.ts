@@ -1,7 +1,6 @@
 import {Player} from 'server/models/Player';
 import {Game} from 'server/models/Game';
 import {ETurnState} from 'shared/enum/player';
-import {findIndex} from 'lodash';
 
 /*export const discardCard = ({game, player, cardUniqueId}: {game: Game, player: Player, cardUniqueId: string}) => {
   const discardCardIndex = findIndex(player.hand, (card) => card.uniqueId === cardUniqueId);

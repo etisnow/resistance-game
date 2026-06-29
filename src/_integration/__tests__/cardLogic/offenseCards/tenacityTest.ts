@@ -2,9 +2,9 @@ import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
 import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
-import {find} from 'lodash';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {checkAllDeckCardsTestEdition} from '_integration/helpers';
+import {requirePlayer} from '_integration/helpers';
+import {ICardEvent} from 'shared/interfaces/cards';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 
@@ -12,10 +12,11 @@ import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 describe('tenacity test',  () => {
 
 	it('tenacity card', () => {
-		const [gameServer, game, offensePlayer, nextPlayer] = createMockGameServer();
+		const [gameServer, game, offensePlayerMaybe] = createMockGameServer();
+		const offensePlayer = requirePlayer(game, offensePlayerMaybe?.id);
 		offensePlayer.hand.splice(0,1);
 		offensePlayer.hand.splice(0,1, getCard(EEventID.tenacity));
-		expect(offensePlayer.hand[0].id).toBe(EEventID.tenacity);
+		expect(offensePlayer.hand[0]?.id).toBe(EEventID.tenacity);
 
 		game.changeTurn(offensePlayer.id);
 
@@ -25,24 +26,28 @@ describe('tenacity test',  () => {
 		expect(tenacity).not.toBe(undefined);
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
-			cardUniqueId: tenacity.uniqueId,
+			cardUniqueId: tenacity?.uniqueId ?? undefined,
 			actionType: EPlayerActionType.cardAct
 		});
 
 
-		const {cards} = offensePlayer.currentAction as any;
-		const [firstTenacityCard] = Object.values(cards) as any[];
+		const currentAction = offensePlayer.currentAction;
+		if (!currentAction || currentAction.type !== ENotificationAction.selectCard) {
+			throw new Error('Ожидалось уведомление selectCard');
+		}
+		const {cards} = currentAction;
+		const [firstTenacityCard] = Object.values(cards) as ICardEvent[];
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
-			cardUniqueId: firstTenacityCard.uniqueId,
+			cardUniqueId: firstTenacityCard?.uniqueId ?? undefined,
 			actionType: EPlayerActionType.cardSelect
 		});
 
 		expect(offensePlayer.hand).toContainEqual(
-			expect.objectContaining({uniqueId: firstTenacityCard.uniqueId})
+			expect.objectContaining({uniqueId: firstTenacityCard?.uniqueId})
 		)
 		expect(offensePlayer.hand).not.toContainEqual(
-			expect.objectContaining({uniqueId: tenacity.uniqueId})
+			expect.objectContaining({uniqueId: tenacity?.uniqueId})
 		)
 
 

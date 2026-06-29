@@ -13,9 +13,9 @@ interface ILobbyProps {
 }
 
 @observer
-export class Lobby extends React.Component<ILobbyProps, any> {
+export class Lobby extends React.Component<ILobbyProps> {
 
-	handleKickEvent = (playerId) => {
+	handleKickEvent = (playerId: string) => {
 		this.props.controller.kickPlayer(playerId);
 	};
 
@@ -32,10 +32,10 @@ export class Lobby extends React.Component<ILobbyProps, any> {
 		const currentPlayer = this.props.controller.currentPlayer;
 		if (!currentPlayer) return <ErrorComponent/>;
 		const currentPlayerIsHost = currentPlayer.isHost;
-		const kickButton = (playerId) => currentPlayerIsHost ? <button className={"kick-button"} onClick={() => this.handleKickEvent(playerId)}>Кик</button> : null;
+		const kickButton = (playerId: string) => currentPlayerIsHost ? <button className={"kick-button"} onClick={() => this.handleKickEvent(playerId)}>Кик</button> : null;
 		return map(players, (player : Player | null) => {
-			const isReady = player.isReady;
 			if (!player) return null;
+			const isReady = player.isReady;
 			const state = !player.isConnected ? 'Отключился' : player.isReady ? 'Готов' : '';
 			return <div key={player.id} className={cx({'player-lobby-item': true, isReady})}>
 				<span>{player.nickname} {` - ${state}`}</span>
@@ -45,7 +45,7 @@ export class Lobby extends React.Component<ILobbyProps, any> {
 		})
 	};
 
-	render() {
+	override render() {
 		const currentPlayer = this.props.controller.currentPlayer;
 		if (!currentPlayer) return null;
 		const isAllReady = this.props.controller.playersList.length > 3 && !some(this.props.controller.players, {isReady:false});

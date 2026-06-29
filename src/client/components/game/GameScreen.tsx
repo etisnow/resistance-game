@@ -12,7 +12,7 @@ interface ILauncherProps {
 
 @observer
 export default class GameScreen extends React.Component<ILauncherProps> {
-	render() {
+	override render() {
 		console.log(this.props.controller.state)
 		if (this.props.controller.state === EGameState.lobby) return <Lobby controller={this.props.controller} />
 		return (<Table controller={this.props.controller}/>)

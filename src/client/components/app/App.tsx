@@ -9,10 +9,12 @@ import RootController from 'client/controllers/rootController';
 
 
 
+type IAppProps = Record<string, never>;
+
 @observer
-class App extends React.Component<any, any> {
+class App extends React.Component<IAppProps> {
 	controller: RootController;
-	constructor(props) {
+	constructor(props: IAppProps) {
 		super(props);
 		this.controller = new RootController();
 	}
@@ -25,9 +27,11 @@ class App extends React.Component<any, any> {
 			case EAppState.game:
 				console.log('render game')
 				return <GameScreen controller={this.controller.gameController} />
+			default:
+				return null
 		}
 	};
-	render() {
+	override render() {
 		return (
 			<div className="nechto-wrapper">
 				{this.renderContent()}

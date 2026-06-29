@@ -4,20 +4,36 @@ import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
 import {find} from 'lodash';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {checkAllDeckCardsTestEdition} from '_integration/helpers';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 import {ETurnContextType} from 'shared/enum/turnContextType';
+import {ICardAny} from 'shared/interfaces/cards';
+import {ITurnContext} from 'shared/interfaces/turnContext';
 
+function assertDefined<T>(value: T, message: string): asserts value is NonNullable<T> {
+	if (value === null || value === undefined) throw new Error(message);
+}
+
+const cardUid = (card: ICardAny | undefined): string => {
+	assertDefined(card, 'Карта не найдена');
+	assertDefined(card.uniqueId, 'У карты нет uniqueId');
+	return card.uniqueId;
+};
+
+const requireTurnContext = (turnContext: ITurnContext | null): ITurnContext => {
+	assertDefined(turnContext, 'turnContext не задан');
+	return turnContext;
+};
 
 describe('leavemealone test',  () => {
 
 	it('should cancel position swap', () => {
 
 		const [gameServer, game, defensePlayer] = createMockGameServer();
+		assertDefined(defensePlayer, 'defensePlayer не найден');
 		defensePlayer.hand.splice(0,1);
 		defensePlayer.hand.splice(0,1, getCard(EEventID.leaveMeAlone));
-		expect(defensePlayer.hand[0].id).toBe(EEventID.leaveMeAlone);
+		expect(defensePlayer.hand[0]?.id).toBe(EEventID.leaveMeAlone);
 
 		const offensePlayer = defensePlayer.getPrevPlayer();
 		offensePlayer.hand.splice(0,1, getCard(EEventID.positionswap));
@@ -34,7 +50,7 @@ describe('leavemealone test',  () => {
 		expect(positionswap).not.toBe(undefined);
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
-			cardUniqueId: positionswap.uniqueId,
+			cardUniqueId: cardUid(positionswap),
 			actionType: EPlayerActionType.cardAct
 		});
 		testPlayerAction(gameServer, game, {
@@ -43,7 +59,7 @@ describe('leavemealone test',  () => {
 			actionType: EPlayerActionType.playerSelect
 		});
 
-		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: positionswap.uniqueId}));
+		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: cardUid(positionswap)}));
 
 		let leaveMeAlone = find(defensePlayer.hand, {id: EEventID.leaveMeAlone});
 		expect(offensePlayer.turnState).toBe(ETurnState.idle);
@@ -75,11 +91,11 @@ describe('leavemealone test',  () => {
 		expect(initialOffensePosition).toBe(afterOffensePosition);
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
-		expect(game.turnContext.type).toBe(ETurnContextType.trade)
+		expect(requireTurnContext(game.turnContext).type).toBe(ETurnContextType.trade)
 		expect(defensePlayer.turnState).toBe(ETurnState.idle);
 
-		expect(defensePlayer.hand).not.toContainEqual(expect.objectContaining({ uniqueId: leaveMeAlone.uniqueId }));
-		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: positionswap.uniqueId}));
+		expect(defensePlayer.hand).not.toContainEqual(expect.objectContaining({ uniqueId: cardUid(leaveMeAlone) }));
+		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: cardUid(positionswap)}));
 		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 		expect(offensePlayer.hand.length).toBe(4);
 		expect(defensePlayer.hand.length).toBe(4);
@@ -89,9 +105,10 @@ describe('leavemealone test',  () => {
 
 	it('should cancel reelFishingRold swap', () => {
 		const [gameServer, game, defensePlayer] = createMockGameServer();
+		assertDefined(defensePlayer, 'defensePlayer не найден');
 		defensePlayer.hand.splice(0,1);
 		defensePlayer.hand.splice(0,1, getCard(EEventID.leaveMeAlone));
-		expect(defensePlayer.hand[0].id).toBe(EEventID.leaveMeAlone);
+		expect(defensePlayer.hand[0]?.id).toBe(EEventID.leaveMeAlone);
 
 		const offensePlayer = game.getPlayerByPosition({isNext: false, playerId: defensePlayer.id})
 		offensePlayer.hand.splice(0,1, getCard(EEventID.reelFishingRods));
@@ -108,7 +125,7 @@ describe('leavemealone test',  () => {
 		expect(reelFishingRods).not.toBe(undefined);
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
-			cardUniqueId: reelFishingRods.uniqueId,
+			cardUniqueId: cardUid(reelFishingRods),
 			actionType: EPlayerActionType.cardAct
 		});
 		testPlayerAction(gameServer, game, {
@@ -117,7 +134,7 @@ describe('leavemealone test',  () => {
 			actionType: EPlayerActionType.playerSelect
 		});
 
-		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: reelFishingRods.uniqueId}));
+		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: cardUid(reelFishingRods)}));
 
 		let leaveMeAlone = find(defensePlayer.hand, {id: EEventID.leaveMeAlone});
 		expect(offensePlayer.turnState).toBe(ETurnState.idle);
@@ -150,11 +167,11 @@ describe('leavemealone test',  () => {
 		expect(initialOffensePosition).toBe(afterOffensePosition);
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
-		expect(game.turnContext.type).toBe(ETurnContextType.trade)
+		expect(requireTurnContext(game.turnContext).type).toBe(ETurnContextType.trade)
 		expect(defensePlayer.turnState).toBe(ETurnState.idle);
 
-		expect(defensePlayer.hand).not.toContainEqual(expect.objectContaining({ uniqueId: leaveMeAlone.uniqueId }));
-		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: reelFishingRods.uniqueId}));
+		expect(defensePlayer.hand).not.toContainEqual(expect.objectContaining({ uniqueId: cardUid(leaveMeAlone) }));
+		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: cardUid(reelFishingRods)}));
 		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 		expect(offensePlayer.hand.length).toBe(4);
 		expect(defensePlayer.hand.length).toBe(4);
@@ -164,9 +181,10 @@ describe('leavemealone test',  () => {
 
 	it('should swap', () => {
 		const [gameServer, game, defensePlayer] = createMockGameServer();
+		assertDefined(defensePlayer, 'defensePlayer не найден');
 		defensePlayer.hand.splice(0,1);
 		defensePlayer.hand.splice(0,1, getCard(EEventID.leaveMeAlone));
-		expect(defensePlayer.hand[0].id).toBe(EEventID.leaveMeAlone);
+		expect(defensePlayer.hand[0]?.id).toBe(EEventID.leaveMeAlone);
 
 		const offensePlayer = game.getPlayerByPosition({isNext: false, playerId: defensePlayer.id})
 		offensePlayer.hand.splice(0,1, getCard(EEventID.positionswap));
@@ -183,7 +201,7 @@ describe('leavemealone test',  () => {
 		expect(positionswap).not.toBe(undefined);
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
-			cardUniqueId: positionswap.uniqueId,
+			cardUniqueId: cardUid(positionswap),
 			actionType: EPlayerActionType.cardAct
 		});
 		testPlayerAction(gameServer, game, {
@@ -192,7 +210,7 @@ describe('leavemealone test',  () => {
 			actionType: EPlayerActionType.playerSelect
 		});
 
-		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: positionswap.uniqueId}));
+		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: cardUid(positionswap)}));
 
 		let leaveMeAlone = find(defensePlayer.hand, {id: EEventID.leaveMeAlone});
 		expect(offensePlayer.turnState).toBe(ETurnState.idle);
@@ -225,10 +243,10 @@ describe('leavemealone test',  () => {
 		expect(initialOffensePosition).toBe(afterDefensePosition);
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
-		expect(game.turnContext.type).toBe(ETurnContextType.trade)
+		expect(requireTurnContext(game.turnContext).type).toBe(ETurnContextType.trade)
 		expect(defensePlayer.turnState).toBe(ETurnState.idle);
 
-		expect(defensePlayer.hand).toContainEqual(expect.objectContaining({ uniqueId: leaveMeAlone.uniqueId }));
+		expect(defensePlayer.hand).toContainEqual(expect.objectContaining({ uniqueId: cardUid(leaveMeAlone) }));
 		expect(offensePlayer.hand.length).toBe(4);
 		expect(defensePlayer.hand.length).toBe(4);
 

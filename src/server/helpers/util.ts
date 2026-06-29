@@ -1,38 +1,31 @@
-import {uniqueId, each} from 'lodash';
+import {each} from 'lodash';
 
-export function shuffle<T extends any[]>(array: T): T {
-
-  if (array.length === 0 || array.length === 1) return array
-
-  var currentIndex = array.length, temporaryValue, randomIndex;
-
-  // While there remain elements to shuffle...
-  while (0 !== currentIndex) {
-
-    // Pick a remaining element...
-    randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex -= 1;
-
-    // And swap it with the current element.
-    temporaryValue = array[currentIndex];
-    array[currentIndex] = array[randomIndex];
-    array[randomIndex] = temporaryValue;
+export function shuffle<T>(array: T[]): T[] {
+  if (array.length <= 1) return array;
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const a = array[i];
+    const b = array[j];
+    if (a !== undefined && b !== undefined) {
+      array[i] = b;
+      array[j] = a;
+    }
   }
-
   return array;
 }
 
-const silent = false;
-export let debugCache = [];
+// Verbose game logging is off unless NECHTO_DEBUG=true (keeps test output clean
+// and the brutforce fuzzer fast).
+const silent = process.env.NECHTO_DEBUG !== 'true';
+export let debugCache: unknown[][] = [];
 export function clearDebugCache() {
   debugCache = [];
 }
 export function printDebugCache() {
-  each(debugCache, log => {console.log(...log)})
+  each(debugCache, (log: unknown[]) => { console.log(...log) })
 }
-export function debugLog(...log) {
+export function debugLog(...log: unknown[]) {
+  if (silent) return;
   debugCache.push([...log]);
-  if (!silent) {
-    console.log(...log)
-  }
+  console.log(...log)
 }

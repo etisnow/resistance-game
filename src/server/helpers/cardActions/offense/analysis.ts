@@ -9,6 +9,7 @@ import {formatCards} from 'server/helpers/cardHelpers';
 
 
 export const analysisAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
+	if (!card.uniqueId) return;
 	game.turnContext = {
 		type: ETurnContextType.analysisPersonSelect,
 		playerId: player.id,
@@ -26,12 +27,13 @@ export const analysisAct = ({card, game, player} : {card:ICardEvent, game: Game,
 };
 
 export const analysisSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
-	if (game.turnContext.type !== ETurnContextType.analysisPersonSelect) {
+	if (!game.turnContext || game.turnContext.type !== ETurnContextType.analysisPersonSelect) {
 		throw new Error('Карта сыграна без контекста analysisPersonSelect');
 	}
 	player.discardCard(game.turnContext.cardUniqueId);
 	game.turnContext = null;
 	const selectedPlayer = game.players[selectedPlayerId];
+	if (!selectedPlayer) return;
 	game.addLog(`Игрок ${player.nickname} играет карту Анализ на игрока ${selectedPlayer.nickname}`)
 
 	game.addLog(`Игрок ${player.nickname} анализирует ${selectedPlayer.nickname}`);
@@ -39,7 +41,7 @@ export const analysisSelect = ({game, player, selectedPlayerId} : {game: Game, p
       player: player,
       notification: {
 		type: ENotificationAction.okayCard,
-        cards: formatCards(selectedPlayer.hand as ICardEvent[]),
+        cards: formatCards(selectedPlayer.hand),
 		text: `${selectedPlayer.nickname}: На, смотри!`,
       },
     }));

@@ -8,9 +8,9 @@ import {ETurnState} from 'shared/enum/player';
 
 import {EEventID} from 'shared/enum/cards';
 import {find} from 'lodash';
-import {debugLog} from 'server/helpers/util';
 
 export const positionswapAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
+	if (!card.uniqueId) return;
 	game.turnContext = {
 		type: ETurnContextType.positionswap,
 		offensePlayer: player,
@@ -30,11 +30,12 @@ export const positionswapAct = ({card, game, player} : {card:ICardEvent, game: G
 };
 
 export const positionswapSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
-	if (game.turnContext.type !== ETurnContextType.positionswap) {
+	if (!game.turnContext || game.turnContext.type !== ETurnContextType.positionswap) {
 		throw new Error('Смена места произошла без контекста positionswap');
 	}
 	player.discardCard(game.turnContext.cardUniqueId);
 	const defensePlayer = game.players[selectedPlayerId];
+	if (!defensePlayer) return;
 	game.turnContext = {
 		type: ETurnContextType.positionswap,
 		offensePlayer: player,
@@ -68,11 +69,12 @@ export const positionswapSelect = ({game, player, selectedPlayerId} : {game: Gam
 
 
 export const positionswapFinish = ({game, player, action}: {game:Game, player:Player, action:string}) => {
-	if (game.turnContext.type !== ETurnContextType.positionswap) {
+	if (!game.turnContext || game.turnContext.type !== ETurnContextType.positionswap) {
 		throw new Error('Смена места произошла без контекста positionswap');
 	}
 	const {offensePlayer, defensePlayer} = game.turnContext;
 	game.turnContext = null;
+	if (!defensePlayer) return;
 
 	const leaveMeAloneCard = find(player.hand, {id:EEventID.leaveMeAlone});
 	if (action === 'swap' || !leaveMeAloneCard) {
@@ -84,7 +86,9 @@ export const positionswapFinish = ({game, player, action}: {game:Game, player:Pl
 	//КЕЙС КОГДА ИГРОК ПРИМЕНИЛ КАРТУ LEAVEME ALONE
 	game.addLog(`Игрок ${defensePlayer.nickname} применил "Мне и здесь неплохо" и остался на месте`);
 	//discardCard({game, player, cardUniqueId: leaveMeAloneCard.uniqueId});
-	player.discardCard(leaveMeAloneCard.uniqueId)
+	if (leaveMeAloneCard.uniqueId) {
+		player.discardCard(leaveMeAloneCard.uniqueId)
+	}
 
 	game.grabEventCardFromDeck({player});
 	offensePlayer.changeTurnState(ETurnState.inOffenseTrade);

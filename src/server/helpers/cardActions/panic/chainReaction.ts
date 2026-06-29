@@ -6,7 +6,7 @@ import {each, filter, find, remove} from 'lodash';
 
 import {EEventID} from 'shared/enum/cards';
 
-export const getNextChainReactionPlayer = ({game, currentPlayer}:  {game: Game, currentPlayer: Player}) => {
+export const getNextChainReactionPlayer = ({currentPlayer}:  {game: Game, currentPlayer: Player}) => {
 	const nextPlayer = currentPlayer.getNextAlivePlayer();
 	//if (nextPlayer.state === EPlayerState.door) return getNextChainReactionPlayer({game, currentPlayer: nextPlayer});
 	if (nextPlayer === currentPlayer) return null;
@@ -16,7 +16,7 @@ export const getNextChainReactionPlayer = ({game, currentPlayer}:  {game: Game, 
 const getPlayersCount = ({game}: {game:Game}) => {
 	return filter(game.playersList, (pId) => {
 		const pl = game.players[pId];
-		return pl.state === EPlayerState.dummy;
+		return pl?.state === EPlayerState.dummy;
 	}).length;
 }
 
@@ -40,6 +40,7 @@ export const chainReactionTrade = ({game, player, cardUniqueId}: {game: Game, pl
 		throw new Error("Смена карты без контекста chainReaction")
 	}
 	const cardToTrade = find(player.hand, {uniqueId:cardUniqueId});
+	if (!cardToTrade) return;
 	//discardCard({player, cardUniqueId, game});
 	remove(player.hand, (card) => { return card.uniqueId === cardUniqueId});
 	game.turnContext.playersPick.push({player, card:cardToTrade});

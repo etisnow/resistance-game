@@ -14,7 +14,7 @@ interface IActionPayload  {
 	actionType: EPlayerActionType,
 	cardUniqueId?: string,
 	selectedPlayerId?:string,
-	action?: any
+	action?: string
 }
 
 

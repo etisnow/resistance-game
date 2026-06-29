@@ -4,10 +4,9 @@ import { Container } from 'react-pixi-fiber';
 import {clamp, map} from 'lodash';
 import {observer} from "mobx-react-lite";
 import {config, useTransition, interpolate} from 'react-spring/universal';
+import type {AnimatedValue, UseTransitionProps} from 'react-spring/universal';
 import {
 	autoWidthCard,
-	getConstrainedWindowHeight,
-	getConstrainedWindowWidth,
 	getWindowHeight,
 	getWindowWidth,
 	playerCardWidthPix,
@@ -19,13 +18,29 @@ import {degToRag} from 'client/helpers/roomHelpers';
 import Card from '../Card/Card';
 import {resources} from 'client/resources/resources';
 import type {ICardAny} from 'shared/interfaces/cards';
+import type {IHandActionsMap, IHandActionEntry} from 'client/controllers/socketTypes';
+
+type ICardsMap = {[key: string]: ICardAny};
+
+// The animated style object produced by react-spring's useTransition. Each key is an
+// OpaqueInterpolation<number> which masquerades as a number and exposes `.interpolate`.
+interface ICardStyleProps {
+	x: number;
+	y: number;
+	angle: number;
+	width: number;
+}
+type AnimatedCardStyle = AnimatedValue<ICardStyleProps>;
+
+type OnSelectCard = (uniqueId: string) => void;
+type OnCardAction = (uniqueId: string, action: EPlayerActionType) => void;
 
 interface IHandProps {
-	cards: {[key:string]: ICardAny};
+	cards: ICardsMap;
 	selectedCardIndex: null | string;
-	cardActions: {[key: string]: any[] };
-	onSelectCard: null| Function;
-	onCardAction: null| Function;
+	cardActions: IHandActionsMap;
+	onSelectCard: null | OnSelectCard;
+	onCardAction: null | OnCardAction;
 	y: number;
 	autoWidth?: boolean;
 }
@@ -34,8 +49,10 @@ interface IHandProps {
 
 
 
-const generateCardMenu = (card, cardActions, onCardAction) => (style) => {
-	const menuItems = cardActions[card.uniqueId];
+const generateCardMenu = (card: ICardAny, cardActions: IHandActionsMap, onCardAction: OnCardAction) => (style: AnimatedCardStyle): React.ReactNode => {
+	const uniqueId = card.uniqueId;
+	if (!uniqueId) return null;
+	const menuItems = cardActions[uniqueId];
 	if (!menuItems || menuItems.length === 0) return null;
 	//const player = gameController.currentPlayer;
 	//if (!player || player.turnState === ETurnState.idle) return null;
@@ -45,8 +62,8 @@ const generateCardMenu = (card, cardActions, onCardAction) => (style) => {
 	const cardSelect = getPixiTexture(resources['cardSelect']);
 
 	const cardWidthPercent = 0.44
-	const calcWidth = (w) => w * cardWidthPercent
-	const calcXOffset = (w) => (w / 2 - calcWidth(w)) / 2
+	const calcWidth = (w: number) => w * cardWidthPercent
+	const calcXOffset = (w: number) => (w / 2 - calcWidth(w)) / 2
 
 	const cardHeight = style.width.interpolate(w => w* cardAspectRatio)
 	const width = style.width.interpolate(calcWidth)
@@ -58,11 +75,11 @@ const generateCardMenu = (card, cardActions, onCardAction) => (style) => {
 		height: buttonHeight,
 		angle: style.angle,
 	}
-	const menu = menuItems.map((menuIitem) => {
+	const menu = menuItems.map((menuIitem: IHandActionEntry) => {
 
 		const overrideStyles = menuItems.length === 1 ? {
 			anchor: 0.5,
-			x: interpolate([style.x, style.width], (x,w) => x)
+			x: interpolate([style.x, style.width], (x, _w) => x)
 		} : {}
 
 
@@ -74,7 +91,7 @@ const generateCardMenu = (card, cardActions, onCardAction) => (style) => {
 					x={interpolate([style.x, style.width], (x,w) => x - calcWidth(w) - calcXOffset(w))}
 					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.36)}
 					key={EPlayerActionType.cardAct}
-					pointerdown={() => onCardAction(card.uniqueId, EPlayerActionType.cardAct)}
+					pointerdown={() => onCardAction(uniqueId, EPlayerActionType.cardAct)}
 					{...overrideStyles}
 				/>
 			case EPlayerActionType.cardDiscard:
@@ -84,7 +101,7 @@ const generateCardMenu = (card, cardActions, onCardAction) => (style) => {
 					x={interpolate([style.x, style.width], (x,w) => x + calcXOffset(w))}
 					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.36)}
 					key={EPlayerActionType.cardDiscard}
-					pointerdown={() => onCardAction(card.uniqueId, EPlayerActionType.cardDiscard)}
+					pointerdown={() => onCardAction(uniqueId, EPlayerActionType.cardDiscard)}
 					{...overrideStyles}
 				/>
 			case EPlayerActionType.cardTrade:
@@ -94,7 +111,7 @@ const generateCardMenu = (card, cardActions, onCardAction) => (style) => {
 					x={interpolate([style.x, style.width], (x,w) => x + calcXOffset(w))}
 					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.36)}
 					key={EPlayerActionType.cardTrade}
-					pointerdown={() => onCardAction(card.uniqueId, EPlayerActionType.cardTrade)}
+					pointerdown={() => onCardAction(uniqueId, EPlayerActionType.cardTrade)}
 					{...overrideStyles}
 				/>
 			case EPlayerActionType.cardSelect:
@@ -103,7 +120,7 @@ const generateCardMenu = (card, cardActions, onCardAction) => (style) => {
 					texture={cardSelect}
 					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.36)}
 					key={EPlayerActionType.cardTrade}
-					pointerdown={() => onCardAction(card.uniqueId, EPlayerActionType.cardSelect)}
+					pointerdown={() => onCardAction(uniqueId, EPlayerActionType.cardSelect)}
 					{...overrideStyles}
 				/>
 		}
@@ -126,13 +143,13 @@ const calculateSize = () => {
 	return {width, height};
 }
 
-const getCardDeg = (cardNumber, cardsCount, maxDeg) => {
+const getCardDeg = (cardNumber: number, cardsCount: number, maxDeg: number) => {
 	const degDelta = maxDeg / cardsCount;
 	const currentDeg = (degDelta * cardNumber) - 90 - (maxDeg / 2) + (degDelta / 2);
 	return currentDeg;
 }
 
-const getCirclePoint = (radius, deg, centerX, centerY) => {
+const getCirclePoint = (radius: number, deg: number, centerX: number, centerY: number) => {
 	const currentRad = degToRag(deg);
 	const x = radius*Math.cos(currentRad) + centerX;
 	const y = radius*Math.sin(currentRad) + centerY;
@@ -140,7 +157,7 @@ const getCirclePoint = (radius, deg, centerX, centerY) => {
 }
 
 
-const calculateCardStypeProps = (cardNumber, cardsCount, autoWidth) => {
+const calculateCardStypeProps = (cardNumber: number, cardsCount: number, autoWidth: boolean): ICardStyleProps => {
 	const degStep = 11;
 	const maxCardDeg = degStep * cardsCount;
 	const cardDeg = getCardDeg(cardNumber, cardsCount, maxCardDeg);
@@ -162,8 +179,8 @@ const getCenterOffset = () => {
 	return YOffset - playerHandHeight() / 2
 }
 
-const calculateCardSelectedStypeProps = (autoWidth) => {
-	const {width, height} = calculateSize();
+const calculateCardSelectedStypeProps = (autoWidth: boolean): ICardStyleProps => {
+	const {width} = calculateSize();
 	const offset = getCenterOffset() + (getCenterOffset() * 0.25)
 	if (autoWidth) {
 		return {x:0,y: 0, angle:0, width}
@@ -179,26 +196,35 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 	const cardsCount = Object.keys(cards).length;
 
 
-	const cardNumberInRow = (card) => {
+	const cardNumberInRow = (card: ICardAny) => {
 		return Object.values(cards).indexOf(card)
 	};
 
-	const styleUpdater = (card) => {
+	const styleUpdater = (card: ICardAny): ICardStyleProps => {
 		const isSelected = card.uniqueId === selectedCardIndex;
 		const cardNumber = cardNumberInRow(card);
 		return isSelected ? calculateCardSelectedStypeProps(autoWidth) : calculateCardStypeProps(cardNumber, cardsCount, autoWidth)
 	}
-	const defaultCardStyle = { x:0,y:-getCenterOffset(),angle:-90, width: 0 };
+	const defaultCardStyle: ICardStyleProps = { x:0,y:-getCenterOffset(),angle:-90, width: 0 };
 
 
-	const transitions = useTransition(Object.values(cards), card=>card.uniqueId, {
+	// react-spring v8's useTransition typings demand the spring's target keys (x/y/angle/width)
+	// at the top level via Merge<DS, ...>, but the runtime expects them only inside
+	// from/enter/update/leave (top-level extras would be mis-read as additional springs).
+	// We type the options object with the real UseTransitionProps and bridge that single
+	// upstream typings flaw with a cast to the precise expected parameter shape.
+	const transitionOptions: UseTransitionProps<ICardAny, ICardStyleProps> = {
 		from: defaultCardStyle,
 		enter: (card) => {console.log('enter'); return styleUpdater(card)},
 		update: (card) => {console.log('update'); return styleUpdater(card)},
-		leave: card => {console.log('LEAVE'); return defaultCardStyle},
+		leave: () => {console.log('LEAVE'); return defaultCardStyle},
 		config: config.default,
-		native: true,
-	} as any);
+	};
+	const transitions = useTransition<ICardAny, ICardStyleProps>(
+		Object.values(cards),
+		card => card.uniqueId ?? '',
+		transitionOptions as ICardStyleProps & UseTransitionProps<ICardAny, ICardStyleProps>,
+	);
 
 	const pivotAtCenter = {x:-getWindowWidth() / 2 , y: 0}
 
@@ -211,17 +237,19 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 			sortableChildren={true}
 		>
 			{map(transitions, ({item: card, key, props}) => {
-				const isSelected = selectedCardIndex === card.uniqueId;
-				const canBeUsed = !!(cardActions[card.uniqueId] ? cardActions[card.uniqueId].length : false)
-				const cardMenu = generateCardMenu(card, cardActions, onCardAction);
+				const uniqueId = card.uniqueId;
+				const isSelected = selectedCardIndex === uniqueId;
+				const cardActionEntries = uniqueId ? cardActions[uniqueId] : undefined;
+				const canBeUsed = !!(cardActionEntries ? cardActionEntries.length : false)
+				const cardMenu = onCardAction ? generateCardMenu(card, cardActions, onCardAction) : undefined;
 				return (
 					<Container key={key} zIndex={isSelected ? 60 : cardNumberInRow(card)}>
 						<Card
 							id={card.id}
 							canBeUsed={canBeUsed}
-							onCardClick={() => onSelectCard(card.uniqueId)}
+							onCardClick={() => { if (onSelectCard && uniqueId) onSelectCard(uniqueId) }}
 							style={props}
-							menu={isSelected ? cardMenu : null}
+							menu={isSelected ? cardMenu : undefined}
 						/>
 					</Container>
 				)

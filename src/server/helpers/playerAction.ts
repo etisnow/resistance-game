@@ -22,10 +22,10 @@ import {oneTwoPlayerSelect} from 'server/helpers/cardActions/panic/oneTwo';
 import {onlyBetweenUsSelect} from 'server/helpers/cardActions/panic/onlyBetweenUs';
 import {forgetfullnessSelect} from 'server/helpers/cardActions/panic/forgetfulness';
 
-export const actCard = ({game, cardUniqueId, player, actionContext} : {game: Game, player: Player, cardUniqueId: string, actionContext?:any}) => {
+export const actCard = ({game, cardUniqueId, player} : {game: Game, player: Player, cardUniqueId: string}) => {
 	const card = player.getCardByUniqueId(cardUniqueId);
 	if (!card) {
-		throw new Error('Похоже карта не была найдена у игрока ' + player.nickname + ' c ID ' + card.uniqueId);
+		throw new Error('Похоже карта не была найдена у игрока ' + player.nickname + ' c ID ' + cardUniqueId);
 	}
 	switch (card.id) {
 		case EEventID.tenacity:
@@ -63,7 +63,7 @@ export const actCard = ({game, cardUniqueId, player, actionContext} : {game: Gam
 	}
 };
 
-export const selectCard = ({game, cardUniqueId, player, actionContext} : {game: Game, player: Player, cardUniqueId: string, actionContext?:any}) => {
+export const selectCard = ({game, cardUniqueId, player} : {game: Game, player: Player, cardUniqueId: string}) => {
 	const {turnContext} = game;
 	if (!turnContext) return;
 	switch (turnContext.type) {
@@ -76,8 +76,9 @@ export const selectCard = ({game, cardUniqueId, player, actionContext} : {game: 
 	}
 };
 
-export const selectPlayer = ({game, selectedPlayerId, player, actionContext} : {game: Game, player: Player, selectedPlayerId: string, actionContext?:any}) => {
+export const selectPlayer = ({game, selectedPlayerId, player} : {game: Game, player: Player, selectedPlayerId: string}) => {
 	const {turnContext} = game;
+	if (!turnContext) return;
 	switch (turnContext.type) {
 		case ETurnContextType.suspicionPersonSelect:
 			return suspicionSelect({game, selectedPlayerId, player});

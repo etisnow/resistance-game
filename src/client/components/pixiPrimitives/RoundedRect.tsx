@@ -1,12 +1,33 @@
 import { CustomPIXIComponent } from "react-pixi-fiber";
 import * as PIXI from "pixi.js";
 
+interface RoundedRectProps {
+  fill: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  borderRadius: number;
+  [key: string]: unknown;
+}
+
+type RoundedRectRest = Record<string, unknown>;
+
+interface RoundedRectBehaviorThis {
+  applyDisplayObjectProps(oldProps: RoundedRectRest, newProps: RoundedRectRest): void;
+}
+
 const TYPE = "RoundedRect";
 export const behavior = {
-  customDisplayObject: props => new PIXI.Graphics(),
-  customApplyProps: function(instance, oldProps, newProps) {
+  customDisplayObject: (_props: RoundedRectProps) => new PIXI.Graphics(),
+  customApplyProps: function(
+    this: RoundedRectBehaviorThis,
+    instance: PIXI.Graphics,
+    oldProps: RoundedRectProps,
+    newProps: RoundedRectProps,
+  ) {
     const { fill, x, y, width, height, borderRadius, ...newPropsRest } = newProps;
-    const { fill: oldFill, borderRadius: oldRadius, ...oldPropsRest } = oldProps;
+    const { fill: _oldFill, borderRadius: _oldRadius, ...oldPropsRest } = oldProps;
     if (typeof oldProps !== "undefined") {
       instance.clear();
     }

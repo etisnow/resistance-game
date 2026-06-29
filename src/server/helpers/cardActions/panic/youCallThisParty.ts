@@ -6,7 +6,8 @@ import {clone, each, filter} from 'lodash';
 export const youCallThisPartyAct = ({game, player} : {game: Game, player: Player}) => {
 	game.playersList = filter(game.playersList, (pId) => {
 		const pl = game.players[pId];
-		game.players[pId].quarantine = 0;
+		if (!pl) return false;
+		pl.quarantine = 0;
 		return pl.state === EPlayerState.dummy
 	});
 

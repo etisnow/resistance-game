@@ -1,5 +1,6 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React from 'react';
 import {map, range} from 'lodash';
+import * as PIXI from 'pixi.js';
 import {Container, Sprite, Text} from 'react-pixi-fiber';
 import Circle from 'client/components/pixiPrimitives/Circle';
 import {resources} from 'client/resources/resources';
@@ -37,25 +38,25 @@ const playerStatusThing = getPixiTexture(resources.playerStatusThing);
 const playerStatusInfected = getPixiTexture(resources.playerStatusInfected);
 const playerStatusClear = getPixiTexture(resources.playerStatusClear);
 
-const formatNickname = (nickname) => {
+const formatNickname = (nickname: string | null): string | null => {
 	if (!nickname) return null;
 	return nickname.substring(0,4).toUpperCase()
 };
 
-const Quarantine = ({quarantine, badgeRadius}) => {
+const Quarantine = ({quarantine, badgeRadius}: {quarantine: number; badgeRadius: number}) => {
 	const r = badgeRadius * 0.05;
 	const yOffset = badgeRadius * 0.45;
 	const xOffset = r * 4;
 	return quarantine ? (
 		<Container>
-			{ map(range(quarantine), (q, index) => {
+			{ map(range(quarantine), (_q, index) => {
 				return <Circle key={index} xCoord={(index * r * 4) - xOffset } yCoord={yOffset} color={0xFFFF00} r={r}/>
 			})}
 		</Container>
 	) :  null;
 }
 
-const getMarkTexture = (mark: EPlayerMark | undefined) => {
+const getMarkTexture = (mark: EPlayerMark | undefined): PIXI.Texture | undefined => {
 	switch (mark) {
 		case EPlayerMark.question:
 			return playerStatusQuestion;
@@ -65,37 +66,9 @@ const getMarkTexture = (mark: EPlayerMark | undefined) => {
 			return playerStatusThing;
 		case EPlayerMark.clear:
 			return playerStatusClear;
+		default:
+			return undefined;
 	}
-}
-
-function useLongPress(callback = () => {}, ms = 700) {
-	const [startLongPress, setStartLongPress] = useState(false);
-
-	useEffect(() => {
-		let timerId;
-		if (startLongPress) {
-			timerId = setTimeout(callback, ms);
-		} else {
-			clearTimeout(timerId);
-		}
-		return () => {
-			clearTimeout(timerId);
-		};
-	}, [callback, ms, startLongPress]);
-
-	const start = useCallback(() => {
-		setStartLongPress(true);
-	}, []);
-	const stop = useCallback(() => {
-		setStartLongPress(false);
-	}, []);
-
-	return {
-		interactive: true,
-		buttonMode: true,
-		pointerdown: start,
-		pointerup: stop,
-	};
 }
 
 const PlayerBadge = ({
@@ -115,7 +88,8 @@ const PlayerBadge = ({
 		onLongPress = null,
 		mark,
 	}: IPlayerBadgeProps) => {
-	const playerBadgeTexture = getPixiTexture(isDoor ? resources.playerBadges['door'] : isConnected ? resources.playerBadges[color] : resources.playerBadges['disconnected']);
+	const playerBadgesByKey: Record<string, string | undefined> = resources.playerBadges;
+	const playerBadgeTexture = getPixiTexture(isDoor ? playerBadgesByKey['door'] : isConnected ? playerBadgesByKey[color] : playerBadgesByKey['disconnected']);
 /*	const longPress = useLongPress(() => {
 	});*/
 	const markPlayer = () => {
@@ -124,7 +98,7 @@ const PlayerBadge = ({
 	}
 
 	if (!color && !isDoor) return null;
-	const nick = isYou ? 'ТЫ' : formatNickname(nickname)
+	const nick = isYou ? 'ТЫ' : (formatNickname(nickname) ?? undefined)
 	return (
 		<Container pointerdown={markPlayer} buttonMode={true} interactive={true}>
 			{canBeSelected && (

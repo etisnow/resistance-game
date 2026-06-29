@@ -8,10 +8,12 @@ import {EAppState} from 'shared/enum/common';
 
 export default class RootController {
 	@observable state: EAppState = EAppState.launcher;
-	@observable launcherController: LauncherController;
+	// Assigned in the constructor (socketController) and in start() (the rest, which
+	// the constructor invokes), hence the definite-assignment assertions.
+	@observable launcherController!: LauncherController;
 	@observable socketController: SocketController;
-	@observable gameController: GameController;
-	@observable timerController: TimerController;
+	@observable gameController!: GameController;
+	@observable timerController!: TimerController;
 	@observable isLoaded : boolean = false;
 
 	constructor() {

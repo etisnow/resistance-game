@@ -8,6 +8,7 @@ import {EPlayerState, ETurnState} from 'shared/enum/player';
 
 
 export const axeAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
+	if (!card.uniqueId) return;
 	game.turnContext = {
 		type: ETurnContextType.axePersonSelect,
 		playerId: player.id,
@@ -30,12 +31,13 @@ export const axeAct = ({card, game, player} : {card:ICardEvent, game: Game, play
 };
 
 export const axeSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
-	if (game.turnContext.type !== ETurnContextType.axePersonSelect) {
+	if (!game.turnContext || game.turnContext.type !== ETurnContextType.axePersonSelect) {
 		throw new Error('Выбор подозрения произошел без контекста axePersonSelect');
 	}
 	player.discardCard(game.turnContext.cardUniqueId);
 	const selectedPlayer = game.players[selectedPlayerId];
 	game.turnContext = null;
+	if (!selectedPlayer) return;
 	if (selectedPlayer.state === EPlayerState.door) {
 		game.playersList = game.playersList.filter((playerId) => {
 			return playerId !== selectedPlayer.id

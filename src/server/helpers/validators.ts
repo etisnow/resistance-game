@@ -8,20 +8,7 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {debugLog} from 'server/helpers/util';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 
-interface IActionPayload  {
-	player:Player,
-	actionType: EPlayerActionType,
-	cardUniqueId?: string,
-	selectedPlayerId?:string,
-	actionContext?: any
-}
-
-interface IActionDecisionPayload {
-	player:Player,
-	action:string,
-}
-
-export const isPlayerCanDiscardCard = (game: Game, player: Player, cardUniqueId: string) => {
+export const isPlayerCanDiscardCard = (game: Game, player: Player, cardUniqueId: string | undefined) => {
 	//Проверяем есть ли у него на руках такая карта
 	const selectedCard = find(player.hand, {uniqueId:cardUniqueId});
 	if (!selectedCard) {
@@ -29,7 +16,7 @@ export const isPlayerCanDiscardCard = (game: Game, player: Player, cardUniqueId:
 		console.error(`У игрока ${player.nickname} нету карту ${cardUniqueId}`)
 		return false;
 	}
-	if (player.currentAction.type !== ENotificationAction.turnCard) return false;
+	if (!player.currentAction || player.currentAction.type !== ENotificationAction.turnCard) return false;
 
 	const cardActions = getCardActions(game, player, selectedCard);
 	const actAction = find(cardActions, { menuType: EPlayerActionType.cardDiscard });
@@ -45,7 +32,7 @@ export const isPlayerCanDiscardCard = (game: Game, player: Player, cardUniqueId:
 };
 
 
-export const isPlayerCanActCard = (game: Game, player: Player, cardUniqueId: string) => {
+export const isPlayerCanActCard = (game: Game, player: Player, cardUniqueId: string | undefined) => {
 	//Проверяем есть ли у него на руках такая карта
 	const selectedCard = find(player.hand, {uniqueId:cardUniqueId});
 	if (!selectedCard) {
@@ -53,7 +40,7 @@ export const isPlayerCanActCard = (game: Game, player: Player, cardUniqueId: str
 		console.error(`У игрока ${player.nickname} нету карту ${cardUniqueId}`)
 		return false;
 	}
-	if (player.currentAction.type !== ENotificationAction.turnCard && player.currentAction.type !== ENotificationAction.defenseTradeCard) return false;
+	if (!player.currentAction || (player.currentAction.type !== ENotificationAction.turnCard && player.currentAction.type !== ENotificationAction.defenseTradeCard)) return false;
 	const cardActions = getCardActions(game, player, selectedCard);
 	const actAction = find(cardActions, { menuType: EPlayerActionType.cardAct});
 	switch (player.turnState) {
@@ -88,7 +75,7 @@ export const isPlayerCanCancel = (game: Game, player: Player) => {
 	return false;
 };
 
-export const isPlayerCanTradeCard = (game: Game, player: Player, cardUniqueId: string) => {
+export const isPlayerCanTradeCard = (game: Game, player: Player, cardUniqueId: string | undefined) => {
 	//Проверяем есть ли у него на руках такая карта
 	const selectedCard = find(player.hand, {uniqueId:cardUniqueId});
 	if (!selectedCard) {
@@ -115,7 +102,7 @@ export const isPlayerCanTradeCard = (game: Game, player: Player, cardUniqueId: s
 	}
 };
 
-export const isPlayerCanSelectPlayer = (game, player, selectedPlayerId) => {
+export const isPlayerCanSelectPlayer = (game: Game, player: Player, selectedPlayerId: string | undefined) => {
 	//Проверяем есть ли в игре игрок с таким ID
 	const selectedPlayer = find(game.players, {id:selectedPlayerId});
 	if (!selectedPlayer) {
@@ -124,18 +111,19 @@ export const isPlayerCanSelectPlayer = (game, player, selectedPlayerId) => {
 		return false;
 	}
 
-	const event = player.currentAction;
 	if (!player.currentAction || player.currentAction.type !== ENotificationAction.playerSelect) {
-		debugLog('CARD ACTIONS WAS', event, player.nickname, player.turnState, selectedPlayerId)
+		debugLog('CARD ACTIONS WAS', player.currentAction, player.nickname, player.turnState, selectedPlayerId)
 		return false;
 	}
-	if (!event.playersToSelect.includes(selectedPlayerId)) {
+	const event = player.currentAction;
+	if (!selectedPlayerId || !event.playersToSelect.includes(selectedPlayerId)) {
 		console.error(`В эвенте нету ID пользователя`, event, selectedPlayerId)
+		return false;
 	}
 	return event.playersToSelect.includes(selectedPlayerId)
 };
 
-export const isPlayerCanSelectCard = (game: Game, player: Player, cardUniqueId: string) => {
+export const isPlayerCanSelectCard = (_game: Game, player: Player, cardUniqueId: string | undefined) => {
 	if (!player.currentAction || player.currentAction.type !== ENotificationAction.selectCard) {
 		return false;
 	}
@@ -147,7 +135,7 @@ export const isPlayerCanSelectCard = (game: Game, player: Player, cardUniqueId: 
 	return !!selectedCard
 };
 
-export const isPlayerCanSelectDesicion = (game, player, action) => {
+export const isPlayerCanSelectDesicion = (_game: Game, player: Player, action: string | undefined) => {
 	if (!player.currentAction || player.currentAction.type !== ENotificationAction.actionDecision) {
 		return false;
 	}

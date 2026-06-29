@@ -12,12 +12,12 @@ import {getNextChainReactionPlayer} from 'server/helpers/cardActions/panic/chain
 import {getCardActions} from 'server/formatters/formatCardActions';
 import {isPlayerCanCancel} from 'server/helpers/validators';
 
-function formatEvent(type, payload) {
+function formatEvent(type: string, payload?: unknown) {
 	return {
 		type, payload
 	}
 }
-export const formatStartGameEvent = ({ players }: {players: { [key:string]: Player }}) => {
+export const formatStartGameEvent = (_args: {players: { [key:string]: Player }}) => {
 	return formatEvent(EServerEventType.gameStarted, {})
 };
 
@@ -37,39 +37,42 @@ export const formatUpdateGameEvent = ({ game, viewer }: {game: Game, viewer: Pla
 	return formatEvent(EServerEventType.playerConnected, formatUpdatePlayerPayload({ game, viewer }))
 };*/
 
-const formatTradeContext = (game: Game) : IFormatTradeContext[] => {
-	if (!game.turnContext) return;
-	const ctx: any = game.turnContext;
-	switch (game.turnContext.type) {
-		case ETurnContextType.chainReaction:
-			return reduce(game.playersList, (acc, pId) => {
+const formatTradeContext = (game: Game) : IFormatTradeContext[] | undefined => {
+	const turnContext = game.turnContext;
+	if (!turnContext) return undefined;
+	switch (turnContext.type) {
+		case ETurnContextType.chainReaction: {
+			const ctxType = turnContext.type;
+			return reduce(game.playersList, (acc: IFormatTradeContext[], pId) => {
 				const player = game.players[pId];
-				if (player.turnState === ETurnState.inOffenseTrade && player.state !== EPlayerState.door) {
+				if (player && player.turnState === ETurnState.inOffenseTrade && player.state !== EPlayerState.door) {
 					const defensePlayer = getNextChainReactionPlayer({currentPlayer: player, game})
 					acc.push({
 						offensePlayerId: pId,
-						defensePlayerId: defensePlayer.id,
+						defensePlayerId: defensePlayer ? defensePlayer.id : null,
 						isCardPicked: false,
-						type: game.turnContext.type,
+						type: ctxType,
 					})
 				}
 				return acc;
 			}, []);
+		}
 		case ETurnContextType.trade:
 			return [{
-				offensePlayerId: ctx.offensePlayer ? ctx.offensePlayer.id : null,
-				defensePlayerId: ctx.defensePlayer ? ctx.defensePlayer.id : null,
-				isCardPicked: !!ctx.offenseCardId,
-				type: game.turnContext.type,
+				offensePlayerId: turnContext.offensePlayer ? turnContext.offensePlayer.id : null,
+				defensePlayerId: turnContext.defensePlayer ? turnContext.defensePlayer.id : null,
+				isCardPicked: !!turnContext.offenseCard,
+				type: turnContext.type,
 			}];
 		case ETurnContextType.burn:
 		case ETurnContextType.positionswap:
 			return [{
-				offensePlayerId: ctx.offensePlayer ? ctx.offensePlayer.id : null,
-				defensePlayerId: ctx.defensePlayer ? ctx.defensePlayer.id : null,
-				type: game.turnContext.type,
+				offensePlayerId: turnContext.offensePlayer ? turnContext.offensePlayer.id : null,
+				defensePlayerId: turnContext.defensePlayer ? turnContext.defensePlayer.id : null,
+				type: turnContext.type,
 			}]
 	}
+	return undefined;
 }
 
 const getPlayerHand = (game: Game, viewer:Player) => {
@@ -77,8 +80,8 @@ const getPlayerHand = (game: Game, viewer:Player) => {
 }
 const getPlayerHandActions = (game: Game, viewer:Player) => {
 	const hand = getPlayerHand(game, viewer);
-	return reduce(hand, (acc, card) => {
-		acc[card.uniqueId] = getCardActions(game, viewer, card);
+	return reduce(hand, (acc: Record<string, ReturnType<typeof getCardActions>>, card) => {
+		if (card.uniqueId) acc[card.uniqueId] = getCardActions(game, viewer, card);
 		return acc
 	}, {})
 
@@ -163,7 +166,7 @@ export const formatLobbyState = (gameServer: GameServer) => {
 };
 
 
-export const formatPlayerNotification = ({player, notification} : {player: Player, notification: INotificationAction}) => {
+export const formatPlayerNotification = ({notification} : {player: Player, notification: INotificationAction}) => {
 	return formatEvent(EServerEventType.notification, notification)
 }
 
@@ -178,6 +181,6 @@ export const formatSoundNotification = () => {
 	})
 };
 
-export const formatTimerNotification = (timerPayload) => {
+export const formatTimerNotification = (timerPayload: { text: string; seconds: number }) => {
 	return formatEvent(EServerEventType.timerNotification, timerPayload)
 };

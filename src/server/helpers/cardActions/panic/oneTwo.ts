@@ -7,7 +7,7 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 import {filter, find} from 'lodash';
 import {debugLog} from 'server/helpers/util';
 
-export const getPlayerByStep = ({game, currentPlayer, isNext, step}: {game:Game, currentPlayer:Player, step: number, isNext: boolean}) => {
+export const getPlayerByStep = ({game, currentPlayer, isNext, step}: {game:Game, currentPlayer:Player, step: number, isNext: boolean}): Player => {
 	const nextPlayer = game.getPlayerByPosition({playerId: currentPlayer.id,isNext})
 	if (step !== 0) {
 		if (nextPlayer.state === EPlayerState.door) { return getPlayerByStep({game, currentPlayer: nextPlayer, isNext, step}) }
@@ -52,6 +52,7 @@ export const oneTwoAct = ({game, player}: {game:Game, player:Player}) => {
 export const oneTwoPlayerSelect = ({game, selectedPlayerId, player}: {game:Game, player: Player, selectedPlayerId: string}) => {
 	debugLog('SELECTED PLAYER ID', selectedPlayerId)
 	const selectedPlayer = find(game.players, {id:selectedPlayerId});
+	if (!selectedPlayer) return;
 	game.addLog(`Игрок ${player.nickname} меняется местами с ${selectedPlayer.nickname}`);
 	game.swapPlayers(selectedPlayerId, player.id);
 	game.turnContext = null;

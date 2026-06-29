@@ -1,11 +1,14 @@
 import {GameServer, gameServer} from 'server/server/GameServer';
-import {createMockSocket, createMockSocketServer, createPlayer} from '_integration/mockSocket';
+import {createMockSocket, createMockSocketServer} from '_integration/mockSocket';
 import {map} from 'lodash';
 import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
 
-export const createBrutforceServer = (isTestTag = true): [GameServer, Game, ...Player[]] => {
+export const createBrutforceServer = (): [GameServer, Game, ...Player[]] => {
+	// Real-game mode with deck-integrity checks ENABLED so the fuzzer surfaces
+	// any inconsistency (no ignoreChecks shortcut).
 	gameServer.isMock = false;
+	gameServer.ignoreChecks = false;
 	gameServer.initialize(createMockSocketServer());
 	const [game, player1] = gameServer.createGame({nickname: 'neerone', socket: createMockSocket()});
 	gameServer.connectGame({socket: createMockSocket(), gameId: game.id, nickname:'Петя'});

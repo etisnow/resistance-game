@@ -9,21 +9,21 @@ import {resources} from 'client/resources/resources';
 import { reduce } from 'lodash';
 
 
-const asyncLoader = () => {
-	return new Promise((resolve, reject) => {
-		let loader = reduce(resources, (l, res) => {
-			if (res[0] === '/') {
+const asyncLoader = (): Promise<void> => {
+	return new Promise<void>((resolve) => {
+		let loader = reduce(resources, (l: PIXI.Loader, res) => {
+			if (typeof res === 'string' && res[0] === '/') {
 				l.add(res);
 			}
 			return l;
 		}, new PIXI.Loader());
-		loader = reduce(resources.playerBadges, (l, res) => {
-			if (res[0] === '/') {
+		loader = reduce(resources.playerBadges, (l: PIXI.Loader, res) => {
+			if (typeof res === 'string' && res[0] === '/') {
 				l.add(res);
 			}
 			return l;
 		}, loader);
-		loader.load((loader, resources) => {
+		loader.load(() => {
 			resolve();
 		});
 	})
@@ -40,19 +40,19 @@ export default class LauncherController {
 	@observable nickname: string = '';
 	@observable gameId: string = '5';
 	@observable games: {gameId: string, hostName: string}[] = [];
-	constructor(root: RootController, parent) {
+	constructor(root: RootController, parent: RootController) {
 		this.root = root;
 		this.parent = parent;
 		this.socket = root.socketController;
 	}
 
-	changeNickname = async (newNickname) => {
+	changeNickname = async (newNickname: string) => {
 		await localforage.setItem('nickname', newNickname)
 		this.nickname = newNickname;
 	}
 
 	init = async () => {
-		this.nickname = await localforage.getItem('nickname') || ''
+		this.nickname = await localforage.getItem<string>('nickname') || ''
 		if (this.root.isLoaded) {
 			this.state = EAsyncState.idle;
 			return;
@@ -62,7 +62,7 @@ export default class LauncherController {
 		this.root.isLoaded = true
 	}
 
-	changeGameId = (newGameId) => {
+	changeGameId = (newGameId: string) => {
 		this.gameId = newGameId;
 	}
 
@@ -75,7 +75,7 @@ export default class LauncherController {
 		this.state = EAsyncState.pending;
 	}
 
-	connectGame = (gameId) => {
+	connectGame = (gameId: string) => {
 		if (this.nickname.trim() === '') {
 			alert('Необходимо заполнить ник');
 			return

@@ -1,6 +1,6 @@
 import {Game} from 'server/models/Game';
 import {clone, concat, difference, each, filter, reduce} from 'lodash';
-import {fullDeckObject, getCard, handCardsCount} from 'shared/constant/cards';
+import {fullDeckObject, instantiateCard, handCardsCount} from 'shared/constant/cards';
 import {ICardAny} from 'shared/interfaces/cards';
 import {ECardType} from 'shared/enum/cards';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
@@ -9,17 +9,18 @@ import {Player} from 'server/models/Player';
 import {initialDeck} from 'server/helpers/gameStarter';
 import {debugLog} from 'server/helpers/util';
 import {gameServer} from 'server/server/GameServer';
+import {getSpyCalls} from '_integration/mockSocket';
 
-export const checkAllDeckCards = (game: Game, withPanics = true) => {
+export const checkAllDeckCards = (game: Game, _withPanics = true) => {
 	if (gameServer.ignoreChecks) return true;
 	const activePlayers = filter(game.players, p => p.state !== EPlayerState.door)
 
 	const playersCount = Object.keys(activePlayers).length;
 
-	const cardsOnHands = reduce(game.players, (acc, player) => {
+	const cardsOnHands = reduce(game.players, (acc: ICardAny[], player) => {
 		if (player.state === EPlayerState.door) return acc;
 		return concat(acc, player.hand);
-	}, []);
+	}, [] as ICardAny[]);
 
 	let comparingDeck = clone(cardsOnHands);
 
@@ -31,13 +32,7 @@ export const checkAllDeckCards = (game: Game, withPanics = true) => {
 		if (diff.length === 0) {
 			diff = difference(initialDeck, comparingDeck);
 		}
-		//debugLog(comparingDeck, initialDeck);
 		debugLog('DECK DIFFERENCE', diff)
-
-		//each(diff, (diffCard) => {
-		//	const foundCards =  initialDeck.filter(c => c.id === diffCard.id);
-		//	debugLog('FUUNDED SIMILAR CARDS', foundCards)
-		//})
 
 		throw new Error('Incorrect cards')
 	} else {
@@ -59,22 +54,22 @@ export const checkAllDeckCards = (game: Game, withPanics = true) => {
 
 export const checkAllDeckCardsTestEdition = (game: Game, withPanics = true) => {
 
-	const cardsOnHands = reduce(game.players, (acc, player) => {
-		if (player.state ===EPlayerState.door) return acc;
+	const cardsOnHands = reduce(game.players, (acc: ICardAny[], player) => {
+		if (player.state === EPlayerState.door) return acc;
 		return concat(acc, player.hand);
-	}, [])
+	}, [] as ICardAny[])
 	const fullCardsLength = cardsOnHands.length + game.deck.length + game.discardedDeck.length;
 
 	const activePlayers = filter(game.players, p => p.state !== EPlayerState.door)
 
 	const playersCount = Object.keys(activePlayers).length;
 
-	const filteredDeck = reduce(fullDeckObject, (acc, card: ICardAny) => {
+	const filteredDeck = reduce(fullDeckObject, (acc: ICardAny[], card: ICardAny) => {
 		each(card.playersCount, (count) => {
 			if (count <= playersCount) {
 				if (!withPanics && card.type === ECardType.panic) {
 				} else {
-					acc.push(getCard(card.id))
+					acc.push(instantiateCard(card))
 				}
 			}
 		});
@@ -103,31 +98,40 @@ export const checkAllDeckCardsTestEdition = (game: Game, withPanics = true) => {
 };
 
 
-export const printPlayersStatuses = game => {
+// Test helper: fetch a player by id, asserting presence (keeps tests free of
+// non-null assertions on the game.players index map).
+export const requirePlayer = (game: Game, id: string | undefined): Player => {
+	const player = id ? game.players[id] : undefined;
+	if (!player) throw new Error(`Игрок не найден в игре: ${id}`);
+	return player;
+};
+
+export const printPlayersStatuses = (game: Game) => {
 	each(game.players, pl => {
 		debugLog(pl.nickname, pl.turnState);
 	})
 }
 
 
-export const printNotifications = player => {
-	each(player.socket.spy.mock.calls, ([type, event]) => {
+export const printNotifications = (player: Player) => {
+	each(getSpyCalls(player), ([type, event]) => {
 		if (type !== 'notification') return;
 		debugLog(event);
 	})
 }
 
 
-export const expectOkayCard = (player: Player, cards: any, text = null) => {
+export const expectOkayCard = (player: Player, cards: unknown, text: string | null = null) => {
 	// Notifications carry cards as an object-map keyed by uniqueId (see formatCards);
 	// tests express the expected cards as an array matcher, so compare against the
 	// map's values.
-	const match = player.socket.spy.mock.calls.some(([type, event]: [string, any]) => {
+	const match = getSpyCalls(player).some(([type, event]) => {
 		if (type !== 'notification') return false;
-		if (!event || event.type !== ENotificationAction.okayCard) return false;
-		if (text && event.text !== text) return false;
+		const notification = event as { type?: ENotificationAction; text?: string; cards?: Record<string, unknown> } | null;
+		if (!notification || notification.type !== ENotificationAction.okayCard) return false;
+		if (text && notification.text !== text) return false;
 		if (cards) {
-			const cardValues = event.cards ? Object.values(event.cards) : [];
+			const cardValues: unknown = notification.cards ? Object.values(notification.cards) : [];
 			try {
 				expect(cardValues).toEqual(cards);
 			} catch (e) {

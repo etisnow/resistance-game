@@ -1,9 +1,9 @@
-import {getCard, getPanic} from 'shared/constant/cards';
-import {EEventID, EPanicID} from 'shared/enum/cards';
+import {getPanic} from 'shared/constant/cards';
+import {EPanicID} from 'shared/enum/cards';
 import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {checkAllDeckCardsTestEdition, printPlayersStatuses} from '_integration/helpers';
+import {requirePlayer} from '_integration/helpers';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 import {ETurnContextType} from 'shared/enum/turnContextType';
@@ -12,7 +12,11 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 describe('goAway test',  () => {
 
 	it('goAway card', () => {
-		const [gameServer, game, offensePlayer, APlayer, defensePlayer, CPlayer] = createMockGameServer();
+		const [gameServer, game, offensePlayerMaybe, APlayerMaybe, defensePlayerMaybe, CPlayerMaybe] = createMockGameServer();
+		const offensePlayer = requirePlayer(game, offensePlayerMaybe?.id);
+		const APlayer = requirePlayer(game, APlayerMaybe?.id);
+		const defensePlayer = requirePlayer(game, defensePlayerMaybe?.id);
+		const CPlayer = requirePlayer(game, CPlayerMaybe?.id);
 		offensePlayer.hand.splice(0,1);
 		APlayer.quarantine = 3;
 		game.deck.splice(0,1, getPanic(EPanicID.goAway));
@@ -46,7 +50,7 @@ describe('goAway test',  () => {
 			actionType: EPlayerActionType.playerSelect
 		});
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
-		expect(game.turnContext.type).toBe(ETurnContextType.trade)
+		expect(game.turnContext?.type).toBe(ETurnContextType.trade)
 
 		const afterDefensePosition = game.playersList.indexOf(defensePlayer.id);
 		const afterOffensePosition = game.playersList.indexOf(offensePlayer.id);
@@ -57,7 +61,7 @@ describe('goAway test',  () => {
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
 		expect(defensePlayer.turnState).toBe(ETurnState.idle);
-		expect(game.turnContext.type).toBe(ETurnContextType.trade)
+		expect(game.turnContext?.type).toBe(ETurnContextType.trade)
 
 		expect(offensePlayer.hand.length).toBe(4);
 		expect(defensePlayer.hand.length).toBe(4);

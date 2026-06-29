@@ -6,16 +6,19 @@ import Arrow from 'client/components/pixiPrimitives/Arrow';
 
 
 Globals.injectApplyAnimatedValues(
-	(instance, props) => {
+	(instance: PIXI.DisplayObject, props: object) => {
 		applyProps(instance, {}, props)
 	},
 	style => style
 )
-Globals.injectFrame(cb => (global as any).requestAnimationFrame(cb), cb => (global as any).cancelAnimationFrame(cb))
+Globals.injectFrame(
+	(cb: FrameRequestCallback) => globalThis.requestAnimationFrame(cb),
+	(handle: number) => globalThis.cancelAnimationFrame(handle),
+)
 
 
 
-export const getPixiTexture = (resource) => {
+export const getPixiTexture = (resource: string | undefined) => {
 	if (!resource) {
 		throw new Error('Ресурс' + resource +' не найден.')
 	}

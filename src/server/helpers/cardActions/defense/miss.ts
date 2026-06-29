@@ -12,7 +12,7 @@ import {formatCards} from 'server/helpers/cardHelpers';
 
 
 export const getMissNextPlayer = (game: Game, currentPlayer: Player) => {
-	if (game.turnContext.type !== ETurnContextType.trade) return null;
+	if (!game.turnContext || game.turnContext.type !== ETurnContextType.trade) return null;
 	const offensePlayer = game.turnContext.offensePlayer;
 	const nextPlayer = currentPlayer.getNextAlivePlayer();
 	if (nextPlayer === offensePlayer) return null;
@@ -20,10 +20,11 @@ export const getMissNextPlayer = (game: Game, currentPlayer: Player) => {
 }
 
 export const missAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
-	if (game.turnContext.type !== ETurnContextType.trade) {
+	if (!game.turnContext || game.turnContext.type !== ETurnContextType.trade) {
 		throw  new Error('Fear использован вне контекста торговли')
 	}
 	const context = game.turnContext;
+	if (!card.uniqueId) return;
 	player.discardCard(card.uniqueId);
 	const nextPlayer = getMissNextPlayer(game, player)
 	const offensePlayer = game.turnContext.offensePlayer;

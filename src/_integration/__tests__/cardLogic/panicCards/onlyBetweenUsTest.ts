@@ -1,8 +1,8 @@
 import {getPanic} from 'shared/constant/cards';
-import {EEventID, EPanicID} from 'shared/enum/cards';
+import {EPanicID} from 'shared/enum/cards';
 import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
-import {checkAllDeckCardsTestEdition, expectOkayCard, printNotifications} from '_integration/helpers';
+import {expectOkayCard, requirePlayer} from '_integration/helpers';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {EPlayerActionType} from 'shared/enum/playerActions';
@@ -12,7 +12,8 @@ import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 describe('onlyBetweenUs test',  () => {
 
 	it('onlyBetweenUs card', () => {
-		const [gameServer, game, offensePlayer, APlayer, defensePlayer, CPlayer] = createMockGameServer();
+		const [gameServer, game, offensePlayerMaybe] = createMockGameServer();
+		const offensePlayer = requirePlayer(game, offensePlayerMaybe?.id);
 		offensePlayer.hand.splice(0,1);
 		game.deck.splice(0,1, getPanic(EPanicID.onlyBetweenUs));
 		game.changeTurn(offensePlayer.id);
@@ -23,7 +24,8 @@ describe('onlyBetweenUs test',  () => {
 				playersToSelect: expect.arrayContaining(offensePlayer.getPlayabeNeighbours())
 			})
 		);
-		const selectedPlayer = game.players[offensePlayer.getPlayabeNeighbours()[0]];
+		const neighbourId = offensePlayer.getPlayabeNeighbours()[0];
+		const selectedPlayer = requirePlayer(game, neighbourId);
 
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
@@ -35,7 +37,7 @@ describe('onlyBetweenUs test',  () => {
 
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
-		expect(game.turnContext.type).toBe(ETurnContextType.trade);
+		expect(game.turnContext?.type).toBe(ETurnContextType.trade);
 		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 
 	});

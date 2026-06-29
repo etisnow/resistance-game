@@ -11,9 +11,10 @@ import {formatCards} from 'server/helpers/cardHelpers';
 
 export const noThanksAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	const context = game.turnContext;
-	if (context.type !== ETurnContextType.trade) {
+	if (!context || context.type !== ETurnContextType.trade) {
 		throw  new Error('Fear использован вне контекста торговли')
 	}
+	if (!card.uniqueId) return;
 	player.discardCard(card.uniqueId);
 	game.addLog(`${player.nickname}: используя карту "Нет уж спасибо" отказывается от обмена с игроком ${context.offensePlayer.nickname}`);
 	game.grabEventCardFromDeck({player});
