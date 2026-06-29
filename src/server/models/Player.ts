@@ -38,6 +38,8 @@ export class Player {
 	// counter doesn't tick on the very turn-start that immediately follows.
 	quarantineFresh: boolean = false;
 	isReady: boolean = false;
+	// True for server-driven emulated opponents (the ?withBots=true dev mode).
+	isBot: boolean = false;
 	currentAction: INotificationAction | null = null;
 	isConnected: boolean = true;
 	marks: {[key:string]: EPlayerMark} = {};

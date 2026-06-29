@@ -14,6 +14,16 @@ import {
 import {debugLog} from 'server/helpers/util';
 import {each, find, some} from 'lodash';
 import {EGameState} from 'shared/enum/common';
+import {gameHasBots, scheduleBots} from 'server/helpers/bot';
+import {getCard, getPanic} from 'shared/constant/cards';
+import {EEventID, EPanicID} from 'shared/enum/cards';
+
+export interface IBotGameOptions {
+  withBots?: boolean;
+  seed?: number;
+  firstPanic?: string;
+  hand?: string[];
+}
 
 
 class GameServer {
@@ -44,7 +54,7 @@ class GameServer {
     return player
   }
 
-  createGame({ socket, nickname }: { socket: IGameSocket; nickname: string }): [Game, Player] {
+  createGame({ socket, nickname, bots }: { socket: IGameSocket; nickname: string; bots?: IBotGameOptions }): [Game, Player] {
     const player = this.spawnPlayer(socket);
     const game = new Game({ player });
     game.hostPlayerId = player.id;
@@ -52,7 +62,45 @@ class GameServer {
     player.register({ nickname, game });
     this.games[game.id] = game;
     this.updateLobby();
+    if (bots?.withBots) {
+      this.setupBotGame({ game, host: player, options: bots });
+    }
     return [game, player];
+  }
+
+  // Dev mode (?withBots=true): fill the game with emulated opponents, start
+  // immediately, optionally pin the seed and rig the human's hand / top panic,
+  // then let the bot scheduler take over.
+  private setupBotGame({ game, host, options }: { game: Game; host: Player; options: IBotGameOptions }) {
+    if (typeof options.seed === 'number') game.reseed(options.seed);
+
+    for (let i = 1; i <= 4; i++) {
+      const bot = new Player({ socket: null });
+      bot.isBot = true;
+      bot.isReady = true;
+      bot.register({ nickname: `Бот ${i}`, game });
+    }
+
+    game.start();
+
+    // Rigging the hand breaks the dealt card-conservation invariant, so relax the
+    // checks for this dev game.
+    if (options.hand && options.hand.length > 0) {
+      this.ignoreChecks = true;
+      host.hand = options.hand
+        .filter((id): id is EEventID => id !== EEventID.thing && Object.values(EEventID).includes(id as EEventID))
+        .map((id) => getCard(id as EEventID));
+      host.isInfected = host.hand.some((c) => c.id === EEventID.infect);
+    }
+    if (options.firstPanic && Object.values(EPanicID).includes(options.firstPanic as EPanicID)) {
+      game.deck.unshift(getPanic(options.firstPanic as EPanicID));
+    }
+
+    // Let the human play first (so a rigged hand / first-drawn panic are
+    // immediately in their hands), then hand off to the bot scheduler.
+    game.changeTurn(host.id);
+    game.updateGame();
+    scheduleBots(this, game);
   }
   leaveGame({ player }: { player: Player }) {
     const game = player.game;
@@ -229,6 +277,11 @@ class GameServer {
       }
     }
     player.game.cardAction({player, actionType, cardUniqueId, selectedPlayerId, action})
+    // After a human move, resume the bots (no-op if it is still the human's turn
+    // or there are no bots).
+    if (game && !player.isBot && gameHasBots(game)) {
+      scheduleBots(this, game);
+    }
   }
 
   markPlayer({player, markPlayerId}: {player: Player | null, markPlayerId: string}) {

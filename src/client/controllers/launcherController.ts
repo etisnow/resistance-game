@@ -71,8 +71,25 @@ export default class LauncherController {
 			alert('Необходимо заполнить ник');
 			return
 		}
-		this.socket.sendToServer(EClientEventType.createGame, { nickname: this.nickname })
+		this.socket.sendToServer(EClientEventType.createGame, { nickname: this.nickname, ...this.botGameParams() })
 		this.state = EAsyncState.pending;
+	}
+
+	// Dev mode: `?withBots=true` creates a game pre-filled with bot opponents.
+	// Optional `&seed=777` pins the seed; `&firstPanic=PANIC_ID` puts a panic on
+	// top of the deck; `&hand=CARD1-CARD2-CARD3-CARD4` rigs your own hand.
+	private botGameParams = (): {withBots?: boolean; seed?: number; firstPanic?: string; hand?: string[]} => {
+		if (typeof window === 'undefined') return {};
+		const params = new URLSearchParams(window.location.search);
+		if (params.get('withBots') !== 'true') return {};
+		const out: {withBots: boolean; seed?: number; firstPanic?: string; hand?: string[]} = {withBots: true};
+		const seed = params.get('seed');
+		if (seed !== null && seed.trim() !== '' && !Number.isNaN(Number(seed))) out.seed = Number(seed);
+		const firstPanic = params.get('firstPanic');
+		if (firstPanic) out.firstPanic = firstPanic;
+		const hand = params.get('hand');
+		if (hand) out.hand = hand.split('-').filter((c) => c.trim() !== '');
+		return out;
 	}
 
 	connectGame = (gameId: string) => {

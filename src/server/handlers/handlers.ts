@@ -21,9 +21,24 @@ export const registerHandlers = (gameServer: GameServer, socket: IGameSocket) =>
 	registerE2EHandlers(gameServer, socket);
 
 	socket.on(EClientEventType.createGame, (payload: unknown) => safe('createGame', () => {
-		const nickname = asString((payload as { nickname?: unknown })?.nickname);
+		const data = (payload ?? {}) as {
+			nickname?: unknown;
+			withBots?: unknown;
+			seed?: unknown;
+			firstPanic?: unknown;
+			hand?: unknown;
+		};
+		const nickname = asString(data.nickname);
 		if (!nickname) return;
-		gameServer.createGame({nickname, socket});
+		const bots = data.withBots === true
+			? {
+				withBots: true,
+				seed: typeof data.seed === 'number' ? data.seed : undefined,
+				firstPanic: asString(data.firstPanic),
+				hand: Array.isArray(data.hand) ? data.hand.filter((c): c is string => typeof c === 'string') : undefined,
+			}
+			: undefined;
+		gameServer.createGame({nickname, socket, bots});
 	}));
 
 	socket.on(EClientEventType.leaveGame, () => safe('leaveGame', () => {
