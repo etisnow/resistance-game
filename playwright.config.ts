@@ -34,7 +34,9 @@ export default defineConfig({
   ],
   webServer: {
     // Run the Bun server from source; it serves the prebuilt dist/client.
-    command: `PORT=${PORT} bun src/server/index.ts`,
+    // NECHTO_E2E enables the deterministic `e2eSetup` socket hook used by the
+    // per-card specs (inert in production).
+    command: `NECHTO_E2E=true PORT=${PORT} bun src/server/index.ts`,
     url: `http://127.0.0.1:${PORT}/healthz`,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,

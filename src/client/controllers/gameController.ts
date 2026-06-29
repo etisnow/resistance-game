@@ -47,6 +47,12 @@ export default class GameController {
 	constructor(root: RootController) {
 		this.root = root;
 		this.socket = root.socketController;
+		// E2E handle: the Playwright per-card specs drive the game through this
+		// controller (the same methods the canvas pointer handlers invoke) and
+		// read its observable state. Exposing it is harmless in production.
+		if (typeof window !== 'undefined') {
+			(window as unknown as {__nechto?: GameController}).__nechto = this;
+		}
 		fscreen.addEventListener('fullscreenchange', () => {
 			this.isFullScreen = !!fscreen.fullscreenElement
 		});

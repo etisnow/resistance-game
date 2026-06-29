@@ -2,6 +2,7 @@ import {GameServer} from 'server/server/GameServer';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
 import type {IGameSocket} from 'shared/interfaces/socket';
+import {registerE2EHandlers} from 'server/handlers/e2eSetup';
 
 // Every socket handler runs inside this wrapper: a bug while handling one
 // client message is logged and contained, never propagated to crash the server.
@@ -17,6 +18,8 @@ const asString = (value: unknown): string | undefined =>
 	typeof value === 'string' ? value : undefined;
 
 export const registerHandlers = (gameServer: GameServer, socket: IGameSocket) => {
+	registerE2EHandlers(gameServer, socket);
+
 	socket.on(EClientEventType.createGame, (payload: unknown) => safe('createGame', () => {
 		const nickname = asString((payload as { nickname?: unknown })?.nickname);
 		if (!nickname) return;
