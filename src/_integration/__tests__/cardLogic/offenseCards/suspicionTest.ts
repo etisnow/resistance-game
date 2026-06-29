@@ -46,7 +46,8 @@ describe('suspicion test',  () => {
 
 		expect(suspicionNotification).not.toBe(undefined);
 
-		const [_, {cards: [suspictedCard]}] = suspicionNotification
+		const [_, {cards}] = suspicionNotification
+		const [suspictedCard] = Object.values(cards) as any[]
 
 		expect(suspictedCard).not.toBe(undefined);
 

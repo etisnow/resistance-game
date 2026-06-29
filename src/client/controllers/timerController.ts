@@ -4,18 +4,22 @@ import RootController from 'client/controllers/rootController';
 import {EAsyncState} from 'shared/enum/async';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
 import localforage from 'localforage';
-import UIfx from 'uifx'
-const bellAudio = require('../resources/sound/beep.mp3')
-//import bellAudio from 'client/resources/sound/beep.wav';
+import * as UIfxNS from 'uifx'
+import bellAudio from '../resources/sound/beep.mp3'
 
+// uifx is a CJS module exposing `.default`; normalise across bundler interop.
+const UIfx: any = (UIfxNS as any).default || UIfxNS;
 
-const bell = new UIfx(
-  bellAudio,
-  {
+// Sound is non-critical — never let it break app startup.
+let bell: any = null;
+try {
+  bell = new UIfx(bellAudio, {
     volume: 0.2, // number between 0.0 ~ 1.0
-    throttleMs: 100
-  }
-)
+    throttleMs: 100,
+  });
+} catch (e) {
+  console.warn('Sound init failed', e);
+}
 
 export default class TimerController {
 
@@ -35,7 +39,7 @@ export default class TimerController {
 	}
 
 	playSound = () => {
-		bell.play();
+		if (bell) bell.play();
 	};
 	clearTimers = () => {
 		if (this.timer) clearInterval(this.timer);

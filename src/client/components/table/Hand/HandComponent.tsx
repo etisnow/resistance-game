@@ -18,7 +18,7 @@ import {EPlayerActionType} from 'shared/enum/playerActions';
 import {degToRag} from 'client/helpers/roomHelpers';
 import Card from '../Card/Card';
 import {resources} from 'client/resources/resources';
-import {ICardAny} from 'shared/interfaces/cards';
+import type {ICardAny} from 'shared/interfaces/cards';
 
 interface IHandProps {
 	cards: {[key:string]: ICardAny};

@@ -35,6 +35,9 @@ export const quarantineSelect = ({game, player, selectedPlayerId} : {game: Game,
 	player.discardCard(game.turnContext.cardUniqueId);
 	const selectedPlayer = game.players[selectedPlayerId];
 	selectedPlayer.quarantine = 3;
+	// Don't let the counter tick on the turn-start that immediately follows
+	// applying the quarantine (e.g. when the next player gets quarantined).
+	selectedPlayer.quarantineFresh = true;
 	game.turnContext = null;
 	game.notifyAllPlayers(formatPlayerNotification({
       player: player,

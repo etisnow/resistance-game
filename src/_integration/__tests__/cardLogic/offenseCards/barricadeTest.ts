@@ -10,7 +10,7 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 describe('barricade test',  () => {
 
 	it('last player acts to first', () => {
-		const [gameServer, game, defensePlayer, a,b, c, offensePlayer] = createMockGameServer();
+		const [gameServer, game, defensePlayer, a, b, c, d, offensePlayer] = createMockGameServer();
 		defensePlayer.hand.splice(0,1);
 
 		//const offensePlayer = game.getPlayerByPosition({isNext: false, playerId: defensePlayer.id});

@@ -1,0 +1,6 @@
+[test]
+# jest-compatible globals (describe/it/expect/jest) are injected by `bun test`.
+root = "src"
+
+[install]
+# Use the standard npm registry.

@@ -1,5 +1,5 @@
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import { ICardAny, ICardEvent} from 'shared/interfaces/cards';
+import type { ICardAny, ICardEvent} from 'shared/interfaces/cards';
 import {Player} from 'server/models/Player';
 import {EEventID} from 'shared/enum/cards';
 

@@ -114,10 +114,11 @@ describe('trade logic',  () => {
 	});
 
 	it('should game end if all infectd', () => {
-		const [gameServer, game, offensePlayer, nextPlayer, APlayer,BPlayer,CPlayer] = createMockGameServer();
+		const [gameServer, game, offensePlayer, nextPlayer, APlayer,BPlayer,CPlayer,DPlayer] = createMockGameServer();
 		APlayer.isInfected = true;
 		BPlayer.isInfected = true;
 		CPlayer.isInfected = true;
+		DPlayer.isInfected = true;
 		nextPlayer.isInfected = false;
 
 		offensePlayer.isThing = true;

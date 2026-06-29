@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+coverage
+.git
+test-results
+playwright-report
+blob-report
+*.log
+.idea
+scratchpad

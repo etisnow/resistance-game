@@ -39,9 +39,10 @@ describe('friendship test',  () => {
 		const notification = getLastFriendshipNotificaiton(offensePlayer)
 		expect(notification).not.toBe(undefined);
 
-		//Проверяем есть ли контекст seduction
+		//Проверяем есть ли контекст friendshipSeduction (panic-driven seduction,
+		//distinct from the seduction event card because no card is discarded)
 		expect(game.turnContext).not.toBe(undefined);
-		expect(game.turnContext.type).toBe(ETurnContextType.seduction);
+		expect(game.turnContext.type).toBe(ETurnContextType.friendshipSeduction);
 
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,

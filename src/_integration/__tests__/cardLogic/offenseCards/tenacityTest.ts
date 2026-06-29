@@ -30,7 +30,8 @@ describe('tenacity test',  () => {
 		});
 
 
-		const {cards: [firstTenacityCard]} = offensePlayer.currentAction as any;
+		const {cards} = offensePlayer.currentAction as any;
+		const [firstTenacityCard] = Object.values(cards) as any[];
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
 			cardUniqueId: firstTenacityCard.uniqueId,

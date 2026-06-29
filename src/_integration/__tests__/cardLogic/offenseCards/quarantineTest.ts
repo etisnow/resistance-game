@@ -7,6 +7,7 @@ import {EPlayerActionType} from 'shared/enum/playerActions';
 import {checkAllDeckCardsTestEdition} from '_integration/helpers';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
+import {ETurnContextType} from 'shared/enum/turnContextType';
 
 
 describe('quarantine test',  () => {
@@ -78,7 +79,7 @@ describe('quarantine test',  () => {
 	});
 
 	it('quarantine card prev', () => {
-		const [gameServer, game, offensePlayer, nextPlayer, b, c, prevPlayer] = createMockGameServer();
+		const [gameServer, game, offensePlayer, nextPlayer, b, c, d, prevPlayer] = createMockGameServer();
 		offensePlayer.hand.splice(0,1);
 		offensePlayer.hand.splice(0,1, getCard(EEventID.quarantine));
 		expect(offensePlayer.hand[0].id).toBe(EEventID.quarantine);
@@ -104,9 +105,12 @@ describe('quarantine test',  () => {
 
 		expect(prevPlayer.quarantine).toBe(3);
 
-		expect(offensePlayer.turnState).toBe(ETurnState.idle);
+		// Quarantine was applied to the PREVIOUS neighbour, so the next neighbour
+		// (the regular trade partner) is still clean: the offense player proceeds
+		// to the normal end-of-turn trade rather than ending immediately.
+		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
+		expect(game.turnContext.type).toBe(ETurnContextType.trade);
 		expect(offensePlayer.hand.length).toBe(4);
-		expect(nextPlayer.turnState).toBe(ETurnState.inCardAction);
 		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 
 	});

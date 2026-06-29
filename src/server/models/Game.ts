@@ -333,6 +333,12 @@ export class Game {
     }
     this.addLog(`Ходит игрок ${player.nickname}!`);
     player.changeTurnState(ETurnState.inCardPick);
+    // In mock/test mode there is no interactive "draw a card" step: the player
+    // immediately draws and enters the action phase (the pre-cardPick contract
+    // the unit scenarios are written against).
+    if (gameServer.isMock) {
+      this.cardPick({player});
+    }
     checkAllDeckCards(this, !gameServer.isMock);
     this.updateGame();
   }
@@ -353,9 +359,14 @@ export class Game {
     player.getCard(grabbedCard);
     player.changeTurnState(ETurnState.inCardAction);
     if (player.quarantine > 0) {
-      player.quarantine = player.quarantine - 1;
-      if (player.quarantine === 0 ) {
-        this.addLog(`Игрок ${player.nickname} вышел из карантина`);
+      if (player.quarantineFresh) {
+        // Quarantine was applied in this same turn-cycle: skip the first tick.
+        player.quarantineFresh = false;
+      } else {
+        player.quarantine = player.quarantine - 1;
+        if (player.quarantine === 0 ) {
+          this.addLog(`Игрок ${player.nickname} вышел из карантина`);
+        }
       }
     }
     checkAllDeckCards(this, !gameServer.isMock);

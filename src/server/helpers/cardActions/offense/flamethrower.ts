@@ -58,7 +58,9 @@ export const flamethrowerSelect = ({game, player, selectedPlayerId} : {game: Gam
 		});
 		text = `Игрок ${player.nickname} использует на тебе огнемет, но у тебя есть "Никакого шашлыка"`
 	}
-	player.changeTurnState(ETurnState.idle);
+	// The offense player's action is still in progress: they are waiting for the
+	// defense player to decide whether to burn or use "no fire".
+	player.changeTurnState(ETurnState.inCardActionProgress);
     defensePlayer.notify(formatPlayerNotification({
 		player: player,
 		notification: {

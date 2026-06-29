@@ -32,6 +32,9 @@ export class Player {
 	isInfected: boolean = false;
 	isThing: boolean = false;
 	quarantine: number = 0;
+	// True for the turn-cycle in which a quarantine was just applied, so the
+	// counter doesn't tick on the very turn-start that immediately follows.
+	quarantineFresh: boolean = false;
 	isReady: boolean = false;
 	currentAction: INotificationAction;
 	isConnected: boolean = true;

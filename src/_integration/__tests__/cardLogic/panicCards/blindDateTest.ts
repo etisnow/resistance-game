@@ -9,6 +9,7 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {Simulate} from 'react-dom/test-utils';
 import play = Simulate.play;
 import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
+import {ETurnContextType} from 'shared/enum/turnContextType';
 
 
 describe('blindDate test',  () => {
@@ -30,12 +31,11 @@ describe('blindDate test',  () => {
 			actionType: EPlayerActionType.cardSelect
 		});
 
-		const nextPlayer = offensePlayer.getNextPlayer();
-		expect(offensePlayer.turnState).toBe(ETurnState.idle);
+		// After the panic-driven swap the player proceeds to the normal
+		// end-of-turn trade with the next neighbour (same as other panics, e.g. oops).
+		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
 		expect(offensePlayer.hand.length).toBe(4);
-
-		expect(nextPlayer.turnState).toBe(ETurnState.inCardAction);
-		expect(nextPlayer.hand.length).toBe(5);
+		expect(game.turnContext.type).toBe(ETurnContextType.trade);
 
 		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 

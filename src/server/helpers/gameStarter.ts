@@ -3,7 +3,7 @@ import {fullDeckObject, getCard, getPanic, handCardsCount, thingCard} from 'shar
 import {concat, each, find, range, reduce, clone} from 'lodash';
 import {ICardAny, ICardEvent} from 'shared/interfaces/cards';
 import {shuffle} from 'server/helpers/util';
-import * as chroma from 'chroma-js';
+import chroma from 'chroma-js';
 import {gameServer} from 'server/server/GameServer';
 import {ECardType, EEventID, EPanicID} from 'shared/enum/cards';
 

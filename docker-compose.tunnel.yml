@@ -1,0 +1,33 @@
+# Tunnel overlay: adds a cloudflared service and points the client at the api
+# subdomain. Compose with the dev stack:
+#   docker compose -f docker-compose.yml -f docker-compose.tunnel.yml up
+# (use `./run tunnel up` which also provisions the tunnel + DNS first).
+#
+# Ingress (managed remotely via the Cloudflare API by cmd/tunnel):
+#   ${CLIENT_HOST} -> client:5173      ${API_HOST} -> server:3000
+name: nechto
+
+services:
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - client
+      - server
+
+  client:
+    environment:
+      VITE_PROXY_TARGET: "http://server:3000"
+      CLIENT_PORT: "5173"
+      # The browser loads the client from ${CLIENT_HOST}; socket.io connects to
+      # the api subdomain (cross-origin, CORS is permissive on the server).
+      VITE_SERVER_URL: "https://${API_HOST}"
+      PUBLIC_CLIENT_HOST: "${CLIENT_HOST}"
+
+  server:
+    environment:
+      PORT: "3000"
+      HOST: "0.0.0.0"

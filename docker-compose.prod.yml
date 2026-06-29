@@ -1,0 +1,31 @@
+# Prod stack: built image (vite build + bun server bundle). The client service
+# serves the built assets via `vite preview` and proxies /socket.io to the
+# backend; the server service runs the bun socket.io backend. Open
+# http://localhost:5173.
+name: nechto-prod
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nechto:latest
+    command: ["bun", "dist/server/index.js"]
+    environment:
+      NODE_ENV: "production"
+      PORT: "3000"
+      HOST: "0.0.0.0"
+    ports:
+      - "3000:3000"
+
+  client:
+    image: nechto:latest
+    command: sh -c 'exec bunx vite preview --host 0.0.0.0 --port 5173'
+    environment:
+      NODE_ENV: "production"
+      VITE_PROXY_TARGET: "http://server:3000"
+      CLIENT_PORT: "5173"
+    ports:
+      - "5173:5173"
+    depends_on:
+      - server

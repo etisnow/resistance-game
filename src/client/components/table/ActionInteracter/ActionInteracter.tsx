@@ -2,7 +2,7 @@ import React from 'react';
 import './styles.scss';
 import GameController from 'client/controllers/gameController';
 import {observer} from 'mobx-react-lite';
-import INotificationAction from 'shared/interfaces/notification';
+import type INotificationAction from 'shared/interfaces/notification';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {map} from 'lodash';
 import {getZIndex} from 'client/components/gameLog/GameLog';

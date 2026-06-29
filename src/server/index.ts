@@ -1,41 +1,102 @@
-import express from "express";
-import http from "http";
-import socketIO from "socket.io";
+import { createServer, IncomingMessage, ServerResponse } from "http";
+import { join, normalize, extname } from "path";
+import { Server as SocketIOServer, Socket } from "socket.io";
 import { registerHandlers } from "server/handlers/handlers";
 import { gameServer } from "server/server/GameServer";
-import {mockGameProcess} from '_integration/mockGameProcess';
 
-const port: number = 30;
+const PORT = Number(process.env.PORT) || 3000;
+const HOST = process.env.HOST || "0.0.0.0";
 
-class App {
-  private server: http.Server;
-  private port: number;
+// Built client bundle (see scripts/buildClient.ts). Served statically by Bun.
+const CLIENT_DIR = join(import.meta.dir, "../../dist/client");
 
-  private io: socketIO.Server;
+const MIME: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+  ".mp3": "audio/mpeg",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".map": "application/json; charset=utf-8",
+};
 
-  constructor(port: number) {
-    this.port = port;
-
-  const app = express();
-
-    this.server = new http.Server(app);
-    this.io = socketIO(this.server);
-    gameServer.initialize(this.io);
-    this.io.on("connection", (socket: socketIO.Socket) => {
-      gameServer.initSocket(socket);
-      registerHandlers(gameServer, socket);
-      //mockGameProcess(socket)
-    });
-
-
-  }
-
-  public Start() {
-    this.server.listen(this.port, '0.0.0.0');
-    console.log(`Server listening on port ${this.port}.`);
-  }
+// Resolve a request URL to a file inside CLIENT_DIR, guarding against traversal.
+function resolveStaticPath(urlPath: string): string | null {
+  const clean = decodeURIComponent(urlPath.split("?")[0]);
+  const rel = normalize(clean).replace(/^(\.\.[/\\])+/, "");
+  const abs = join(CLIENT_DIR, rel);
+  if (!abs.startsWith(CLIENT_DIR)) return null;
+  return abs;
 }
 
-new App(port).Start();
+// Static file server (Bun.file). socket.io is attached on top of this http
+// server and transparently intercepts its own /socket.io/* requests, delegating
+// everything else here. Express is intentionally not used.
+async function handleRequest(req: IncomingMessage, res: ServerResponse) {
+  const urlPath = req.url || "/";
 
-export default App;
+  if (urlPath === "/healthz") {
+    res.writeHead(200, { "content-type": "text/plain" });
+    res.end("ok");
+    return;
+  }
+
+  const candidate = resolveStaticPath(urlPath === "/" ? "/index.html" : urlPath);
+  if (candidate) {
+    const file = Bun.file(candidate);
+    if (await file.exists()) {
+      const type = MIME[extname(candidate)] || file.type || "application/octet-stream";
+      res.writeHead(200, { "content-type": type });
+      res.end(Buffer.from(await file.arrayBuffer()));
+      return;
+    }
+  }
+
+  // SPA fallback: serve index.html for unknown non-asset routes.
+  const index = Bun.file(join(CLIENT_DIR, "index.html"));
+  if (await index.exists()) {
+    res.writeHead(200, { "content-type": MIME[".html"] });
+    res.end(Buffer.from(await index.arrayBuffer()));
+    return;
+  }
+
+  res.writeHead(404, { "content-type": "text/plain" });
+  res.end(
+    "Client bundle not found. Build it first: `./run build` (or `bun run build:client`).",
+  );
+}
+
+const httpServer = createServer((req, res) => {
+  handleRequest(req, res).catch((err) => {
+    console.error("Request error:", err);
+    if (!res.headersSent) res.writeHead(500);
+    res.end("Internal server error");
+  });
+});
+
+const io = new SocketIOServer(httpServer, {
+  // Same-origin in production; permissive in dev so local tooling and Playwright
+  // can connect from any local origin.
+  cors: { origin: true, credentials: true },
+});
+
+gameServer.initialize(io);
+
+io.on("connection", (socket: Socket) => {
+  gameServer.initSocket(socket as any);
+  registerHandlers(gameServer, socket as any);
+});
+
+httpServer.listen(PORT, HOST, () => {
+  console.log(`Nechto server listening on http://${HOST}:${PORT}`);
+  console.log(`Serving client from ${CLIENT_DIR}`);
+});
+
+export { httpServer, io };

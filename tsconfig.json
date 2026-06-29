@@ -1,31 +1,31 @@
 {
   "compilerOptions": {
     "baseUrl": "./src",
+    "paths": {
+      "client/*": ["client/*"],
+      "server/*": ["server/*"],
+      "shared/*": ["shared/*"],
+      "_integration/*": ["_integration/*"]
+    },
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "experimentalDecorators": true,
-    "target": "es5",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
-    "composite": true,
-    "declaration": true,
-    "declarationMap": true,
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false,
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "strict": false,
-    "forceConsistentCasingInFileNames": true,
-    "module": "esnext",
-    "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react",
-    "noImplicitAny": false
+    "strict": false,
+    "noImplicitAny": false,
+    "forceConsistentCasingInFileNames": false,
+    "types": ["bun-types", "node"]
   },
-  "include": [
-    "src"
-  ]
+  "include": ["src", "scripts", "e2e"]
 }

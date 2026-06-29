@@ -10,7 +10,7 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 describe('axe test',  () => {
 
 	it('axe should break the door', () => {
-		const [gameServer, game, defensePlayer, a, b, c, offensePlayer] = createMockGameServer();
+		const [gameServer, game, defensePlayer, a, b, c, d, offensePlayer] = createMockGameServer();
 		defensePlayer.hand.splice(0,1);
 		defensePlayer.hand.splice(0,1, getCard(EEventID.axe));
 		expect(defensePlayer.hand[0].id).toBe(EEventID.axe);

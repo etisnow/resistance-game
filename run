@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+#
+# Nechto task runner. Bun is the package manager/runtime; vite is the client
+# dev server + bundler; both the client (vite) and the backend (bun socket.io)
+# run as Docker services. Usage: ./run <command>
+#
+set -euo pipefail
+cd "$(dirname "$0")"
+
+PORT="${PORT:-3000}"            # backend port
+CLIENT_PORT="${CLIENT_PORT:-5173}"
+export PORT CLIENT_PORT
+
+DC="docker compose -f docker-compose.yml"
+DCP="docker compose -f docker-compose.prod.yml"
+DCT="docker compose -f docker-compose.yml -f docker-compose.tunnel.yml"
+
+usage() {
+  cat <<'EOF'
+Nechto — ./run <command>
+
+Docker (client = vite, server = bun — like grailgun):
+  up [args]      Start the dev stack (vite client + bun server) in Docker
+  down [args]    Stop the dev stack
+  logs [svc]     Follow logs (optionally one service: client | server)
+  restart [svc]  Restart services
+  ps             List services
+  prod <cmd>     Prod stack via docker-compose.prod.yml
+                   prod up | prod down | prod build | prod logs
+  tunnel <cmd>   Expose via Cloudflare tunnel (client + api subdomains)
+                   tunnel up | tunnel down | tunnel status | tunnel logs
+
+Local (no Docker):
+  install        bun install + Playwright chromium
+  server         Run the backend (bun) from source, hot reload
+  client         Run the vite dev server (proxies socket.io to :3000)
+  build          Build client (vite) + server (bun) into dist/
+  build:client   vite build -> dist/client
+  build:server   bundle the bun server -> dist/server
+  start          Run the bundled server (serves dist/client)
+  test           Run the unit test suite (bun test)
+  e2e            Build client, run Playwright browser e2e tests
+  typecheck      tsc --noEmit
+  clean          Remove dist/ and build output
+  help           Show this help
+EOF
+}
+
+# Discover the *Test.ts unit tests (not bun's default .test naming).
+unit_files() { find src -name '*Test.ts' | sed 's,^,./,'; }
+
+cmd="${1:-help}"
+shift || true
+
+case "$cmd" in
+  # ---- Docker (dev) ----
+  up|dev)    exec $DC up "$@" ;;
+  down)      exec $DC down "$@" ;;
+  logs)      exec $DC logs -f "$@" ;;
+  restart)   exec $DC restart "$@" ;;
+  ps)        exec $DC ps "$@" ;;
+  # ---- Docker (prod) ----
+  prod)
+    sub="${1:-up}"; shift || true
+    case "$sub" in
+      up)    exec $DCP up --build "$@" ;;
+      down)  exec $DCP down "$@" ;;
+      build) exec $DCP build "$@" ;;
+      logs)  exec $DCP logs -f "$@" ;;
+      *)     exec $DCP "$sub" "$@" ;;
+    esac ;;
+  # ---- Cloudflare tunnel ----
+  tunnel)
+    sub="${1:-up}"; shift || true
+    case "$sub" in
+      up)
+        ./cmd/tunnel up
+        $DCT up -d "$@"
+        echo
+        echo "Up via tunnel:"
+        echo "  client: https://$(grep -E '^CLIENT_HOST=' .env | cut -d= -f2)"
+        echo "  api:    https://$(grep -E '^API_HOST=' .env | cut -d= -f2)" ;;
+      down)
+        $DCT down "$@" || true
+        ./cmd/tunnel down ;;
+      status) ./cmd/tunnel status; echo; $DCT ps ;;
+      logs)   exec $DCT logs -f "$@" ;;
+      *)      ./cmd/tunnel "$sub" "$@" ;;
+    esac ;;
+  # ---- Local ----
+  install)
+    bun install
+    bunx playwright install --with-deps chromium ;;
+  server)        exec bun run --hot src/server/index.ts ;;
+  client)        exec bunx vite --host 0.0.0.0 --port "$CLIENT_PORT" ;;
+  build:client)  exec bunx vite build ;;
+  build:server)  exec bun run scripts/buildServer.ts ;;
+  build)
+    bunx vite build
+    bun run scripts/buildServer.ts ;;
+  start)
+    [ -d dist/client ] || bunx vite build
+    [ -f dist/server/index.js ] || bun run scripts/buildServer.ts
+    exec bun dist/server/index.js ;;
+  test)
+    # shellcheck disable=SC2046
+    bun test $(unit_files) "$@" ;;
+  e2e)
+    bunx vite build
+    bunx playwright test "$@" ;;
+  typecheck)     exec bunx tsc --noEmit ;;
+  clean)         rm -rf dist build coverage && echo "cleaned" ;;
+  help|-h|--help) usage ;;
+  *) echo "Unknown command: $cmd" >&2; usage; exit 1 ;;
+esac

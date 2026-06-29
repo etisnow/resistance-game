@@ -1,5 +1,5 @@
 import {ENotificationAction} from 'shared/enum/notifications';
-import {ICardEvent, ICardPanic} from 'shared/interfaces/cards';
+import type {ICardEvent, ICardPanic} from 'shared/interfaces/cards';
 
 interface INotificationActionCommon {
 	text: string;

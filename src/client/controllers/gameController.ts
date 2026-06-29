@@ -1,16 +1,16 @@
 import {computed, observable} from "mobx";
 import SocketController from 'client/controllers/socketController';
 import Player from 'client/models/Player';
-import INotificationAction from 'shared/interfaces/notification';
+import type INotificationAction from 'shared/interfaces/notification';
 import RootController from 'client/controllers/rootController';
 import {ECardType} from 'shared/enum/cards';
 import {EAppState, EGameState} from 'shared/enum/common';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {IFormatTradeContext} from 'shared/interfaces/common';
+import type {IFormatTradeContext} from 'shared/interfaces/common';
 import fscreen from 'fscreen';
 import {each, merge} from "lodash";
-import {ICardEvent} from 'shared/interfaces/cards';
+import type {ICardEvent} from 'shared/interfaces/cards';
 import {EAsyncState} from 'shared/enum/async';
 
 export default class GameController {

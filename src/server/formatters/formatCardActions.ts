@@ -75,7 +75,10 @@ export const getCardActions = (game: Game, player: Player, card: ICardEvent): IC
 
 			const targets = player.getCardTargets(card);
 			const isNonTargetCard = player.isCardNonTarget(card);
-			if ((targets.length > 0 || isNonTargetCard) && !isPlayerQuarantined) {
+			// A quarantined player can't play cards, except axe (which can break
+			// their own quarantine).
+			const canActWhileQuarantined = card.id === EEventID.axe;
+			if ((targets.length > 0 || isNonTargetCard) && (!isPlayerQuarantined || canActWhileQuarantined)) {
 				actions.push({ menuType: EPlayerActionType.cardAct});
 			}
 			actions.push({ menuType: EPlayerActionType.cardDiscard});

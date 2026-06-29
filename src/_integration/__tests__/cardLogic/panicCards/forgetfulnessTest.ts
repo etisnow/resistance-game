@@ -31,7 +31,7 @@ describe('forgetfulness test',  () => {
 		let forgetfulnessNotification = getLastForgetfullnessNotificaitonCards(offensePlayer)
 		expect(isEqual(playerNotificationCards, forgetfulnessNotification)).toBe(true);
 
-		const firstCard = forgetfulnessNotification.cards[0];
+		const firstCard = Object.values(forgetfulnessNotification.cards)[0] as any;
 
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
@@ -45,7 +45,7 @@ describe('forgetfulness test',  () => {
 		forgetfulnessNotification = getLastForgetfullnessNotificaitonCards(offensePlayer)
 		expect(isEqual(playerNotificationCards, forgetfulnessNotification)).toBe(true);
 
-		const secondCard = forgetfulnessNotification.cards[0];
+		const secondCard = Object.values(forgetfulnessNotification.cards)[0] as any;
 
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
@@ -58,7 +58,7 @@ describe('forgetfulness test',  () => {
 		forgetfulnessNotification = getLastForgetfullnessNotificaitonCards(offensePlayer)
 		expect(isEqual(playerNotificationCards, forgetfulnessNotification)).toBe(true);
 
-		const thirdCard = forgetfulnessNotification.cards[0];
+		const thirdCard = Object.values(forgetfulnessNotification.cards)[0] as any;
 
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,

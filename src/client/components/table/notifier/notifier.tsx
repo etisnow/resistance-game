@@ -2,7 +2,7 @@ import React from 'react';
 import {observer} from 'mobx-react-lite';
 import './styles.scss';
 import {reduce} from 'lodash';
-import INotificationAction from 'shared/interfaces/notification';
+import type INotificationAction from 'shared/interfaces/notification';
 import GameController from 'client/controllers/gameController';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {Container, Sprite, Text} from 'react-pixi-fiber';

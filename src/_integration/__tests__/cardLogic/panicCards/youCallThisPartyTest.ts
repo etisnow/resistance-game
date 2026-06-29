@@ -11,7 +11,7 @@ import { filter, each, clone } from 'lodash';
 describe('youcallthis party test',  () => {
 
 	it('youcallthis party card', () => {
-		const [gameServer, game, offensePlayer, door, quarantined, DPlayer, EPlayer] = createMockGameServer();
+		const [gameServer, game, offensePlayer, door, quarantined, DPlayer, EPlayer, FPlayer] = createMockGameServer();
 		door.state = EPlayerState.door;
 		quarantined.quarantine = 3;
 		offensePlayer.hand.splice(0,1);
@@ -38,7 +38,7 @@ describe('youcallthis party test',  () => {
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
 		expect(game.turnContext.type).toBe(ETurnContextType.trade);
 
-		expect(game.playersList).toStrictEqual([quarantined.id, offensePlayer.id, EPlayer.id, DPlayer.id])
+		expect(game.playersList).toStrictEqual([quarantined.id, offensePlayer.id, EPlayer.id, DPlayer.id, FPlayer.id])
 
 		//Так как мы зафейкали дверь мы не можем оценить количество карт
 		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);

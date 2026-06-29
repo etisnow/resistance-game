@@ -119,13 +119,22 @@ export const printNotifications = player => {
 
 
 export const expectOkayCard = (player: Player, cards: any, text = null) => {
-	let containingObject:any = {};
-	if (text) containingObject.text = text;
-	if (cards) containingObject.cards = cards;
-	expect(player.socket.spy.mock.calls).toContainEqual(
-		expect.arrayContaining(['notification', expect.objectContaining({
-			type: ENotificationAction.okayCard,
-			...containingObject
-		})])
-	);
+	// Notifications carry cards as an object-map keyed by uniqueId (see formatCards);
+	// tests express the expected cards as an array matcher, so compare against the
+	// map's values.
+	const match = player.socket.spy.mock.calls.some(([type, event]: [string, any]) => {
+		if (type !== 'notification') return false;
+		if (!event || event.type !== ENotificationAction.okayCard) return false;
+		if (text && event.text !== text) return false;
+		if (cards) {
+			const cardValues = event.cards ? Object.values(event.cards) : [];
+			try {
+				expect(cardValues).toEqual(cards);
+			} catch (e) {
+				return false;
+			}
+		}
+		return true;
+	});
+	expect(match).toBe(true);
 }
