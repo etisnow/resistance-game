@@ -2,7 +2,7 @@ import {Game} from "server/models/Game";
 import {Player} from "server/models/Player";
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import type {IGameSocket, IServerEvent, ISocketServer} from 'shared/interfaces/socket';
-import {formatCommonError, formatLobbyState} from 'server/formatters/formatOutgoingEvents';
+import {formatCommonError, formatLobbyState, formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {
   isPlayerCanActCard, isPlayerCanCancel,
   isPlayerCanDiscardCard,
@@ -76,6 +76,15 @@ class GameServer {
     connectedPlayer.socket = socket;
     this.sockets.set(socket, connectedPlayer);
     connectedPlayer.game.updateGame();
+    // Interactive prompts (select a card / player / decision) are one-shot
+    // notification events that were lost while the player was offline. Re-send
+    // the pending one so the selection overlay is restored on reconnect.
+    if (connectedPlayer.currentAction) {
+      connectedPlayer.notify(formatPlayerNotification({
+        player: connectedPlayer,
+        notification: connectedPlayer.currentAction,
+      }));
+    }
     return connectedPlayer;
   };
 

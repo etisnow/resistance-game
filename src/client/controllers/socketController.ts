@@ -71,10 +71,10 @@ function handleGlobalEvents(socket: Socket, root: RootController) {
 			case ENotificationAction.actionDecision:
 			case ENotificationAction.okayCard:
 			case ENotificationAction.selectCard:
-				root.gameController.notifications.push(notification);
+				root.gameController.addNotification(notification);
 				break;
 			case ENotificationAction.gameEnd:
-				root.gameController.notifications.push(notification);
+				root.gameController.addNotification(notification);
 				root.timerController.clearTimers();
 				root.gameController.currentAction = null;
 				break;

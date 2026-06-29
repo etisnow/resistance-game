@@ -78,7 +78,7 @@ export default class GameController {
 		this.playersToSelect = notification.type === ENotificationAction.playerSelect
 			? notification.playersToSelect
 			: [];
-		this.notifications.splice(0, 1);
+		this.notifications = this.notifications.slice(1);
 	};
 
 	selectNotificationCardPreview = (index: string) => {
@@ -89,8 +89,15 @@ export default class GameController {
 		}
 	}
 
+	// NOTE: reassign the observable array rather than mutating it (push/splice).
+	// Under react-pixi-fiber, the Notifier observer only reliably re-renders on a
+	// prop reassignment, not on in-place array mutation — see notifier.tsx.
+	addNotification = (notification: INotificationAction) => {
+		this.notifications = [...this.notifications, notification];
+	};
+
 	hidENotificationAction = () => {
-		this.notifications.splice(0, 1);
+		this.notifications = this.notifications.slice(1);
 	};
 
 	selectCard = (notification: INotificationAction, cardUniqueId: string) => {

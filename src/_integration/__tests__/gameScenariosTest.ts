@@ -1,10 +1,13 @@
-import {getCard} from 'shared/constant/cards';
-import {EEventID} from 'shared/enum/cards';
+import {getCard, getPanic} from 'shared/constant/cards';
+import {EEventID, EPanicID} from 'shared/enum/cards';
 import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
 import {find} from 'lodash';
 import {EPlayerActionType} from 'shared/enum/playerActions';
+import {ENotificationAction} from 'shared/enum/notifications';
+import type INotificationAction from 'shared/interfaces/notification';
 import {requirePlayer} from '_integration/helpers';
+import {createMockSocket, getSpyCalls} from '_integration/mockSocket';
 import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 
 // General game-ending / state-machine scenarios that the per-card tests don't
@@ -64,6 +67,25 @@ describe('game scenarios', () => {
 		expect(target.quarantine).toBe(1);
 		game.changeTurn(target.id);
 		expect(target.quarantine).toBe(0);
+	});
+
+	it('reconnect re-sends the pending interactive prompt (select-card)', () => {
+		const [gameServer, game, targetMaybe] = createMockGameServer();
+		const target = requirePlayer(game, targetMaybe?.id);
+		// Give the player a pending select-card prompt via a forgetfulness panic.
+		game.deck.splice(0, 1, getPanic(EPanicID.forgetfulness));
+		game.changeTurn(target.id);
+		expect(target.currentAction?.type).toBe(ENotificationAction.selectCard);
+
+		// Simulate a reconnect with a fresh socket (the one-shot prompt was lost).
+		const newSocket = createMockSocket(true);
+		gameServer.reconnectPlayer(target, newSocket);
+
+		const gotSelectCard = getSpyCalls(target).some(
+			([type, event]) => type === 'notification'
+				&& (event as INotificationAction | null)?.type === ENotificationAction.selectCard,
+		);
+		expect(gotSelectCard).toBe(true);
 	});
 
 	it('a burned non-Thing neighbour is removed from the game', () => {
