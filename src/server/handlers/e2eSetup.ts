@@ -6,7 +6,6 @@ import {fullDeckObject, instantiateCard} from 'shared/constant/cards';
 import {ICardAny, ICardEvent} from 'shared/interfaces/cards';
 import {ECardType} from 'shared/enum/cards';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
-import {setShuffleSeed} from 'server/helpers/util';
 import {getCardActions} from 'server/formatters/formatCardActions';
 import {each, filter, find, uniqueId} from 'lodash';
 
@@ -223,14 +222,18 @@ export const applyE2ESetup = (gameServer: GameServer, game: Game, raw: IE2ESetup
 export const registerE2EHandlers = (gameServer: GameServer, socket: IGameSocket) => {
 	if (process.env.NECHTO_E2E !== 'true') return;
 
-	// Seed the deck shuffle (and all other shuffle-based randomness) so a whole
-	// game is reproducible from a single seed. Call this BEFORE startGame. Also
-	// puts the server into a clean real-game mode (no mock, checks enabled) so
-	// the seeded playthrough is the genuine deal with card-conservation checks.
+	// Override THIS game's seed (every game is already seeded; this just pins it
+	// to a known value) so a whole playthrough is reproducible. Call BEFORE
+	// startGame. Also puts the server into clean real-game mode (no mock, checks
+	// enabled) so the seeded playthrough is the genuine deal with conservation
+	// checks.
 	socket.on('e2eSeed', (payload: unknown) => {
 		try {
 			const seed = (payload as {seed?: unknown})?.seed;
-			setShuffleSeed(typeof seed === 'number' ? seed : null);
+			const player = gameServer.getPlayerBySocket(socket);
+			if (player && player.game && typeof seed === 'number') {
+				player.game.reseed(seed);
+			}
 			gameServer.isMock = false;
 			gameServer.ignoreChecks = false;
 		} catch (e) {

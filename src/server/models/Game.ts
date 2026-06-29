@@ -8,7 +8,7 @@ import {
   formatUpdateGameEvent,
 } from 'server/formatters/formatOutgoingEvents';
 import {gameStarter} from 'server/helpers/gameStarter';
-import {debugLog, shuffle} from 'server/helpers/util';
+import {debugLog, mulberry32, shuffle} from 'server/helpers/util';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {thingCard} from 'shared/constant/cards';
 import {EPlayerActionType} from 'shared/enum/playerActions';
@@ -43,10 +43,21 @@ export class Game {
   gameLog: string[] = [];
   turnContext: ITurnContext | null = null;
   gameInProcess:boolean = true;
+  // Every game runs on its own seeded RNG so the whole game is reproducible from
+  // this one number (logged as the first game-log line). A bug report's log is
+  // enough to replay the exact deal/draws. Override before start() via reseed().
+  seed: number = 0;
+  rng: () => number = Math.random;
   constructor({ player }: { player: Player }) {
     this.id = uniqueId("game_");
     this.players[player.id] = player;
+    this.reseed(Math.floor(Math.random() * 0xffffffff));
   }
+
+  reseed = (seed: number) => {
+    this.seed = seed >>> 0;
+    this.rng = mulberry32(this.seed);
+  };
 
   notifyAllPlayers = (event: IServerEvent) => {
     each(this.players, (p) => {
@@ -174,6 +185,9 @@ export class Game {
   start = () => {
     const players = this.players;
     debugLog('============================================================');
+    // First line of the log is the seed — a bug report's log alone is enough to
+    // reproduce the exact deal and draws.
+    this.addLog(`Сид игры: ${this.seed}`);
     this.addLog('Игра началась');
     this.state = EGameState.sarted;
     gameStarter(this);
@@ -185,7 +199,7 @@ export class Game {
   };
 
   shuffleDiscarded = () => {
-    this.deck = shuffle(this.discardedDeck);
+    this.deck = shuffle(this.discardedDeck, this.rng);
     this.discardedDeck = [];
   };
 

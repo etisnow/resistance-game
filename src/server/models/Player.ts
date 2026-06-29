@@ -281,11 +281,11 @@ export class Player {
 		return this.game.getPlayerByPosition({playerId: this.id, isNext:false});
 	}
 	getRandomCard = (): ICardEvent | undefined => {
-		const randomCard = shuffle(this.hand)[0];
+		const randomCard = shuffle(this.hand, this.game.rng)[0];
 		return randomCard;
 	}
 	getRandomPlayableCard = (): ICardEvent | undefined => {
-		const randomCard = shuffle(this.hand)[0];
+		const randomCard = shuffle(this.hand, this.game.rng)[0];
 		if (!randomCard) return undefined;
 		if (getCardActions(this.game, this, randomCard).length > 0) {
 			return randomCard;

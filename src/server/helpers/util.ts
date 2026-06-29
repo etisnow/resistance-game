@@ -1,19 +1,13 @@
 import {each} from 'lodash';
 
-// Deterministic RNG support (E2E only). When a seed is set, all shuffle-based
-// randomness — the deck deal/reshuffle, playersList ordering, getRandomCard —
-// draws from one reproducible stream, so a whole game is reproducible from a
-// single seed. Production leaves it null and uses Math.random.
-let seededRng: (() => number) | null = null;
-
-export function setShuffleSeed(seed: number | null): void {
-  if (seed === null) {
-    seededRng = null;
-    return;
-  }
-  // mulberry32 — small, fast, good-enough deterministic PRNG.
+// mulberry32 — small, fast, deterministic PRNG. Every Game owns its own seeded
+// stream (game.rng), so the whole game — deck deal/reshuffle, playersList
+// ordering, getRandomCard — is reproducible from the game's seed (logged as the
+// first game-log line). Concurrent games stay independent because each has its
+// own stream.
+export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
-  seededRng = () => {
+  return () => {
     a = (a + 0x6d2b79f5) | 0;
     let t = Math.imul(a ^ (a >>> 15), 1 | a);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
@@ -21,11 +15,9 @@ export function setShuffleSeed(seed: number | null): void {
   };
 }
 
-function rng(): number {
-  return seededRng ? seededRng() : Math.random();
-}
-
-export function shuffle<T>(array: T[]): T[] {
+// Fisher–Yates shuffle drawing from the supplied RNG (defaults to Math.random
+// for the few non-game callers, e.g. the fuzz bot's own choices).
+export function shuffle<T>(array: T[], rng: () => number = Math.random): T[] {
   if (array.length <= 1) return array;
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));

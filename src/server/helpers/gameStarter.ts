@@ -25,7 +25,7 @@ export const gameStarter = (game: Game) => {
 		return acc
 	}, [] as ICardAny[]);
 
-	const shuffledDeck = shuffle(filteredDeck);
+	const shuffledDeck = shuffle(filteredDeck, game.rng);
 
 	const [playableCards, otherCards] = reduce(shuffledDeck, ([events, other], card) => {
 		if (card.type === ECardType.event && card.id !== EEventID.infect && card.id !== EEventID.thing) {
@@ -46,18 +46,18 @@ export const gameStarter = (game: Game) => {
 	//Берем первые карты из отфильтрованной колоды с учтетом -1 для нечто
 	playableCards.splice(0, totalCountWithoutThing);
 	//Совмещаем остатки всех массивов в один и еще раз перетасуем
-	const otherDeck = shuffle(concat([], playableCards, otherCards));
+	const otherDeck = shuffle(concat([], playableCards, otherCards), game.rng);
 	//Добавляем карту нечто к раздаче
 	playersHands.push(thingCard);
 	//Еще раз шафлим массив с учетом нечто
-	playersHands = shuffle(playersHands);
+	playersHands = shuffle(playersHands, game.rng);
 
 	game.deck = otherDeck;
 	const playerList = Object.keys(game.players);
 	if (gameServer.isMock) {
 		game.playersList = playerList;
 	} else {
-		game.playersList = shuffle(playerList);
+		game.playersList = shuffle(playerList, game.rng);
 	}
 
 
