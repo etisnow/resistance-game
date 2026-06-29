@@ -46,8 +46,9 @@ Local (no Docker):
 EOF
 }
 
-# Discover the *Test.ts unit tests (not bun's default .test naming).
-unit_files() { find src -name '*Test.ts' | sed 's,^,./,'; }
+# Discover the unit tests under src (scoped to src so bun never picks up the
+# Playwright e2e *.test.ts specs under e2e/).
+unit_files() { find src -name '*.test.ts' | sed 's,^,./,'; }
 
 cmd="${1:-help}"
 shift || true
