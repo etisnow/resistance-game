@@ -6,6 +6,8 @@ import {fullDeckObject, instantiateCard} from 'shared/constant/cards';
 import {ICardAny, ICardEvent} from 'shared/interfaces/cards';
 import {ECardType} from 'shared/enum/cards';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
+import {setShuffleSeed} from 'server/helpers/util';
+import {getCardActions} from 'server/formatters/formatCardActions';
 import {each, filter, find, uniqueId} from 'lodash';
 
 // E2E-ONLY deterministic setup hook.
@@ -220,6 +222,21 @@ export const applyE2ESetup = (gameServer: GameServer, game: Game, raw: IE2ESetup
 
 export const registerE2EHandlers = (gameServer: GameServer, socket: IGameSocket) => {
 	if (process.env.NECHTO_E2E !== 'true') return;
+
+	// Seed the deck shuffle (and all other shuffle-based randomness) so a whole
+	// game is reproducible from a single seed. Call this BEFORE startGame. Also
+	// puts the server into a clean real-game mode (no mock, checks enabled) so
+	// the seeded playthrough is the genuine deal with card-conservation checks.
+	socket.on('e2eSeed', (payload: unknown) => {
+		try {
+			const seed = (payload as {seed?: unknown})?.seed;
+			setShuffleSeed(typeof seed === 'number' ? seed : null);
+			gameServer.isMock = false;
+			gameServer.ignoreChecks = false;
+		} catch (e) {
+			console.error('[handler:e2eSeed] error:', e);
+		}
+	});
 	socket.on('e2eSetup', (payload: unknown) => {
 		try {
 			const player = gameServer.getPlayerBySocket(socket);
@@ -235,16 +252,24 @@ export const registerE2EHandlers = (gameServer: GameServer, socket: IGameSocket)
 			const player = gameServer.getPlayerBySocket(socket);
 			if (!player || !player.game) return;
 			const game = player.game;
-			const players = filter(game.players, () => true).map((p) => ({
-				id: p.id,
-				nickname: p.nickname,
-				turnState: p.turnState,
-				quarantine: p.quarantine,
-				state: p.state,
-				hand: p.hand.map((c) => c.id),
-				isThing: p.isThing,
-				isInfected: p.isInfected,
-			}));
+			const players = filter(game.players, () => true).map((p) => {
+				const handActions: Record<string, {menuType: string}[]> = {};
+				each(p.hand, (c) => {
+					if (c.uniqueId) handActions[c.uniqueId] = getCardActions(game, p, c).map((a) => ({menuType: a.menuType}));
+				});
+				return {
+					id: p.id,
+					nickname: p.nickname,
+					turnState: p.turnState,
+					quarantine: p.quarantine,
+					state: p.state,
+					hand: p.hand.map((c) => ({id: c.id, uniqueId: c.uniqueId})),
+					handActions,
+					currentAction: p.currentAction,
+					isThing: p.isThing,
+					isInfected: p.isInfected,
+				};
+			});
 			socket.emit('e2eState', {
 				gameId: game.id,
 				turnPlayerId: game.turnPlayerId,
