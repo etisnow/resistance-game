@@ -176,8 +176,8 @@ const PlayerBadge = ({
 							texture={getMarkTexture(mark)}
 							anchor={0.5}
 							y={-style.height/4}
-							width={style.height * 0.2}
-							height={style.height * 0.2}
+							width={style.height * 0.3}
+							height={style.height * 0.3}
 						/>
 					)}
 				</React.Fragment>
