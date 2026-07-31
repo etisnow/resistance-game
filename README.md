@@ -5,7 +5,17 @@ A real-time multiplayer card game: **React 16 + PixiJS** client (bundled by
 client (vite) and the backend (bun) run as **Docker** services — like grailgun.
 Bun is the package manager / runtime; Express, yarn and CRA are gone.
 
-## Quick start (Docker)
+## Quick start — one button
+
+```bash
+./run go           # everything, publicly: deps + CF tunnel + client + server
+```
+
+Installs deps if missing, provisions the Cloudflare tunnel + DNS, starts
+`client` / `server` / `cloudflared`, then waits until each actually answers and
+prints the public URLs. Alias of `./run tunnel up`.
+
+## Quick start (Docker, localhost only)
 
 ```bash
 ./run install      # bun install + Playwright chromium (once, on the host)
@@ -47,6 +57,7 @@ live in `.env` (git-ignored): `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`,
 
 | Command            | What it does                                                       |
 | ------------------ | ----------------------------------------------------------------- |
+| `./run go`         | One button: deps + tunnel + client + server, waits for readiness   |
 | `./run up`         | Dev stack in Docker (vite client + bun server, hot reload)         |
 | `./run down`       | Stop the dev stack                                                 |
 | `./run logs [svc]` | Follow logs (`client` or `server`)                                 |

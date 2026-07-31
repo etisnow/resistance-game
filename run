@@ -15,9 +15,30 @@ DC="docker compose -f docker-compose.yml"
 DCP="docker compose -f docker-compose.prod.yml"
 DCT="docker compose -f docker-compose.yml -f docker-compose.tunnel.yml"
 
+# Hostnames / tunnel token (docker compose reads .env on its own; we need
+# CLIENT_HOST / API_HOST here too).
+load_env() { if [ -f .env ]; then set -a; . ./.env; set +a; fi; }
+load_env
+
+# Poll an HTTP endpoint until it answers. args: url label [timeout_s]
+wait_http() {
+  local url="$1" label="$2" timeout="${3:-60}" i=0
+  printf '  %-7s %-42s ' "$label" "$url"
+  while [ "$i" -lt "$timeout" ]; do
+    if curl -sfo /dev/null --max-time 3 "$url"; then echo "ok"; return 0; fi
+    printf '.'; sleep 1; i=$((i + 1))
+  done
+  echo " TIMEOUT (${timeout}s)"
+  return 1
+}
+
 usage() {
   cat <<'EOF'
 Nechto — ./run <command>
+
+One button:
+  go             Everything up, publicly: deps + CF tunnel + client + server,
+                 waits until each answers (alias of `tunnel up`)
 
 Docker (client = vite, server = bun — like grailgun):
   up [args]      Start the dev stack (vite client + bun server) in Docker
@@ -54,9 +75,11 @@ cmd="${1:-help}"
 shift || true
 
 case "$cmd" in
+  # ---- One button: everything, publicly, via the tunnel ----
+  go|all)    exec "$0" tunnel up "$@" ;;
   # ---- Docker (dev) ----
-  up|dev)    exec $DC up "$@" ;;
-  down)      exec $DC down "$@" ;;
+  up|dev)    exec $DC up --remove-orphans "$@" ;;
+  down)      exec $DC down --remove-orphans "$@" ;;
   logs)      exec $DC logs -f "$@" ;;
   restart)   exec $DC restart "$@" ;;
   ps)        exec $DC ps "$@" ;;
@@ -75,12 +98,23 @@ case "$cmd" in
     sub="${1:-up}"; shift || true
     case "$sub" in
       up)
+        # One button: deps -> CF tunnel + DNS -> client/server/cloudflared -> wait.
+        [ -x node_modules/.bin/vite ] || bun install
         ./cmd/tunnel up
-        $DCT up -d "$@"
+        load_env                       # pick up the token cmd/tunnel just wrote
+        $DCT up -d --remove-orphans "$@"
+        echo
+        echo "Waiting for services:"
+        rc=0
+        wait_http "http://localhost:${PORT}/socket.io/?EIO=4&transport=polling" server 60 || rc=1
+        wait_http "http://localhost:${CLIENT_PORT}" client 60 || rc=1
+        wait_http "https://${CLIENT_HOST}" public 90 || rc=1
         echo
         echo "Up via tunnel:"
-        echo "  client: https://$(grep -E '^CLIENT_HOST=' .env | cut -d= -f2)"
-        echo "  api:    https://$(grep -E '^API_HOST=' .env | cut -d= -f2)" ;;
+        echo "  client: https://${CLIENT_HOST}"
+        echo "  api:    https://${API_HOST}"
+        [ "$rc" -eq 0 ] || echo "  something did not come up — ./run tunnel logs"
+        exit "$rc" ;;
       down)
         $DCT down "$@" || true
         ./cmd/tunnel down ;;
