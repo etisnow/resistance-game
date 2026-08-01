@@ -1,4 +1,4 @@
-import {observable} from "mobx";
+import {autorun, observable} from "mobx";
 import LauncherController from 'client/controllers/launcherController';
 import SocketController from 'client/controllers/socketController';
 import GameController from 'client/controllers/gameController';
@@ -22,7 +22,21 @@ export default class RootController {
 	constructor() {
 		this.socketController = new SocketController(this, this);
 		this.start();
+		this.syncDocumentTitle();
 	}
+
+	// Ник в заголовке вкладки: с несколькими открытыми окнами (или ботами в дев-режиме)
+	// иначе не понять, кто где. Подписка одна на приложение — start() дёргается на
+	// каждый реконнект, поэтому вешаем её в конструкторе, а контроллеры внутри
+	// autorun читаются как observable и переподхватываются сами.
+	private syncDocumentTitle() {
+		if (typeof document === 'undefined') return;
+		autorun(() => {
+			const nickname = this.gameController?.currentPlayer?.nickname || this.launcherController?.nickname || '';
+			document.title = nickname.trim() ? `${nickname.trim()} - Нечто` : 'Игра нечто';
+		});
+	}
+
 	start() {
 		this.timerController = new TimerController(this, this);
 		this.gameController = new GameController(this);
