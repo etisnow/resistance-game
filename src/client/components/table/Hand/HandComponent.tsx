@@ -167,11 +167,15 @@ const getCirclePoint = (radius: number, deg: number, centerX: number, centerY: n
 }
 
 
-const calculateCardStypeProps = (cardNumber: number, cardsCount: number): ICardStyleProps => {
+// indexShift сдвигает карту по той же дуге веера на доли «номера карты» — так
+// соседи расступаются вокруг карты под курсором (см. hoverSpread), сохраняя
+// правильный наклон.
+const calculateCardStypeProps = (cardNumber: number, cardsCount: number, indexShift = 0): ICardStyleProps => {
 	const degStep = 11;
 	const maxCardDeg = degStep * cardsCount;
-	const cardDeg = getCardDeg(cardNumber, cardsCount, maxCardDeg);
-	const cardRotationDeg = getCardDeg(cardNumber, cardsCount, maxCardDeg * 0.5);
+	const shiftedNumber = cardNumber + indexShift;
+	const cardDeg = getCardDeg(shiftedNumber, cardsCount, maxCardDeg);
+	const cardRotationDeg = getCardDeg(shiftedNumber, cardsCount, maxCardDeg * 0.5);
 	const radius = fanRadius();
 	const centerY = fanCenterY();
 	const {x,y} = getCirclePoint(radius, cardDeg, fanCenterX, centerY);
@@ -223,9 +227,13 @@ const calculateCardSelectedStypeProps = (): ICardStyleProps => {
 // не уезжала из-под курсора.
 // В ряду выбора рост скромнее (карта не должна спорить с выбранной) и подъёма
 // над соседями не нужно — там ряд ровный.
+// Соседи при этом расступаются (в долях «номера карты» по дуге веера): выросшая
+// карта иначе просто накрывает их, а поднимать её на целую высоту, чтобы она
+// перестала мешать, — значит оторвать её от руки и закрыть ею колоду.
 const hoverScale = 1.8;
 const notificationHoverScale = 1.15;
 const hoverExtraLiftFactor = 0.15;
+const hoverSpread = 0.75;
 
 const handHoverPad = () => playerCardWidthPix() * 1.1 * cardAspectRatio * hoverExtraLiftFactor;
 
@@ -254,21 +262,29 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 		return Object.values(cards).indexOf(card)
 	};
 
+	const hoveredCardNumber = hoveredCardId
+		? Object.values(cards).findIndex(card => card.uniqueId === hoveredCardId)
+		: -1;
+
 	const styleUpdater = (card: ICardAny): ICardStyleProps => {
 		const isSelected = card.uniqueId === selectedCardIndex;
+		const isHovered = card.uniqueId === hoveredCardId;
 		const cardNumber = cardNumberInRow(card);
 		if (isSelected) {
 			return autoWidth
 				? calculateNotificationSelectedStypeProps(cardNumber, cardsCount)
 				: calculateCardSelectedStypeProps();
 		}
-		const style = autoWidth
-			? calculateNotificationCardStypeProps(cardNumber, cardsCount)
-			: calculateCardStypeProps(cardNumber, cardsCount);
-		if (card.uniqueId !== hoveredCardId) return style;
-		return autoWidth
-			? applyHoverStyle(style, notificationHoverScale)
-			: applyHoverStyle(style, hoverScale, handHoverPad());
+		if (autoWidth) {
+			const style = calculateNotificationCardStypeProps(cardNumber, cardsCount);
+			return isHovered ? applyHoverStyle(style, notificationHoverScale) : style;
+		}
+		// Карты левее наведённой отъезжают влево, правее — вправо.
+		const spread = (isHovered || hoveredCardNumber < 0)
+			? 0
+			: (cardNumber < hoveredCardNumber ? -hoverSpread : hoverSpread);
+		const style = calculateCardStypeProps(cardNumber, cardsCount, spread);
+		return isHovered ? applyHoverStyle(style, hoverScale, handHoverPad()) : style;
 	}
 	const defaultCardStyle: ICardStyleProps = { x:0,y:-getCenterOffset(),angle:-90, width: 0 };
 
