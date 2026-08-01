@@ -225,7 +225,7 @@ const calculateCardSelectedStypeProps = (): ICardStyleProps => {
 // над соседями не нужно — там ряд ровный.
 const hoverScale = 1.8;
 const notificationHoverScale = 1.15;
-const hoverExtraLiftFactor = 0.22;
+const hoverExtraLiftFactor = 0.45;
 
 const handHoverPad = () => playerCardWidthPix() * 1.1 * cardAspectRatio * hoverExtraLiftFactor;
 
