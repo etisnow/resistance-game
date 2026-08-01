@@ -214,7 +214,7 @@ const calculateCardSelectedStypeProps = (): ICardStyleProps => {
 // (рост от центра опускает низ на половину прироста высоты, ровно столько же и
 // поднимаем) — иначе карта уезжала бы из-под курсора и hover мигал.
 // В ряду выбора рост скромнее, чтобы наведённая карта не спорила с выбранной.
-const hoverScale = 1.45;
+const hoverScale = 1.8;
 const notificationHoverScale = 1.15;
 
 const applyHoverStyle = (style: ICardStyleProps, scale: number): ICardStyleProps => {
