@@ -18,8 +18,17 @@ export const getWindowWidth = () => {
 }
 
 
+// Карты в окнах выбора (упорство, «посмотри вокруг» и т.п.) лежат ровным рядом.
+// Ширину считаем так, чтобы весь ряд с зазорами влез по ширине экрана, а
+// увеличенная выбранная карта — по высоте. Иначе карты наезжают друг на друга и
+// выбранную (особенно центральную) не отличить от соседних.
+export const notificationCardGap = 1.12;
+export const selectedNotificationCardScale = 1.3;
 
-//export const autoWidthCard = (cardsCount) => (clamp(getConstrainedWindowWidth() / cardsCount, 100, getConstrainedWindowWidth() * 0.7))
-export const autoWidthCard = (cardsCount: number) => clamp((clamp((getConstrainedWindowWidth() / cardsCount ) * 1.5, 100, getConstrainedWindowWidth() * 0.7)), 0, 300)
+export const autoWidthCard = (cardsCount: number) => {
+	const byWidth = (getWindowWidth() * 0.94) / Math.max(cardsCount, 1) / notificationCardGap;
+	const byHeight = (getWindowHeight() * 0.5) / (cardAspectRatio * selectedNotificationCardScale);
+	return clamp(Math.min(byWidth, byHeight), 80, 260);
+}
 export const playerCardWidthPix = () => playerHandHeight() / cardAspectRatio;
 export const playerHandHeight = () => clamp((getWindowWidth() / (100/cardWidthPercent)) * cardAspectRatio, 50, getWindowHeight() / 5);

@@ -6,6 +6,7 @@ import type INotificationAction from 'shared/interfaces/notification';
 import type {IHandActionsMap} from 'client/controllers/socketTypes';
 import GameController from 'client/controllers/gameController';
 import {ENotificationAction} from 'shared/enum/notifications';
+import * as PIXI from 'pixi.js';
 import {Container, Sprite, Text} from 'react-pixi-fiber';
 import HandComponent from 'client/components/table/Hand/HandComponent';
 import {
@@ -14,6 +15,7 @@ import {
 	getWindowWidth,
 	playerCardWidthPix,
 	playerHandHeight,
+	selectedNotificationCardScale,
 } from 'client/helpers/window';
 import {getPixiTexture} from 'client/components/table/pixiInjected';
 import {resources} from 'client/resources/resources';
@@ -49,10 +51,17 @@ const Notification = observer(({notification, controller}: {notification: INotif
 	const {cardInNotificationPreview} = controller;
 
 	const notificationFontSize = 22;
+	// Центр ряда карт и его высота С УЧЁТОМ увеличения выбранной карты. Подпись и
+	// кнопку вешаем ПОД ряд: сверху висит бейдж действия (DOM) с тем же текстом, и
+	// раньше надписи налезали друг на друга.
+	const cardsRowCenterY = getWindowHeight() / 2 - playerHandHeight() / 2;
+	const rowHeight = (cardsCount: number) =>
+		autoWidthCard(cardsCount) * cardAspectRatio * selectedNotificationCardScale;
+	const textY = (rowCardHeight: number) => cardsRowCenterY + rowCardHeight / 2 + notificationFontSize * 1.2;
 	let cardHeight = 0;
 	switch (notification.type) {
 		case ENotificationAction.okayCard:
-			cardHeight = autoWidthCard(Object.keys(notification.cards).length) * cardAspectRatio;
+			cardHeight = rowHeight(Object.keys(notification.cards).length);
 			notificationContent = (
 				<React.Fragment>
 					<Sprite
@@ -64,11 +73,11 @@ const Notification = observer(({notification, controller}: {notification: INotif
 						height={playerCardWidthPix() * 1.5}
 						anchor={0.5}
 						x={getWindowWidth() / 2}
-						y={getWindowHeight()/2 +  cardHeight / 2 + ((playerCardWidthPix() * 1.5) / 2)}
+						y={textY(cardHeight) + notificationFontSize + ((playerCardWidthPix() * 1.5) / 2)}
 					/>
 					<Text
 						x={getWindowWidth() / 2}
-						y={getWindowHeight()/2 -  cardHeight / 2 - notificationFontSize * 2}
+						y={textY(cardHeight)}
 						text={notification.text}
 						anchor={0.5}
 						style={getFontStyle(18, getWindowWidth() * 0.8)}
@@ -87,7 +96,7 @@ const Notification = observer(({notification, controller}: {notification: INotif
 			break;
 		case ENotificationAction.selectCard:
 			//const menu = (cardUniqueId) => generateCardMenuByNotificationType(controller, notification, cardUniqueId);
-			cardHeight = autoWidthCard(Object.keys(notification.cards).length) * cardAspectRatio;
+			cardHeight = rowHeight(Object.keys(notification.cards).length);
 			const menuAccumulator: IHandActionsMap = {};
 			const menu = reduce(notification.cards, (acc, card) => {
 				const uniqueId = card.uniqueId;
@@ -106,7 +115,7 @@ const Notification = observer(({notification, controller}: {notification: INotif
 				<React.Fragment>
 					<Text
 						x={getWindowWidth() / 2}
-						y={getWindowHeight()/2 -  cardHeight / 2 - notificationFontSize * 3}
+						y={textY(cardHeight)}
 						text={notification.text}
 						anchor={0.5}
 						style={getFontStyle(18, getWindowWidth() * 0.8)}
@@ -142,6 +151,18 @@ const Notification = observer(({notification, controller}: {notification: INotif
 			<Container alpha={0.7} pointerdown={() => {}}>
 				<Rectangle xCoord={0} yCoord={0} width={getWindowWidth()} height={getWindowHeight()} color={0}/>
 			</Container>
+			{/* Клик мимо карт снимает увеличение выбранной карты (карты лежат выше и
+			    перехватывают клик первыми — pixi ищет попадание с конца списка). */}
+			<Sprite
+				texture={PIXI.Texture.WHITE}
+				alpha={0}
+				interactive={true}
+				x={0}
+				y={0}
+				width={getWindowWidth()}
+				height={getWindowHeight()}
+				pointerdown={() => {controller.cardInNotificationPreview = null}}
+			/>
 			<Container width={getWindowWidth()} height={getWindowHeight()}>
 				{notificationContent}
 			</Container>

@@ -24,6 +24,10 @@ type CardStyle = AnimatedCardStyle | ICardStyleProps;
 interface ICardProps {
 	id: string;
 	onCardClick?: (() => void) | null;
+	// Наведение курсора: рукой используется, чтобы «вытащить» карту из веера.
+	// Колода (Deck) обработчики не передаёт.
+	onCardOver?: (() => void) | null;
+	onCardOut?: (() => void) | null;
 	canBeUsed?: boolean;
 	style: CardStyle;
 	// The `menu` renderer is only supplied by HandComponent, which always pairs it with
@@ -42,7 +46,7 @@ const isAnimatedStyle = (style: CardStyle): style is AnimatedCardStyle =>
 const {playerBadges: _playerBadges, ...cardImages} = resources;
 const cardResources: Record<string, string | undefined> = cardImages;
 
-const Card = observer(({id, menu, onCardClick, canBeUsed, style}: ICardProps) => {
+const Card = observer(({id, menu, onCardClick, onCardOver, onCardOut, canBeUsed, style}: ICardProps) => {
 	const card = fulldeck[id] || (id === EEventID.thing ? thingCard : null);
 	const cardTexture = getPixiTexture(cardResources[id]);
 	const glowTexture = getPixiTexture(cardResources['glowEffect']);
@@ -71,6 +75,8 @@ const Card = observer(({id, menu, onCardClick, canBeUsed, style}: ICardProps) =>
 				interactive={true}
 				texture={cardTexture}
 				pointerdown={onCardClick ?? undefined}
+				pointerover={onCardOver ?? undefined}
+				pointerout={onCardOut ?? undefined}
 				anchor={0.5}
 				{...style}
 				width={cardWidth}

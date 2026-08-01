@@ -9,8 +9,10 @@ import {
 	autoWidthCard,
 	getWindowHeight,
 	getWindowWidth,
+	notificationCardGap,
 	playerCardWidthPix,
 	playerHandHeight,
+	selectedNotificationCardScale,
 } from 'client/helpers/window';
 import {cardAspectRatio} from 'shared/constant/cards';
 import {EPlayerActionType} from 'shared/enum/playerActions';
@@ -46,7 +48,11 @@ interface IHandProps {
 }
 
 
-
+// Наведение имеет смысл только там, где есть курсор: на тач-экранах pointerover
+// приходит вместе с тапом, и карта «залипала» бы в увеличенном виде.
+const isHoverCapable = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+	? window.matchMedia('(hover: hover) and (pointer: fine)').matches
+	: false;
 
 
 const generateCardMenu = (card: ICardAny, cardActions: IHandActionsMap, onCardAction: OnCardAction) => (style: AnimatedCardStyle): React.ReactNode => {
@@ -157,7 +163,7 @@ const getCirclePoint = (radius: number, deg: number, centerX: number, centerY: n
 }
 
 
-const calculateCardStypeProps = (cardNumber: number, cardsCount: number, autoWidth: boolean): ICardStyleProps => {
+const calculateCardStypeProps = (cardNumber: number, cardsCount: number): ICardStyleProps => {
 	const degStep = 11;
 	const maxCardDeg = degStep * cardsCount;
 	const cardDeg = getCardDeg(cardNumber, cardsCount, maxCardDeg);
@@ -166,11 +172,29 @@ const calculateCardStypeProps = (cardNumber: number, cardsCount: number, autoWid
 	const {x: rotationXPoint,y: rotationYPoint} = getCirclePoint(circleRadius, cardRotationDeg, circleX,circleY);
 	var angleBetweenPointsDeg = Math.atan2(rotationYPoint - circleY, rotationXPoint - circleX) * 180 / Math.PI;
 
-	const width = autoWidth ?
-		autoWidthCard(cardsCount) :
-		(playerCardWidthPix() * 1.1 );
+	const width = playerCardWidthPix() * 1.1;
 
 	return {x,y: y + playerHandHeight() * 0.65,angle:angleBetweenPointsDeg + 90, width}
+}
+
+// Ряд карт в окне выбора (упорство и прочие selectCard/okayCard): ровная строка
+// без наклона и без наложения — в прежнем веере соседние карты закрывали
+// центральную и выделить её было нечем.
+const calculateNotificationCardStypeProps = (cardNumber: number, cardsCount: number): ICardStyleProps => {
+	const width = autoWidthCard(cardsCount);
+	const step = width * notificationCardGap;
+	return {x: (cardNumber - (cardsCount - 1) / 2) * step, y: 0, angle: 0, width};
+}
+
+// Выбранная карта ряда остаётся на своём месте (видно, какую именно выбрали), но
+// заметно вырастает и приподнимается над соседями.
+const calculateNotificationSelectedStypeProps = (cardNumber: number, cardsCount: number): ICardStyleProps => {
+	const base = calculateNotificationCardStypeProps(cardNumber, cardsCount);
+	return {
+		...base,
+		y: base.y - base.width * cardAspectRatio * 0.1,
+		width: base.width * selectedNotificationCardScale,
+	};
 }
 
 const getCenterOffset = () => {
@@ -179,17 +203,34 @@ const getCenterOffset = () => {
 	return YOffset - playerHandHeight() / 2
 }
 
-const calculateCardSelectedStypeProps = (autoWidth: boolean): ICardStyleProps => {
+const calculateCardSelectedStypeProps = (): ICardStyleProps => {
 	const {width} = calculateSize();
 	const offset = getCenterOffset() + (getCenterOffset() * 0.25)
-	if (autoWidth) {
-		return {x:0,y: 0, angle:0, width}
-	}
 	return {x:0,y: -offset - (playerHandHeight() / 2), angle:0, width}
+}
+
+// Карта под курсором «вытаскивается» из руки: растёт, выпрямляется и
+// приподнимается вдоль собственной оси. Подъём подобран так, чтобы нижняя кромка
+// осталась на месте (рост 1.18 от центра опускает низ на 9% высоты, ровно
+// столько же и поднимаем) — иначе карта уезжала бы из-под курсора и hover мигал.
+const hoverScale = 1.18;
+const hoverLiftFactor = (hoverScale - 1) / 2;
+
+const applyHoverStyle = (style: ICardStyleProps): ICardStyleProps => {
+	const lift = style.width * cardAspectRatio * hoverLiftFactor;
+	const rad = degToRag(style.angle);
+	return {
+		x: style.x + Math.sin(rad) * lift,
+		y: style.y - Math.cos(rad) * lift,
+		angle: style.angle * 0.5,
+		width: style.width * hoverScale,
+	};
 }
 
 
 const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelectCard, onCardAction, y, autoWidth = false} : IHandProps) => {
+
+	const [hoveredCardId, setHoveredCardId] = React.useState<string | null>(null);
 
 	if (!cards) return null;
 
@@ -203,7 +244,15 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 	const styleUpdater = (card: ICardAny): ICardStyleProps => {
 		const isSelected = card.uniqueId === selectedCardIndex;
 		const cardNumber = cardNumberInRow(card);
-		return isSelected ? calculateCardSelectedStypeProps(autoWidth) : calculateCardStypeProps(cardNumber, cardsCount, autoWidth)
+		if (isSelected) {
+			return autoWidth
+				? calculateNotificationSelectedStypeProps(cardNumber, cardsCount)
+				: calculateCardSelectedStypeProps();
+		}
+		const style = autoWidth
+			? calculateNotificationCardStypeProps(cardNumber, cardsCount)
+			: calculateCardStypeProps(cardNumber, cardsCount);
+		return card.uniqueId === hoveredCardId ? applyHoverStyle(style) : style;
 	}
 	const defaultCardStyle: ICardStyleProps = { x:0,y:-getCenterOffset(),angle:-90, width: 0 };
 
@@ -215,9 +264,9 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 	// upstream typings flaw with a cast to the precise expected parameter shape.
 	const transitionOptions: UseTransitionProps<ICardAny, ICardStyleProps> = {
 		from: defaultCardStyle,
-		enter: (card) => {console.log('enter'); return styleUpdater(card)},
-		update: (card) => {console.log('update'); return styleUpdater(card)},
-		leave: () => {console.log('LEAVE'); return defaultCardStyle},
+		enter: styleUpdater,
+		update: styleUpdater,
+		leave: () => defaultCardStyle,
 		config: config.default,
 	};
 	const transitions = useTransition<ICardAny, ICardStyleProps>(
@@ -228,6 +277,14 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 
 	const pivotAtCenter = {x:-getWindowWidth() / 2 , y: 0}
 
+	// Обработчики наведения вешаем только на устройствах с курсором.
+	const hoverHandlers = (uniqueId: string | null | undefined) => {
+		if (!isHoverCapable || !uniqueId) return {};
+		return {
+			onCardOver: () => setHoveredCardId(uniqueId),
+			onCardOut: () => setHoveredCardId(current => current === uniqueId ? null : current),
+		};
+	};
 
 
 	return (
@@ -239,17 +296,22 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 			{map(transitions, ({item: card, key, props}) => {
 				const uniqueId = card.uniqueId;
 				const isSelected = selectedCardIndex === uniqueId;
+				const isHovered = !isSelected && !!uniqueId && hoveredCardId === uniqueId;
 				const cardActionEntries = uniqueId ? cardActions[uniqueId] : undefined;
 				const canBeUsed = !!(cardActionEntries ? cardActionEntries.length : false)
 				const cardMenu = onCardAction ? generateCardMenu(card, cardActions, onCardAction) : undefined;
+				// Выбранная карта поверх всех, следом — карта под курсором,
+				// остальные сохраняют порядок в руке.
+				const zIndex = isSelected ? 60 : (isHovered ? 50 : cardNumberInRow(card));
 				return (
-					<Container key={key} zIndex={isSelected ? 60 : cardNumberInRow(card)}>
+					<Container key={key} zIndex={zIndex}>
 						<Card
 							id={card.id}
 							canBeUsed={canBeUsed}
 							onCardClick={() => { if (onSelectCard && uniqueId) onSelectCard(uniqueId) }}
 							style={props}
 							menu={isSelected ? cardMenu : undefined}
+							{...hoverHandlers(uniqueId)}
 						/>
 					</Container>
 				)
