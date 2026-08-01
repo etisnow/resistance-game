@@ -4,6 +4,7 @@ import SocketController from 'client/controllers/socketController';
 import GameController from 'client/controllers/gameController';
 import TimerController from 'client/controllers/timerController';
 import {preloadAssets} from 'client/resources/preloader';
+import {isWebGLAvailable} from 'client/helpers/webgl';
 import {EAppState} from 'shared/enum/common';
 
 
@@ -37,6 +38,11 @@ export default class RootController {
 	// поверх незавершённого первого.
 	private assetsLoading: Promise<void> | null = null;
 	private loadAssets() {
+		// Без WebGL стол не нарисуется — не тянем 17 МБ картинок ради этого.
+		if (!isWebGLAvailable()) {
+			this.state = EAppState.noWebgl;
+			return;
+		}
 		if (this.isLoaded) {
 			this.state = EAppState.launcher;
 			return;

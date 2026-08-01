@@ -1,5 +1,6 @@
 enum EAppState {
 	loading = "loading",
+	noWebgl = "noWebgl",
 	launcher = "launcher",
 	game = "game",
 }

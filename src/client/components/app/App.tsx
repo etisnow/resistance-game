@@ -4,6 +4,7 @@ import {observer} from 'mobx-react';
 import GameScreen from 'client/components/game/GameScreen';
 import Launcher from 'client/components/launcher/Launcher';
 import {LoadingScreen} from 'client/components/loading/LoadingScreen';
+import {WebGLMessage} from 'client/components/webgl/WebGLMessage';
 import {EAppState} from 'shared/enum/common';
 import RootController from 'client/controllers/rootController';
 
@@ -25,6 +26,8 @@ class App extends React.Component<IAppProps> {
 		switch (this.controller.state) {
 			case EAppState.loading:
 				return <LoadingScreen progress={this.controller.loadProgress} />
+			case EAppState.noWebgl:
+				return <WebGLMessage />
 			case EAppState.launcher:
 				return <Launcher controller={this.controller.launcherController} />
 			case EAppState.game:

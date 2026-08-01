@@ -1,0 +1,63 @@
+.webgl-message {
+	max-width: 440px;
+	width: 100%;
+	padding: 20px;
+	border-radius: 5px;
+	background: rgba(0, 0, 0, 0.6);
+	color: white;
+	font-size: 14px;
+	line-height: 1.5;
+
+	h1 {
+		font-size: 22px;
+		margin-top: 0;
+	}
+
+	a {
+		color: #b5d34a;
+	}
+
+	ol {
+		padding-left: 18px;
+		margin: 10px 0;
+	}
+
+	.webgl-browser {
+		font-weight: 600;
+	}
+
+	.webgl-hint {
+		color: rgba(255, 255, 255, 0.6);
+		font-size: 12px;
+	}
+
+	.webgl-address {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 6px 0 10px;
+
+		code {
+			flex: 1;
+			padding: 6px 8px;
+			border: 1px solid #007b0c;
+			border-radius: 5px;
+			background: rgba(0, 0, 0, 0.38);
+			color: #b5d34a;
+			// Адрес можно выделить мышью: глобальный user-select: none мешает.
+			user-select: all;
+			overflow-x: auto;
+			white-space: nowrap;
+		}
+	}
+
+	.webgl-copy {
+		padding: 6px 10px;
+		border: 0;
+		border-radius: 5px;
+		background: linear-gradient(180deg, #6c920e 0%, #005213 100%);
+		color: white;
+		cursor: pointer;
+		white-space: nowrap;
+	}
+}
