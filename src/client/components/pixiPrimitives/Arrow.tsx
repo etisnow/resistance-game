@@ -17,6 +17,10 @@ interface ArrowProps {
 	arrowY: number;
 	arrowHeight: number;
 	arrowRotation: number;
+	tailX: number;
+	tailY: number;
+	tailHeight: number;
+	tailRotation: number;
 }
 
 const getCirclePoint = (radius: number, deg: number, centerX: number, centerY: number) => {
@@ -27,6 +31,24 @@ const getCirclePoint = (radius: number, deg: number, centerX: number, centerY: n
 }
 
 
+const drawArrowHead = (
+	instance: PIXI.Graphics,
+	color: number,
+	tipX: number,
+	tipY: number,
+	height: number,
+	rotation: number,
+) => {
+	const {x: leftX, y:leftY} = getCirclePoint(height, rotation + 90 - 15, tipX, tipY);
+	const {x: rightX, y:rightY} = getCirclePoint(height, rotation + 90 + 15, tipX, tipY);
+	instance.lineStyle(0, color);
+	instance.beginFill(color, 1);
+	instance.moveTo(tipX, tipY);
+	instance.lineTo(leftX, leftY);
+	instance.lineTo(rightX, rightY);
+	instance.endFill();
+}
+
 const TYPE = "Arrow";
 export const behavior = {
   customDisplayObject: (_props: ArrowProps) => new PIXI.Graphics(),
@@ -36,7 +58,7 @@ export const behavior = {
     oldProps: ArrowProps | undefined,
     newProps: ArrowProps,
   ) {
-    const { color, ax, ay,mid1X, mid1Y, mid2X, mid2Y, bx, by, arrowX, arrowY, arrowHeight, arrowRotation } = newProps;
+    const { color, ax, ay,mid1X, mid1Y, mid2X, mid2Y, bx, by, arrowX, arrowY, arrowHeight, arrowRotation, tailX, tailY, tailHeight, tailRotation } = newProps;
     if (typeof oldProps !== "undefined") {
       instance.clear();
     }
@@ -44,14 +66,10 @@ export const behavior = {
     instance.moveTo(ax, ay);
     instance.bezierCurveTo(mid1X, mid1Y, mid2X, mid2Y, bx, by)
 
-    const {x: leftX, y:leftY} = getCirclePoint(arrowHeight, arrowRotation + 90 - 15, arrowX, arrowY);
-    const {x: rightX, y:rightY} = getCirclePoint(arrowHeight, arrowRotation + 90 + 15, arrowX, arrowY);
-    instance.lineStyle(0, color);
-    instance.beginFill(color, 1);
-    instance.moveTo(arrowX, arrowY);
-    instance.lineTo(leftX, leftY);
-    instance.lineTo(rightX, rightY);
-    instance.endFill();
+    drawArrowHead(instance, color, arrowX, arrowY, arrowHeight, arrowRotation);
+    if (tailHeight > 0) {
+      drawArrowHead(instance, color, tailX, tailY, tailHeight, tailRotation);
+    }
 
     this.applyDisplayObjectProps(oldProps, newProps);
   },

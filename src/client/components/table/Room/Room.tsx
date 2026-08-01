@@ -38,6 +38,10 @@ interface IArrowShape {
 	arrowY: number;
 	arrowRotation: number;
 	arrowHeight: number;
+	tailX: number;
+	tailY: number;
+	tailRotation: number;
+	tailHeight: number;
 	color: number;
 }
 
@@ -98,6 +102,10 @@ interface ILineAnimationArgs {
 	players: IPlayersMap;
 }
 
+const isBidirectionalArrow = (arrowType: ETurnContextType): boolean => {
+	return arrowType === ETurnContextType.trade;
+}
+
 const lineAnimation = ({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players}: ILineAnimationArgs): IArrowShape => {
 	const biggerBadgeRad = badgeRadius + 5;
 
@@ -110,10 +118,12 @@ const lineAnimation = ({type, newPlayerList, badgeRadius, offensePlayerId, defen
 	const APlayerDegree = angleBetweenPointsDeg;
 	const BPlayerDegree = angleBetweenPointsDeg - 180;
 
-	const {y:newAY,x:newAX} = getCirclePoint(biggerBadgeRad, APlayerDegree, ax, ay);
+	const {y:tailY,x:tailX} = getCirclePoint(biggerBadgeRad, APlayerDegree, ax, ay);
 	const {y:arrowY,x:arrowX} = getCirclePoint(biggerBadgeRad, BPlayerDegree, bx, by);
-	const distanceBetweenArrow = getDistanceBetweenPoints(newAX,newAY,arrowX,arrowY);
+	const distanceBetweenArrow = getDistanceBetweenPoints(tailX,tailY,arrowX,arrowY);
 	const arrowHeight = clamp(distanceBetweenArrow * 0.35, 3, 15);
+	const tailHeight = isBidirectionalArrow(type) ? arrowHeight : 0;
+	const {y:newAY,x:newAX} = getCirclePoint(biggerBadgeRad + tailHeight, APlayerDegree, ax, ay);
 	const {y:newBY,x:newBX} = getCirclePoint(biggerBadgeRad + arrowHeight, BPlayerDegree, bx, by);
 
 	const {x: midX, y:midY} = midpoint(newAX, newAY, newBX, newBY);
@@ -135,6 +145,10 @@ const lineAnimation = ({type, newPlayerList, badgeRadius, offensePlayerId, defen
 		arrowY: arrowY,
 		arrowRotation: angleBetweenPointsDeg + 90,
 		arrowHeight: arrowHeight,
+		tailX: tailX,
+		tailY: tailY,
+		tailRotation: angleBetweenPointsDeg - 90,
+		tailHeight: tailHeight,
 		color: getColorByArrowType(type),
 	}
 }
@@ -192,9 +206,13 @@ const Room = observer(({controller} : IRoomProps) => {
 		arrowY: 0,
 		arrowRotation: 0,
 		arrowHeight: 0,
+		tailX: 0,
+		tailY: 0,
+		tailRotation: 0,
+		tailHeight: 0,
 		color: 0,
 		from: ({offensePlayerId, defensePlayerId, type}) => {
-			const {ax,ay, arrowRotation, color} = lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
+			const {ax,ay, arrowRotation, tailRotation, color} = lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
 			return {
 				ax,
 				ay,
@@ -208,6 +226,10 @@ const Room = observer(({controller} : IRoomProps) => {
 				arrowY: ay,
 				arrowRotation,
 				arrowHeight: 0,
+				tailX: ax,
+				tailY: ay,
+				tailRotation,
+				tailHeight: 0,
 				color,
 			}
 		},
@@ -218,7 +240,7 @@ const Room = observer(({controller} : IRoomProps) => {
 			return lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
 		},
 		leave: ({offensePlayerId, defensePlayerId, type}) => {
-			const {bx, by, arrowRotation, color} = lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
+			const {bx, by, arrowRotation, tailRotation, color} = lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
 			return {
 				ax: bx,
 				ay: by,
@@ -232,6 +254,10 @@ const Room = observer(({controller} : IRoomProps) => {
 				arrowY: by,
 				arrowRotation,
 				arrowHeight: 0,
+				tailX: bx,
+				tailY: by,
+				tailRotation,
+				tailHeight: 0,
 				color,
 			}
 		},
