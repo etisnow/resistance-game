@@ -6,17 +6,23 @@ import {map} from 'lodash';
 import LauncherController from 'client/controllers/launcherController';
 import {Loader} from 'client/components/util/Loader';
 import {EAsyncState} from 'shared/enum/async';
+import type {ILobbyGameItem} from 'client/controllers/socketTypes';
 
 interface ILauncherProps {
 	controller: LauncherController
 }
 
-interface IGameListItem {
-	gameId: string;
-	hostName: string;
-}
+// «1 игрок / 2 игрока / 5 игроков» — без склонения счётчик читается как опечатка.
+const playersLabel = (count: number): string => {
+	const tail = count % 10;
+	const hundredTail = count % 100;
+	if (hundredTail >= 11 && hundredTail <= 14) return `${count} игроков`;
+	if (tail === 1) return `${count} игрок`;
+	if (tail >= 2 && tail <= 4) return `${count} игрока`;
+	return `${count} игроков`;
+};
 
-const GamesList = observerLite(({games, controller}: {games: IGameListItem[], controller: LauncherController}) => {
+const GamesList = observerLite(({games, controller}: {games: ILobbyGameItem[], controller: LauncherController}) => {
 	if (!games || games.length === 0) return null;
 
 	return (
@@ -27,10 +33,13 @@ const GamesList = observerLite(({games, controller}: {games: IGameListItem[], co
 			<br/>
 			<label >Присоединись к игре</label>
 			<div className={'gameLobby'}>
-				{map(games, ({gameId, hostName}) => {
+				{map(games, ({gameId, hostName, playersCount, isStarted}) => {
 					return <div key={gameId}>
-						<button className={"launcher-button"} key={gameId} type={"submit"} onClick={() => controller.connectGame(gameId)}>
-							{`Игра созданная ${hostName}`}
+						<button className={"launcher-button game-item"} key={gameId} type={"submit"} onClick={() => controller.connectGame(gameId)}>
+							<span className={'game-item-host'}>{`Игра созданная ${hostName}`}</span>
+							<span className={'game-item-players'}>
+								{playersLabel(playersCount)}{isStarted ? ' · идёт игра' : ''}
+							</span>
 						</button>
 					</div>
 				})}

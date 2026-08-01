@@ -7,6 +7,7 @@ import localforage from 'localforage';
 import * as PIXI from 'pixi.js';
 import {resources} from 'client/resources/resources';
 import { reduce } from 'lodash';
+import type {ILobbyGameItem} from 'client/controllers/socketTypes';
 
 
 const asyncLoader = (): Promise<void> => {
@@ -39,7 +40,7 @@ export default class LauncherController {
 	//@observable nickname: string = Math.ceil(Math.random() * 100) + '_neerone';
 	@observable nickname: string = '';
 	@observable gameId: string = '5';
-	@observable games: {gameId: string, hostName: string}[] = [];
+	@observable games: ILobbyGameItem[] = [];
 	constructor(root: RootController, parent: RootController) {
 		this.root = root;
 		this.parent = parent;

@@ -23,7 +23,9 @@
         display: flex;
         align-items: center;
         flex: 0 0 auto;
-        padding: 6px 10px;
+        // Справа сверху висит кнопка меню стола (.tableMenuButton) — на узких
+        // экранах лог занимает всю ширину, поэтому оставляем ей место.
+        padding: 6px 60px 6px 10px;
         cursor: pointer;
         user-select: none;
         overflow: hidden;

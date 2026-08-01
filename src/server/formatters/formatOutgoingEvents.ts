@@ -11,6 +11,7 @@ import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {getNextChainReactionPlayer} from 'server/helpers/cardActions/panic/chainReaction';
 import {getCardActions} from 'server/formatters/formatCardActions';
 import {isPlayerCanCancel} from 'server/helpers/validators';
+import {EGameState} from 'shared/enum/common';
 
 function formatEvent(type: string, payload?: unknown) {
 	return {
@@ -159,7 +160,10 @@ export const formatLobbyState = (gameServer: GameServer) => {
 			const hostPlayer = getGameHost(game);
 			return {
 				gameId: game.id,
-				hostName: hostPlayer ? hostPlayer.nickname : 'ERROR'
+				hostName: hostPlayer ? hostPlayer.nickname : 'ERROR',
+				// Двери — служебные «игроки» стола, в счётчик комнаты они не идут.
+				playersCount: filter(game.players, (player: Player) => player.state !== EPlayerState.door).length,
+				isStarted: game.state === EGameState.sarted,
 			}
 		})
 	})

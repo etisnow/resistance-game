@@ -107,13 +107,26 @@ class GameServer {
     if (game) {
       game.playerLeave({player});
     }
+    this.releasePlayerSocket(player);
   }
 
+  // Игрок вышел (или был исключён) — сокет снова «ничей». Без этого он навсегда
+  // остаётся привязанным к игроку уже мёртвой игры, и клиент, вернувшийся в
+  // лаунчер, показывает список комнат, замерший на момент входа в игру.
+  releasePlayerSocket = (player: Player) => {
+    const socket = player.socket;
+    if (!socket) return;
+    if (this.sockets.get(socket) !== player) return;
+    this.sockets.set(socket, null);
+    this.notifySocket(socket, formatLobbyState(gameServer));
+  };
+
+  // Шлём всем сокетам, а не только «свободным»: клиент может вернуться в лаунчер
+  // в любой момент (выход, кик, конец игры), и список комнат к этому моменту
+  // должен быть актуальным, а не тем, что был при входе в игру.
   updateLobby = () => {
-    this.sockets.forEach((player, socket) => {
-      if (!player) {
-        this.notifySocket(socket, formatLobbyState(gameServer));
-      }
+    this.sockets.forEach((_player, socket) => {
+      this.notifySocket(socket, formatLobbyState(gameServer));
     })
   };
 
@@ -160,7 +173,13 @@ class GameServer {
   connectGame({nickname, socket, gameId}: { socket: IGameSocket; nickname: string, gameId: string }) : Player | null {
     const parsedGameId = gameId.trim();
     const game = this.games[parsedGameId] || this.games['game_' + parsedGameId];
-    if (!game) return null;
+    if (!game) {
+      // Молча выйти нельзя: клиент уже показал лоадер и ждёт ответа, иначе он
+      // висит в нём вечно. Ровно этот случай — клик по комнате, которой уже нет.
+      this.notifySocket(socket, formatCommonError('Этой игры больше нет — комната закрылась.'));
+      this.notifySocket(socket, formatLobbyState(gameServer));
+      return null;
+    }
     const connectedPlayer = find(game.players, {nickname});
     if (connectedPlayer) {
       return this.tryReconnectPlayer(game, socket, nickname, connectedPlayer);

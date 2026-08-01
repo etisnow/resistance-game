@@ -13,6 +13,7 @@ import { Stage  } from "react-pixi-fiber";
 import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
 import ActionTimer from 'client/components/table/ActionTimer/ActionTimer';
 import ActionCanceler from 'client/components/table/ActionCanceler/ActionCanceler';
+import TableMenu from 'client/components/table/TableMenu/TableMenu';
 
 
 interface ITableProps {
@@ -27,6 +28,7 @@ const Table = observer(({controller} : ITableProps) => {
 		return (
 			<div className={"gameTable"}>
 				<GameLog controller={controller}/>
+				<TableMenu controller={controller}/>
 				<ActionInteracter controller={controller}/>
 				<ActionTimer controller={controller}/>
 				<Stage

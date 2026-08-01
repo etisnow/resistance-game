@@ -47,6 +47,10 @@ export default class GameController {
 	@observable cardInNotificationPreview: string | null = null;
 	@observable hostPlayerId: string = '';
 	@observable isPlayerCanCancel: boolean = false;
+	@observable isMenuOpen: boolean = false;
+	// Живёт дольше самого уведомления о конце игры: игрок может его скрыть и
+	// остаться дочитывать лог, но выход ему всё равно нужен — см. TableMenu.
+	@observable isGameOver: boolean = false;
 
 	constructor(root: RootController) {
 		this.root = root;
@@ -103,7 +107,16 @@ export default class GameController {
 	// Under react-pixi-fiber, the Notifier observer only reliably re-renders on a
 	// prop reassignment, not on in-place array mutation — see notifier.tsx.
 	addNotification = (notification: INotificationAction) => {
+		if (notification.type === ENotificationAction.gameEnd) this.isGameOver = true;
 		this.notifications = [...this.notifications, notification];
+	};
+
+	toggleMenu = () => {
+		this.isMenuOpen = !this.isMenuOpen;
+	};
+
+	closeMenu = () => {
+		this.isMenuOpen = false;
 	};
 
 	hidENotificationAction = () => {
@@ -128,14 +141,20 @@ export default class GameController {
 		this.hidENotificationAction();
 		switch (action) {
 			case 'restart':
+				this.isGameOver = false;
+				this.isMenuOpen = false;
 				this.root.state = EAppState.game;
 				this.state = EGameState.lobby;
 				return;
 			case 'exit':
-				this.root.state = EAppState.launcher;
-				this.root.launcherController.state = EAsyncState.idle;
+				// Через backToLauncher, а не просто сменой экрана: сервер должен узнать,
+				// что игрок ушёл, иначе его сокет остаётся привязанным к мёртвой игре и
+				// список комнат в лаунчере больше никогда не обновится.
+				this.backToLauncher();
 				return;
 			case 'hide':
+				// Уведомление скрыто, но игра всё равно закончена — выйти теперь можно
+				// только через меню стола (isGameOver), поэтому флаг и не сбрасывается.
 				return;
 		}
 		this.playersToSelect = [];
@@ -197,6 +216,14 @@ export default class GameController {
 
 	backToLauncher = () => {
 		this.socket.sendToServer(EClientEventType.leaveGame, {})
+		// Чистим экранное состояние стола: иначе следующая игра открывается с чужими
+		// уведомлениями и старым индикатором действия.
+		this.isMenuOpen = false;
+		this.isGameOver = false;
+		this.notifications = [];
+		this.currentAction = null;
+		this.playersToSelect = [];
+		this.state = EGameState.lobby;
 		this.root.launcherController.state = EAsyncState.idle;
 		this.root.state = EAppState.launcher;
 	}

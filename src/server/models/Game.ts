@@ -115,6 +115,8 @@ export class Game {
     this.players[player.id] = player;
     this.playersList.push(player.id);
     this.updateGame();
+    // Состав комнаты поменялся — в лаунчере обновится счётчик игроков.
+    gameServer.updateLobby();
   }
 
   kickPlayer = ({ player, notify =  `Тебя исключили из игры`}: {player: Player, notify:string | null}) => {
@@ -123,7 +125,9 @@ export class Game {
     if (notify) {
       player.notify(formatCommonError(notify));
     }
+    gameServer.releasePlayerSocket(player);
     this.updateGame();
+    gameServer.updateLobby();
   }
 
   disconnectPlayer({ player }: {player: Player}) {
@@ -198,6 +202,8 @@ export class Game {
     checkAllDeckCards(this, !gameServer.isMock);
     this.notifyAllPlayers(formatStartGameEvent({players}))
     this.updateGame();
+    // Комната перешла в «идёт игра» — список в лаунчере должен это показать.
+    gameServer.updateLobby();
   };
 
   shuffleDiscarded = () => {
@@ -486,6 +492,13 @@ export class Game {
   }
 
   playerLeave({player}: {player:Player}) {
+    // Игра уже закончена: остальные могут дочитывать лог, и выгонять их за компанию
+    // с уходящим хостом не надо — просто отпускаем этого игрока.
+    if (!this.gameInProcess) {
+      delete this.players[player.id];
+      this.playersList = this.playersList.filter(p => p !== player.id);
+      return;
+    }
     this.kickPlayer({player, notify: null})
     if (player.id === this.hostPlayerId) {
       each(this.players, (pl) => {

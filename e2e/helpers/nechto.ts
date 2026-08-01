@@ -580,7 +580,7 @@ export class GameSession {
 	}
 }
 
-async function newPlayer(browser: Browser, nick: string): Promise<Page> {
+export async function newPlayer(browser: Browser, nick: string): Promise<Page> {
 	const context = await browser.newContext();
 	const page = await context.newPage();
 	await page.goto('/');

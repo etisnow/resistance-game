@@ -51,8 +51,15 @@ export interface ICommonErrorPayload {
 	error: string;
 }
 
+export interface ILobbyGameItem {
+	gameId: string;
+	hostName: string;
+	playersCount: number;
+	isStarted: boolean;
+}
+
 export interface ILobbyUpdatePayload {
-	games: { gameId: string; hostName: string }[];
+	games: ILobbyGameItem[];
 }
 
 export interface ITimerPayload {
