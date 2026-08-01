@@ -46,9 +46,14 @@ export default class LauncherController {
 		this.socket = root.socketController;
 	}
 
-	changeNickname = async (newNickname: string) => {
-		await localforage.setItem('nickname', newNickname)
+	// NOTE: ник обязан проставляться СИНХРОННО. Инпут контролируемый, а
+	// localforage пишет в IndexedDB, поэтому await до присваивания откладывал
+	// обновление observable на следующий микротаск: React успевал вернуть в поле
+	// старое значение и только потом получить новое. На мобильных клавиатурах
+	// (композиция/автозамена) такой откат ломает ввод — буквы дублируются.
+	changeNickname = (newNickname: string) => {
 		this.nickname = newNickname;
+		void localforage.setItem('nickname', newNickname);
 	}
 
 	init = async () => {
