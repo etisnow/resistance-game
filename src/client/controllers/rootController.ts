@@ -26,14 +26,23 @@ export default class RootController {
 	}
 
 	// Ник в заголовке вкладки: с несколькими открытыми окнами (или ботами в дев-режиме)
-	// иначе не понять, кто где. Подписка одна на приложение — start() дёргается на
-	// каждый реконнект, поэтому вешаем её в конструкторе, а контроллеры внутри
-	// autorun читаются как observable и переподхватываются сами.
+	// иначе не понять, кто где. А на своём ходе туда же уезжает таймер — вкладка может
+	// быть свёрнута, и это единственный способ увидеть, что время идёт.
+	// Подписка одна на приложение — start() дёргается на каждый реконнект, поэтому
+	// вешаем её в конструкторе, а контроллеры внутри autorun читаются как observable
+	// и переподхватываются сами.
 	private syncDocumentTitle() {
 		if (typeof document === 'undefined') return;
 		autorun(() => {
-			const nickname = this.gameController?.currentPlayer?.nickname || this.launcherController?.nickname || '';
-			document.title = nickname.trim() ? `${nickname.trim()} - Нечто` : 'Игра нечто';
+			const nickname = (this.gameController?.currentPlayer?.nickname || this.launcherController?.nickname || '').trim();
+			const timer = this.timerController;
+			// Таймер тикает и на чужих ходах — берём его, только если отсчёт наш.
+			const isMyTimer = !!timer?.isActive && !!timer.playerId && timer.playerId === this.gameController?.currentPlayerId;
+			if (nickname && isMyTimer) {
+				document.title = `${timer.seconds} сек твой ход ${nickname}`;
+				return;
+			}
+			document.title = nickname ? `${nickname} - Нечто` : 'Игра нечто';
 		});
 	}
 

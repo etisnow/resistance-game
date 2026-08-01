@@ -6,7 +6,7 @@ import {playerRoomDiag} from 'client/helpers/roomHelpers';
 import {ECardType} from 'shared/enum/cards';
 import {Container, Text} from 'react-pixi-fiber';
 import Card from 'client/components/table/Card/Card';
-import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
+import {tableCenterX, tableCenterY} from 'client/helpers/window';
 import {get} from 'lodash';
 import {ENotificationAction} from 'shared/enum/notifications';
 
@@ -22,7 +22,7 @@ const Deck = observer(({controller}: IDeckProps) => {
 	const inCardPick = get(controller, ['currentAction', 'type']) === ENotificationAction.cardPick;
 	const fontSize = width/6
 	return (
-		<Container x={getWindowWidth()/2} y={getWindowHeight()/2}>
+		<Container x={tableCenterX()} y={tableCenterY()}>
 			<Card
 				id={topCardType === ECardType.panic ? 'panicBack' : 'eventBack'}
 				canBeUsed={inCardPick}

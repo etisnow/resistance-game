@@ -9,12 +9,11 @@ import Hand from 'client/components/table/Hand/Hand';
 import Notifier from 'client/components/table/notifier/notifier';
 import {Helmet} from "react-helmet";
 import ActionInteracter from 'client/components/table/ActionInteracter/ActionInteracter';
-import { Stage  } from "react-pixi-fiber";
-import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
 import ActionTimer from 'client/components/table/ActionTimer/ActionTimer';
 import ActionCanceler from 'client/components/table/ActionCanceler/ActionCanceler';
 import TableMenu from 'client/components/table/TableMenu/TableMenu';
 import {StageBoundary} from 'client/components/table/StageBoundary';
+import {TableStage} from 'client/components/table/TableStage';
 
 
 interface ITableProps {
@@ -33,22 +32,13 @@ const Table = observer(({controller} : ITableProps) => {
 				<ActionInteracter controller={controller}/>
 				<ActionTimer controller={controller}/>
 				<StageBoundary>
-					<Stage
-						className={"pixi-canvas"}
-					    options={{
-					    	width:getWindowWidth(),
-						    height:getWindowHeight(),
-						    resolution:window.devicePixelRatio,
-						    transparent:true,
-						    antialias:true
-					    }}
-					>
+					<TableStage>
 						<Deck controller={controller} />
 						<Room controller={controller} />
 						<Hand controller={controller} />
 						<ActionCanceler controller={controller} />
 						<Notifier controller={controller} />
-					</Stage>
+					</TableStage>
 				</StageBoundary>
 
 				{/*<div className={"debug-div"}><div></div></div>*/}

@@ -14,8 +14,8 @@ import {
 	getWindowHeight,
 	getWindowWidth,
 	playerCardWidthPix,
-	playerHandHeight,
 	selectedNotificationCardScale,
+	tableCenterY,
 } from 'client/helpers/window';
 import {getPixiTexture} from 'client/components/table/pixiInjected';
 import {resources} from 'client/resources/resources';
@@ -54,7 +54,7 @@ const Notification = observer(({notification, controller}: {notification: INotif
 	// Центр ряда карт и его высота С УЧЁТОМ увеличения выбранной карты. Подпись и
 	// кнопку вешаем ПОД ряд: сверху висит бейдж действия (DOM) с тем же текстом, и
 	// раньше надписи налезали друг на друга.
-	const cardsRowCenterY = getWindowHeight() / 2 - playerHandHeight() / 2;
+	const cardsRowCenterY = tableCenterY();
 	const rowHeight = (cardsCount: number) =>
 		autoWidthCard(cardsCount) * cardAspectRatio * selectedNotificationCardScale;
 	const textY = (rowCardHeight: number) => cardsRowCenterY + rowCardHeight / 2 + notificationFontSize * 1.2;
@@ -89,7 +89,7 @@ const Notification = observer(({notification, controller}: {notification: INotif
 						cardActions={{}}
 						onSelectCard={controller.selectNotificationCardPreview}
 						onCardAction={() => {}}
-						y={getWindowHeight()/2 - playerHandHeight() /2}
+						y={tableCenterY()}
 					/>
 				</React.Fragment>
 			);
@@ -127,7 +127,7 @@ const Notification = observer(({notification, controller}: {notification: INotif
 						cardActions={menu}
 						onSelectCard={controller.selectNotificationCardPreview}
 						onCardAction={handleCardSelect}
-						y={getWindowHeight()/2 - playerHandHeight() /2}
+						y={tableCenterY()}
 					/>
 				</React.Fragment>
 			);
@@ -136,7 +136,7 @@ const Notification = observer(({notification, controller}: {notification: INotif
 			notificationContent = (
 				<Text
 					x={getWindowWidth() / 2}
-					y={getWindowHeight()/2}
+					y={tableCenterY()}
 					text={notification.text}
 					anchor={0.5}
 					style={getFontStyle(18, getWindowWidth() * 0.8)}

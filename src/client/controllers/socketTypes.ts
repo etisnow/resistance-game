@@ -65,4 +65,5 @@ export interface ILobbyUpdatePayload {
 export interface ITimerPayload {
 	text: string;
 	seconds: number;
+	playerId: string;
 }

@@ -144,6 +144,27 @@ test.describe('Игра с ботами (?withBots=true)', () => {
 			await expect
 				.poll(async () => (await snap(page)).gameLog.length, {timeout: 15_000})
 				.toBeGreaterThan(beforeLen + 2);
+
+			// Ход ушёл ботам — их таймер в заголовок вкладки не лезет.
+			await expect(page).toHaveTitle('Me - Нечто', {timeout: 15_000});
+		} finally {
+			await page.context().close();
+		}
+	});
+
+	test('на своём ходе в заголовке вкладки тикает таймер', async ({browser}: {browser: Browser}) => {
+		const page = await createBotGame(browser, '?withBots=true&seed=777');
+		try {
+			// Первый ход человека: заголовок = таймер этого хода.
+			await expect(page).toHaveTitle(/^\d+ сек твой ход Me$/, {timeout: 10_000});
+			// И он именно тикает — совпадает с индикатором на столе.
+			await expect
+				.poll(async () => {
+					const title = (await page.title()).match(/^(\d+) сек/)?.[1];
+					const onTable = (await page.locator('.action-timer-wrapper .inner-text').textContent())?.match(/(\d+) сек/)?.[1];
+					return title && title === onTable && Number(title) > 0;
+				}, {timeout: 10_000})
+				.toBe(true);
 		} finally {
 			await page.context().close();
 		}

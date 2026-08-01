@@ -139,9 +139,13 @@ const generateCardMenu = (card: ICardAny, cardActions: IHandActionsMap, onCardAc
 	)
 };
 
-const circleRadius = clamp(getWindowWidth(), 200, 500)
-const circleX = 0
-const circleY = circleRadius - (getWindowHeight() * 0.06)
+// Веер руки лежит на дуге большого круга: чем больше радиус, тем более плоским
+// получается веер. Это функции, а не константы модуля: посчитанные один раз при
+// импорте, они держали веер в координатах самого первого кадра и после ресайза
+// карты уезжали мимо экрана.
+const fanRadius = () => clamp(getWindowWidth(), 200, 500)
+const fanCenterX = 0
+const fanCenterY = () => fanRadius() - (getWindowHeight() * 0.06)
 
 const calculateSize = () => {
 	const width = Math.round(clamp(getWindowWidth() * 0.85, 0, 300));
@@ -168,9 +172,11 @@ const calculateCardStypeProps = (cardNumber: number, cardsCount: number): ICardS
 	const maxCardDeg = degStep * cardsCount;
 	const cardDeg = getCardDeg(cardNumber, cardsCount, maxCardDeg);
 	const cardRotationDeg = getCardDeg(cardNumber, cardsCount, maxCardDeg * 0.5);
-	const {x,y} = getCirclePoint(circleRadius, cardDeg, circleX,circleY);
-	const {x: rotationXPoint,y: rotationYPoint} = getCirclePoint(circleRadius, cardRotationDeg, circleX,circleY);
-	var angleBetweenPointsDeg = Math.atan2(rotationYPoint - circleY, rotationXPoint - circleX) * 180 / Math.PI;
+	const radius = fanRadius();
+	const centerY = fanCenterY();
+	const {x,y} = getCirclePoint(radius, cardDeg, fanCenterX, centerY);
+	const {x: rotationXPoint,y: rotationYPoint} = getCirclePoint(radius, cardRotationDeg, fanCenterX, centerY);
+	var angleBetweenPointsDeg = Math.atan2(rotationYPoint - centerY, rotationXPoint - fanCenterX) * 180 / Math.PI;
 
 	const width = playerCardWidthPix() * 1.1;
 

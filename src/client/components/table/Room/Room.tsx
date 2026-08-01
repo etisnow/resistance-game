@@ -3,7 +3,7 @@ import {clamp, clone, map} from 'lodash';
 import './styles.scss';
 import {observer} from "mobx-react-lite";
 import {config, useTransition} from 'react-spring/universal';
-import {circRadius, degToRag, playerRoomDiag} from 'client/helpers/roomHelpers';
+import {degToRag, playerRoomDiag, roomRadii} from 'client/helpers/roomHelpers';
 import GameController from 'client/controllers/gameController';
 import PlayerBadge from 'client/components/table/PlayerBadge/PlayerBadge';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
@@ -11,7 +11,7 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {AnimatedPixi} from 'client/components/table/pixiInjected';
 import {Container} from 'react-pixi-fiber';
-import {getWindowHeight, getWindowWidth} from 'client/helpers/window';
+import {tableCenterX, tableCenterY} from 'client/helpers/window';
 import type {IPlayersMap} from 'client/controllers/socketTypes';
 import type {IFormatTradeContext} from 'shared/interfaces/common';
 import type Player from 'client/models/Player';
@@ -63,11 +63,12 @@ const getPositionFromPlayerList = ({players, playerId, playerList}: {players: IP
 	const player = players[playerId];
 	if (!player) return {x: 0, y:0};
 	const playersCount = playerList.length;
-	const currentDeg = getPlayerDeg(playerId, playerList);
-	const centerX = 0;
-	const centerY = 0;
-	const radius = circRadius(playersCount);
-	return getCirclePoint(radius, currentDeg, centerX, centerY)
+	const currentRad = degToRag(getPlayerDeg(playerId, playerList));
+	// Стол — эллипс: угол задаёт место игрока за столом, а полуоси подогнаны
+	// под форму свободной области (см. roomRadii). Координаты относительно
+	// центра стола, его подставляет контейнер.
+	const {rx, ry} = roomRadii(playersCount);
+	return {x: rx * Math.cos(currentRad), y: ry * Math.sin(currentRad)};
 }
 
 
@@ -274,7 +275,7 @@ const Room = observer(({controller} : IRoomProps) => {
 	}
 
 	return (
-		<Container x={getWindowWidth()/2} y={getWindowHeight()/2}>
+		<Container x={tableCenterX()} y={tableCenterY()}>
 			{map(transitions, ({item: playerId, key, props:{x, y} }) => {
 				const player = players[playerId];
 				if (!player || !player.id) return null;

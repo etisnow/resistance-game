@@ -17,8 +17,7 @@ function getColor(value: number){
 
 const ActionTimer = observer(({controller}: IActionInteracterProps) => {
 	if  (!controller.root.timerController.isActive) return null;
-	const {currentSeconds, initSeconds, text} = controller.root.timerController;
-	const textSeconds = currentSeconds < 0 ? Math.abs(currentSeconds) + initSeconds : currentSeconds;
+	const {currentSeconds, initSeconds, text, seconds: textSeconds} = controller.root.timerController;
 	const currentPercentage = currentSeconds / initSeconds
 	return <div className={"action-timer-wrapper"} style={{zIndex: getZIndex(controller)}}>
 		<div className={'timer-indicator'} style={{width: currentPercentage * 100 +'%', background: getColor(currentPercentage)}}>

@@ -123,7 +123,9 @@ export class Player {
 		}
 		if (!timerNotification) return;
 		this.notify(formatSoundNotification());
-		this.game.notifyAllPlayers(formatTimerNotification(timerNotification));
+		// playerId — чей это таймер: рассылка идёт всем, а клиент по нему понимает,
+		// свой ли ход отсчитывается (в заголовке вкладки показываем только свой).
+		this.game.notifyAllPlayers(formatTimerNotification({...timerNotification, playerId: this.id}));
 	}
 
 	interruptTrade = () => {

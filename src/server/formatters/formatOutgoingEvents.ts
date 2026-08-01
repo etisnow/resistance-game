@@ -185,6 +185,6 @@ export const formatSoundNotification = () => {
 	})
 };
 
-export const formatTimerNotification = (timerPayload: { text: string; seconds: number }) => {
+export const formatTimerNotification = (timerPayload: { text: string; seconds: number; playerId: string }) => {
 	return formatEvent(EServerEventType.timerNotification, timerPayload)
 };
