@@ -1,4 +1,5 @@
 enum EAppState {
+	loading = "loading",
 	launcher = "launcher",
 	game = "game",
 }

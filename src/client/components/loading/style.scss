@@ -1,0 +1,28 @@
+.loading-screen {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	max-width: 220px;
+	width: 100%;
+
+	.loading-bar {
+		width: 100%;
+		height: 10px;
+		border: 1px solid #007b0c;
+		border-radius: 5px;
+		background: rgba(0, 0, 0, 0.38);
+		overflow: hidden;
+	}
+
+	.loading-bar-fill {
+		height: 100%;
+		background: linear-gradient(180deg, #6c920e 0%, #005213 100%);
+		transition: width 0.2s linear;
+	}
+
+	.loading-label {
+		margin-top: 8px;
+		color: rgba(255, 255, 255, 0.85);
+		font-size: 12px;
+	}
+}

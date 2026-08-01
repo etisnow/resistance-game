@@ -4,31 +4,8 @@ import RootController from 'client/controllers/rootController';
 import {EAsyncState} from 'shared/enum/async';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
 import localforage from 'localforage';
-import * as PIXI from 'pixi.js';
-import {resources} from 'client/resources/resources';
-import { reduce } from 'lodash';
 import type {ILobbyGameItem} from 'client/controllers/socketTypes';
 
-
-const asyncLoader = (): Promise<void> => {
-	return new Promise<void>((resolve) => {
-		let loader = reduce(resources, (l: PIXI.Loader, res) => {
-			if (typeof res === 'string' && res[0] === '/') {
-				l.add(res);
-			}
-			return l;
-		}, new PIXI.Loader());
-		loader = reduce(resources.playerBadges, (l: PIXI.Loader, res) => {
-			if (typeof res === 'string' && res[0] === '/') {
-				l.add(res);
-			}
-			return l;
-		}, loader);
-		loader.load(() => {
-			resolve();
-		});
-	})
-}
 
 export default class LauncherController {
 
@@ -57,15 +34,10 @@ export default class LauncherController {
 		void localforage.setItem('nickname', newNickname);
 	}
 
+	// Ассеты грузит RootController на экране загрузки — здесь только ник.
 	init = async () => {
 		this.nickname = await localforage.getItem<string>('nickname') || ''
-		if (this.root.isLoaded) {
-			this.state = EAsyncState.idle;
-			return;
-		}
 		this.state = EAsyncState.idle;
-		await asyncLoader();
-		this.root.isLoaded = true
 	}
 
 	changeGameId = (newGameId: string) => {

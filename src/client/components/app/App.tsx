@@ -3,6 +3,7 @@ import 'client/components/app/App.scss';
 import {observer} from 'mobx-react';
 import GameScreen from 'client/components/game/GameScreen';
 import Launcher from 'client/components/launcher/Launcher';
+import {LoadingScreen} from 'client/components/loading/LoadingScreen';
 import {EAppState} from 'shared/enum/common';
 import RootController from 'client/controllers/rootController';
 
@@ -22,6 +23,8 @@ class App extends React.Component<IAppProps> {
 
 	renderContent = () => {
 		switch (this.controller.state) {
+			case EAppState.loading:
+				return <LoadingScreen progress={this.controller.loadProgress} />
 			case EAppState.launcher:
 				return <Launcher controller={this.controller.launcherController} />
 			case EAppState.game:
