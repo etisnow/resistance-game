@@ -44,7 +44,7 @@ describe('game scenarios', () => {
 		});
 
 		expect(game.gameInProcess).toBe(false);
-		expect(game.gameLog[game.gameLog.length - 1]).toBe('Нечто проиграло');
+		expect(game.gameLog[game.gameLog.length - 1]?.text).toBe('Нечто проиграло');
 	});
 
 	it('quarantine stays active for the target\'s next 3 turns, then frees', () => {
@@ -67,6 +67,25 @@ describe('game scenarios', () => {
 		expect(target.quarantine).toBe(1);
 		game.changeTurn(target.id);
 		expect(target.quarantine).toBe(0);
+	});
+
+	it('quarantined player gets a quarantine-specific action label until the counter frees them', () => {
+		const [, game, targetMaybe] = createMockGameServer();
+		const target = requirePlayer(game, targetMaybe?.id);
+		target.quarantine = 2;
+
+		// Кладем сверху обычную карту события, чтобы ход не ушел в панику.
+		game.deck.splice(0, 1, getCard(EEventID.analysis));
+		game.changeTurn(target.id);
+		expect(target.quarantine).toBe(1);
+		expect(target.currentAction?.type).toBe(ENotificationAction.turnCard);
+		expect(target.currentAction?.text).toContain('карантине');
+
+		// Ход, на котором карантин истекает: играть можно все, подпись обычная.
+		game.deck.splice(0, 1, getCard(EEventID.analysis));
+		game.changeTurn(target.id);
+		expect(target.quarantine).toBe(0);
+		expect(target.currentAction?.text).toBe('Сбрось или сыграй карту');
 	});
 
 	it('reconnect re-sends the pending interactive prompt (select-card)', () => {

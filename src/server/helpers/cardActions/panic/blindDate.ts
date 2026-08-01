@@ -6,9 +6,10 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 import {notifyPlayerDiscardCards} from 'server/helpers/cardActions/panic/forgetfulness';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {debugLog} from 'server/helpers/util';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const blindDateAct = ({game, player}: {game:Game, player:Player}) => {
-	game.addLog(`Паника: свидание вслепую. Игрок ${player.nickname} меняет одну карту с руки на карту из колоды`);
+	game.addLog(`Паника: свидание вслепую. Игрок ${player.nickname} меняет одну карту с руки на карту из колоды`, EGameLogType.panic);
 	player.changeTurnState(ETurnState.inCardActionProgress);
 	player.notify(formatPlayerNotification({
 		player,

@@ -8,6 +8,7 @@ import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
 import {ETurnState} from 'shared/enum/player';
 import {formatCards} from 'server/helpers/cardHelpers';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const fearAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	const context = game.turnContext;
@@ -19,7 +20,7 @@ export const fearAct = ({card, game, player} : {card:ICardEvent, game: Game, pla
 	//player.discardCard(card.uniqueId);
 	player.changeTurnState(ETurnState.idle);
 	player.discardCard(card.uniqueId);
-	game.addLog(`${player.nickname}: используя карту Страх отказывается от обмена с игроком ${context.offensePlayer.nickname}`);
+	game.addLog(`${player.nickname}: используя карту Страх отказывается от обмена с игроком ${context.offensePlayer.nickname}`, EGameLogType.defense);
 	game.grabEventCardFromDeck({player});
 	//const offensePlayer = context.offensePlayer;
 	//offensePlayer.getCard(context.offenseCard);

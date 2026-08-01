@@ -134,7 +134,7 @@ const botAct = (gameServer: GameServer, player: Player, game: Game): boolean => 
 
 const isGameOver = (game: Game): boolean => {
 	const lastLog = game.gameLog[game.gameLog.length - 1];
-	return lastLog === 'Нечто победило' || lastLog === 'Нечто проиграло';
+	return lastLog?.text === 'Нечто победило' || lastLog?.text === 'Нечто проиграло';
 };
 
 export interface IBrutforceResult {
@@ -168,7 +168,7 @@ export const runBrutforce = (iterations: number, {silent = true}: {silent?: bool
 				throw new Error(`Игра застряла без возможного хода (итерация ${iteration})`);
 			}
 		}
-		if (game.gameLog[game.gameLog.length - 1] === 'Нечто победило') thingWins++;
+		if (game.gameLog[game.gameLog.length - 1]?.text === 'Нечто победило') thingWins++;
 		clearDebugCache();
 		if (!silent && (iteration + 1) % 100 === 0) {
 			console.log(`Итераций: ${iteration + 1}, побед Нечто: ${thingWins}`);

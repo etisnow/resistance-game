@@ -8,6 +8,7 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
 import {formatCards} from 'server/helpers/cardHelpers';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const noThanksAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	const context = game.turnContext;
@@ -16,7 +17,7 @@ export const noThanksAct = ({card, game, player} : {card:ICardEvent, game: Game,
 	}
 	if (!card.uniqueId) return;
 	player.discardCard(card.uniqueId);
-	game.addLog(`${player.nickname}: используя карту "Нет уж спасибо" отказывается от обмена с игроком ${context.offensePlayer.nickname}`);
+	game.addLog(`${player.nickname}: используя карту "Нет уж спасибо" отказывается от обмена с игроком ${context.offensePlayer.nickname}`, EGameLogType.defense);
 	game.grabEventCardFromDeck({player});
     game.notifyAllPlayersExeptPlayer(formatPlayerNotification({
       player: player,

@@ -8,6 +8,7 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 import {filter} from 'lodash';
 import {debugLog} from 'server/helpers/util';
 import {formatCards} from 'server/helpers/cardHelpers';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Player, cardUniqueId: string}) => {
 
@@ -37,7 +38,7 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
     player.hand = filter(player.hand, (card) => card !== tradingCard);
     player.changeTurnState(ETurnState.idle);
 
-    game.addLog(`Игрок ${player.nickname} передает карту для обмена игроку ${playerToTrade.nickname}`);
+    game.addLog(`Игроки ${player.nickname} и ${playerToTrade.nickname} меняются картами`, EGameLogType.trade);
     game.turnContext = {
       type: ETurnContextType.trade,
       defensePlayer: playerToTrade,
@@ -61,7 +62,7 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
   let offensePlayer = context.offensePlayer;
   //let defensePlayer = context.defensePlayer;
   offensePlayer.changeTurnState(ETurnState.idle);
-  game.addLog(`Игроки ${player.nickname} и ${offensePlayer.nickname} обменялись картами`);
+  game.addLog(`Игроки ${player.nickname} и ${offensePlayer.nickname} обменялись картами`, EGameLogType.trade);
 
 
 

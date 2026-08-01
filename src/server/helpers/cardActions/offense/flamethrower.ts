@@ -10,6 +10,7 @@ import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
 import {find} from 'lodash';
 import {formatCards} from 'server/helpers/cardHelpers';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const flamethrowerAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	if (!card.uniqueId) return;
@@ -51,7 +52,7 @@ export const flamethrowerSelect = ({game, player, selectedPlayerId} : {game: Gam
 		action: 'burn',
 	}];
 	let text = `Игрок ${player.nickname} хочет использовать на тебе огнемет`;
-	game.addLog(`Игрок ${player.nickname} используем огнемет на ${defensePlayer.nickname}`)
+	game.addLog(`Игрок ${player.nickname} используем огнемет на ${defensePlayer.nickname}`, EGameLogType.card)
 	const hasNoFireCard = !!find(defensePlayer.hand, {id: EEventID.noFire});
 	if (hasNoFireCard) {
 		decisionMenu.push({
@@ -92,7 +93,7 @@ export const flamethrowerFinish = ({game, player, action} : {game: Game, player:
 				text: `Игрок ${defensePlayer.nickname} был заживо сожжен игроком ${offensePlayer.nickname} и выбывает из игры`,
 			  },
 			}));
-			game.addLog(`Игрок ${defensePlayer.nickname} был заживо сожжен игроком ${offensePlayer.nickname} и выбывает из игры`);
+			game.addLog(`Игрок ${defensePlayer.nickname} был заживо сожжен игроком ${offensePlayer.nickname} и выбывает из игры`, EGameLogType.death);
 
 			break;
 		}

@@ -8,6 +8,7 @@ import {ETurnState} from 'shared/enum/player';
 
 import {EEventID} from 'shared/enum/cards';
 import {find} from 'lodash';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const positionswapAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	if (!card.uniqueId) return;
@@ -63,7 +64,7 @@ export const positionswapSelect = ({game, player, selectedPlayerId} : {game: Gam
 			menu: decisionMenu
 		},
     }));
-	game.addLog(`Игрок ${player.nickname} предложил смену мест игроку ${defensePlayer.nickname}`);
+	game.addLog(`Игрок ${player.nickname} предложил смену мест игроку ${defensePlayer.nickname}`, EGameLogType.card);
 	player.changeTurnState(ETurnState.idle)
 };
 
@@ -78,13 +79,13 @@ export const positionswapFinish = ({game, player, action}: {game:Game, player:Pl
 
 	const leaveMeAloneCard = find(player.hand, {id:EEventID.leaveMeAlone});
 	if (action === 'swap' || !leaveMeAloneCard) {
-		game.addLog(`Игроки ${offensePlayer.nickname} и ${defensePlayer.nickname} меняются местами`);
+		game.addLog(`Игроки ${offensePlayer.nickname} и ${defensePlayer.nickname} меняются местами`, EGameLogType.card);
 		game.swapPlayers(offensePlayer.id, defensePlayer.id);
 		offensePlayer.changeTurnState(ETurnState.inOffenseTrade);
 		return;
 	}
 	//КЕЙС КОГДА ИГРОК ПРИМЕНИЛ КАРТУ LEAVEME ALONE
-	game.addLog(`Игрок ${defensePlayer.nickname} применил "Мне и здесь неплохо" и остался на месте`);
+	game.addLog(`Игрок ${defensePlayer.nickname} применил "Мне и здесь неплохо" и остался на месте`, EGameLogType.card);
 	//discardCard({game, player, cardUniqueId: leaveMeAloneCard.uniqueId});
 	if (leaveMeAloneCard.uniqueId) {
 		player.discardCard(leaveMeAloneCard.uniqueId)

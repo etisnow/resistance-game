@@ -117,7 +117,7 @@ interface GcController {
 	playersList: string[];
 	currentAction: GcNotification | null;
 	notifications: GcNotification[];
-	gameLog: string[];
+	gameLog: {text: string; type: string}[];
 	deck: {count: number; topCardType: string | null};
 	isPlayerCanCancel: boolean;
 	socket: {socket: {emit(event: string, payload?: unknown): void; once(event: string, cb: (d: unknown) => void): void}};
@@ -244,7 +244,8 @@ export class GameSession {
 				playersList: plain(gc.playersList),
 				currentAction: plain(gc.currentAction),
 				notifications: plain(gc.notifications),
-				gameLog: plain(gc.gameLog),
+				// Спекам нужен только текст строки — тип лога нужен UI, а не проверкам.
+				gameLog: plain(gc.gameLog).map((entry) => entry.text),
 				deck: plain(gc.deck),
 				isPlayerCanCancel: gc.isPlayerCanCancel,
 			};

@@ -7,6 +7,7 @@ import {each} from 'lodash';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
 import {formatCards} from 'server/helpers/cardHelpers';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 
 export const tenacityAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
@@ -37,7 +38,7 @@ export const tenacitySelect = ({game, player, cardUniqueId} : {game: Game, playe
 	if (!game.turnContext || game.turnContext.type !== ETurnContextType.tenacityCardSelect) {
 		throw new Error('Выбор упорства произошел без контекста tenacityCardSelect');
 	}
-	game.addLog(`Игрок ${player.nickname} играет карту "Упорство"`);
+	game.addLog(`Игрок ${player.nickname} играет карту "Упорство"`, EGameLogType.card);
 	each(game.turnContext.cards, (card) => {
 		if (card.uniqueId === cardUniqueId) {
 			player.getCard(card);

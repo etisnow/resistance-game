@@ -11,7 +11,7 @@ interface GcWindow {
 		hand: Record<string, {id: string; uniqueId: string}>;
 		players: Record<string, {id: string; nickname: string; turnState: string}>;
 		playersList: string[];
-		gameLog: string[];
+		gameLog: {text: string; type: string}[];
 		currentAction: {type: string; menu?: {action: string}[]; playersToSelect?: string[]; cards?: Record<string, {uniqueId: string}>} | null;
 		notifications: {type: string; text?: string}[];
 		handActions: Record<string, {menuType: string}[]>;
@@ -56,7 +56,7 @@ const snap = (page: Page): Promise<BotSnap> =>
 			hand: gc.hand,
 			players: gc.players,
 			playersList: gc.playersList,
-			gameLog: gc.gameLog,
+			gameLog: gc.gameLog.map((entry) => entry.text),
 			currentAction: gc.currentAction,
 			notifications: gc.notifications,
 		}));

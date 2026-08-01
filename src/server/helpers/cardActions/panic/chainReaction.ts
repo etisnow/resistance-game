@@ -5,6 +5,7 @@ import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {each, filter, find, remove} from 'lodash';
 
 import {EEventID} from 'shared/enum/cards';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const getNextChainReactionPlayer = ({currentPlayer}:  {game: Game, currentPlayer: Player}) => {
 	const nextPlayer = currentPlayer.getNextAlivePlayer();
@@ -21,7 +22,7 @@ const getPlayersCount = ({game}: {game:Game}) => {
 }
 
 export const chainReactionAct = ({game, player}: {game:Game, player:Player}) => {
-	game.addLog('Цепная реакция! Все игроки меняются картами по кругу, игнорируя карты "карантин" и "заколоченная дверь". Отказаться от обмена нельзя.');
+	game.addLog('Цепная реакция! Все игроки меняются картами по кругу, игнорируя карты "карантин" и "заколоченная дверь". Отказаться от обмена нельзя.', EGameLogType.panic);
 	game.turnContext = {
 		type: ETurnContextType.chainReaction,
 		playersPick: [],

@@ -7,6 +7,7 @@ import type { EGameState } from 'shared/enum/common';
 import type { ICardEvent } from 'shared/interfaces/cards';
 import type { IFormatTradeContext } from 'shared/interfaces/common';
 import type INotificationAction from 'shared/interfaces/notification';
+import type { IGameLogEntry } from 'shared/interfaces/gameLog';
 import type Player from 'client/models/Player';
 import type { EPlayerActionType } from 'shared/enum/playerActions';
 
@@ -29,7 +30,7 @@ export interface IGameUpdatePayload {
 	players: IPlayersMap;
 	playersList: string[];
 	deck: IDeckPayload;
-	gameLog: string[];
+	gameLog: IGameLogEntry[];
 	currentAction: INotificationAction | null;
 	state: EGameState;
 	currentPlayer: Player;

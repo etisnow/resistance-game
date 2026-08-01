@@ -19,6 +19,7 @@ import type {
 	IPlayersMap,
 } from 'client/controllers/socketTypes';
 import {ENotificationAction} from 'shared/enum/notifications';
+import type {IGameLogEntry} from 'shared/interfaces/gameLog';
 
 export default class GameController {
 	root: RootController;
@@ -29,7 +30,10 @@ export default class GameController {
 	@observable players: IPlayersMap = {};
 	@observable currentPlayerId : string | null = null;
 	@observable playersList: string[] = [];
-	@observable gameLog: string[] = [];
+	@observable gameLog: IGameLogEntry[] = [];
+	// Лог свёрнут по умолчанию: он перекрывает стол, а самое важное (текущее
+	// действие) дублируется крупным индикатором.
+	@observable isGameLogOpen: boolean = false;
 	@observable deck: IDeckPayload = {count: 0, topCardType: ECardType.event};
 	@observable notifications: INotificationAction[] = [];
 	@observable playersToSelect: string[] = [];
@@ -185,6 +189,10 @@ export default class GameController {
 		this.currentAction = currentAction;
 		this.state = state;
 		this.gameLog = gameLog;
+	};
+
+	toggleGameLog = () => {
+		this.isGameLogOpen = !this.isGameLogOpen;
 	};
 
 	backToLauncher = () => {

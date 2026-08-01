@@ -5,6 +5,7 @@ import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const seductionAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	player.changeTurnState(ETurnState.inCardActionProgress);
@@ -24,7 +25,7 @@ export const seductionAct = ({card, game, player} : {card:ICardEvent, game: Game
 		text: 'Выбри с кем хочешь поменяться картами'
       },
     }));
-    game.addLog(`Игрок ${player.nickname} играет Соблазн`);
+    game.addLog(`Игрок ${player.nickname} играет Соблазн`, EGameLogType.card);
 };
 
 export const seductionSelect = ({game, player, selectedPlayerId} : {game: Game, player: Player, selectedPlayerId:string}) => {
@@ -49,7 +50,7 @@ export const seductionSelect = ({game, player, selectedPlayerId} : {game: Game, 
 				offenseCard: null,
 				defenseCard: null,
 			};
-		    game.addLog(`Игрок ${player.nickname} предлагает обмен картами ${playerToTrade.nickname}`);
+		    game.addLog(`Игроки ${player.nickname} и ${playerToTrade.nickname} меняются картами`, EGameLogType.trade);
 			//playerToTrade.changeTurnState(ETurnState.inDefenseTrade);
 			player.changeTurnState(ETurnState.inOffenseTrade)
 	}

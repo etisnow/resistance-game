@@ -280,7 +280,7 @@ export const registerE2EHandlers = (gameServer: GameServer, socket: IGameSocket)
 				deck: game.deck.map((c) => c.id),
 				discarded: game.discardedDeck.map((c) => c.id),
 				isClockwise: game.isClockwise,
-				gameLog: game.gameLog,
+				gameLog: game.gameLog.map((entry) => entry.text),
 				players,
 			});
 		} catch (e) {

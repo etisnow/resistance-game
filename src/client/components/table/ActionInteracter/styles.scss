@@ -1,3 +1,14 @@
+@keyframes interaction-badge-pulse {
+	0%, 100% {
+		box-shadow: 1px 1px 5px #0000004f;
+		filter: brightness(1);
+	}
+	50% {
+		box-shadow: 0 0 16px 2px #d7ff5e99;
+		filter: brightness(1.25);
+	}
+}
+
 .interaction-badge-wrapper {
 	position: fixed;
 	width:100%;
@@ -14,6 +25,7 @@
 		display: flex;
 		justify-content: center;
 		padding: 2px 20px;
+		transition: font-size 0.2s ease, padding 0.2s ease, top 0.2s ease;
 		color: white;
 		max-width: 500px;
 		box-shadow: 1px 1px 5px #0000004f;
@@ -25,6 +37,16 @@
 		background: -ms-linear-gradient(top, rgba(164,179,87,1) 0%, rgba(117,137,12,1) 100%);
 		background: linear-gradient(to bottom, #92ad0b 0%, #708600 100%);
 		filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#a4b357', endColorstr='#75890c', GradientType=0 );
+
+		// Свёрнутый лог: бейдж — единственный индикатор действия, поэтому крупнее и пульсирует.
+		&.big {
+			top: 9%;
+			font-size: 20px;
+			font-weight: bold;
+			padding: 8px 20px;
+			text-align: center;
+			animation: interaction-badge-pulse 1.6s ease-in-out infinite;
+		}
 	}
 	.menu-wrapper {
 		position: fixed;

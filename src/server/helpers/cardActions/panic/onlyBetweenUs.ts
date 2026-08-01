@@ -6,13 +6,14 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {find} from 'lodash';
 import {formatCards} from 'server/helpers/cardHelpers';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const onlyBetweenUsAct = ({game, player}: {game:Game, player:Player}) => {
 	player.changeTurnState(ETurnState.inCardActionProgress);
-	game.addLog(`Паника: только между нами. Игрок ${player.nickname} показывает карты соседу на выбор`)
+	game.addLog(`Паника: только между нами. Игрок ${player.nickname} показывает карты соседу на выбор`, EGameLogType.panic)
 	const neighbours = player.getPlayabeNeighbours();
 	if (neighbours.length === 0 ) {
-		game.addLog('Игрок не показывает никому карты, т.к нет играбельных соседей')
+		game.addLog('Игрок не показывает никому карты, т.к нет играбельных соседей', EGameLogType.panic)
 		player.changeTurnState(ETurnState.inOffenseTrade);
 		return
 	}
@@ -34,7 +35,7 @@ export const onlyBetweenUsAct = ({game, player}: {game:Game, player:Player}) => 
 export const onlyBetweenUsSelect = ({game, selectedPlayerId, player}: {game:Game, player: Player, selectedPlayerId: string}) => {
 	const selectedPlayer = find(game.players, {id:selectedPlayerId});
 	if (!selectedPlayer) return;
-	game.addLog(`Игрок ${player.nickname} показывает свои карты игроку ${selectedPlayer.nickname}`);
+	game.addLog(`Игрок ${player.nickname} показывает свои карты игроку ${selectedPlayer.nickname}`, EGameLogType.panic);
     selectedPlayer.notify(formatPlayerNotification({
       player: player,
       notification: {

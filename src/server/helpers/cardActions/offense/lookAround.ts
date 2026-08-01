@@ -7,6 +7,7 @@ import {ETurnState} from 'shared/enum/player';
 import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
 import {formatCards} from 'server/helpers/cardHelpers';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const lookAroundAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	//player.discardCard(card.uniqueId);
@@ -22,6 +23,6 @@ export const lookAroundAct = ({card, game, player} : {card:ICardEvent, game: Gam
 		text: `${player.nickname} изменил направление хода`
       },
     }));
-    game.addLog(`${player.nickname} изменил направление хода`);
+    game.addLog(`${player.nickname} изменил направление хода`, EGameLogType.card);
     player.changeTurnState(ETurnState.inOffenseTrade)
 };

@@ -9,6 +9,7 @@ import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
 import {ETurnState} from 'shared/enum/player';
 import {formatCards} from 'server/helpers/cardHelpers';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 
 export const getMissNextPlayer = (game: Game, currentPlayer: Player) => {
@@ -34,19 +35,19 @@ export const missAct = ({card, game, player} : {card:ICardEvent, game: Game, pla
 		//offensePlayer.getCard(offenseCard)
 		//game.endTurn(offensePlayer.id);
 
-		game.addLog(`Игрок ${player.nickname} использовал карту "мимо", но т.к. целью стал игрок ${offensePlayer.nickname} ничего не происходит и ход передается дальше.`);
+		game.addLog(`Игрок ${player.nickname} играет карту "Мимо", но следующим оказался сам ${offensePlayer.nickname}: обмен отменяется и ход передается дальше`, EGameLogType.defense);
 		game.grabEventCardFromDeck({player});
 
 		return
 	}
-	game.addLog(`${player.nickname} использует карту "Мимо" и отказывается от обмена с игроком ${context.offensePlayer.nickname}. Вместо него меняется ${nextPlayer.nickname}`);
+	game.addLog(`Игрок ${player.nickname} играет карту "Мимо" и отказывается от обмена: вместо него с игроком ${context.offensePlayer.nickname} меняется ${nextPlayer.nickname}`, EGameLogType.defense);
 	game.grabEventCardFromDeck({player});
 	player.changeTurnState(ETurnState.idle);
 
 
 	nextPlayer.changeTurnState(ETurnState.inDefenseTrade);
 	if (!nextPlayer.isAlive()) {
-		game.addLog(`Мимо прерывается, т.к цель ${nextPlayer.nickname} не живой`);
+		game.addLog(`"Мимо" прерывается, т.к цель ${nextPlayer.nickname} не живой`, EGameLogType.defense);
 		offensePlayer.interruptTrade();
 		return
 	}

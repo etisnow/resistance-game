@@ -5,9 +5,10 @@ import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
 import {formatCards} from 'server/helpers/cardHelpers';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const oopsAct = ({game, player} : {game: Game, player: Player}) => {
-    game.addLog(`${player.nickname} как бы случайно показывает все карты.`)
+    game.addLog(`${player.nickname} как бы случайно показывает все карты.`, EGameLogType.panic)
     game.notifyAllPlayers(formatPlayerNotification({
       player: player,
       notification: {

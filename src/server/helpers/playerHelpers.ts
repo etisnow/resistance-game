@@ -2,11 +2,12 @@ import {Player} from 'server/models/Player';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {debugLog} from 'server/helpers/util';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 const processDeathByOverinfection = (player:Player) => {
 	const game = player.game;
 	const nextPlayer = player.getNextAlivePlayer();
-	game.addLog(`Какое несчастье. ${player.nickname} умер от перезаражения. Вместо него теперь играет ${nextPlayer.nickname}`)
+	game.addLog(`Какое несчастье. ${player.nickname} умер от перезаражения. Вместо него теперь играет ${nextPlayer.nickname}`, EGameLogType.death)
 	game.killPlayer(player);
 	debugLog(`Состояние игры ${game.turnContext && game.turnContext.type}. Стейт некста ${nextPlayer.turnState}`)
 	if (game.turnContext && game.turnContext.type === ETurnContextType.trade) {
@@ -36,17 +37,17 @@ const processOffenseTrade = (player: Player) => {
 
 
     if (playerToTrade.state === EPlayerState.door && !player.game.turnContext) {
-		player.game.addLog(`Игрок ${player.nickname} не меняется из-за заколоченной двери`);
+		player.game.addLog(`Игрок ${player.nickname} не меняется из-за заколоченной двери`, EGameLogType.trade);
 		player.game.endTurn(player.id);
 		return
     }
     if ((player.quarantine > 0 || playerToTrade.quarantine > 0) && !player.game.turnContext) {
-		player.game.addLog(`Игрок ${player.nickname} не меняется из-за карантина`);
+		player.game.addLog(`Игрок ${player.nickname} не меняется из-за карантина`, EGameLogType.quarantine);
 		player.game.endTurn(player.id);
 		return
     }
     if (playerToTrade === player) {
-		player.game.addLog(`Игрок не может поменяться сам с собой`);
+		player.game.addLog(`Игрок не может поменяться сам с собой`, EGameLogType.trade);
 		player.game.endTurn(player.id);
 		return
     }
@@ -72,11 +73,11 @@ const processDefenseTrade = (player:Player) => {
 	}
 
 	if (game.turnContext.offensePlayer === player) {
-		game.addLog(`Игрок ${player.nickname} не может меняться картой сам с собой. Торговля отменяется.`)
+		game.addLog(`Игрок ${player.nickname} не может меняться картой сам с собой. Торговля отменяется.`, EGameLogType.trade)
 		return player.interruptTrade();
 	}
 	if (player.quarantine > 0) {
-		game.addLog(`Игрок ${player.nickname} не может меняться картой, т.к он на карантине. Торговля отменяется.`)
+		game.addLog(`Игрок ${player.nickname} не может меняться картой, т.к он на карантине. Торговля отменяется.`, EGameLogType.quarantine)
 		return game.turnContext.offensePlayer.interruptTrade();
 	}
 

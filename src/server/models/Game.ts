@@ -28,6 +28,8 @@ import clc from 'cli-color';
 import {EGameState} from 'shared/enum/common';
 import {formatCards} from 'server/helpers/cardHelpers';
 import type {IServerEvent} from 'shared/interfaces/socket';
+import {EGameLogType} from 'shared/enum/gameLogType';
+import type {IGameLogEntry} from 'shared/interfaces/gameLog';
 
 
 export class Game {
@@ -40,7 +42,7 @@ export class Game {
   turnPlayerId: string | null = null;
   isClockwise : boolean = true;
   hostPlayerId: string = '';
-  gameLog: string[] = [];
+  gameLog: IGameLogEntry[] = [];
   turnContext: ITurnContext | null = null;
   gameInProcess:boolean = true;
   // Every game runs on its own seeded RNG so the whole game is reproducible from
@@ -125,7 +127,7 @@ export class Game {
   }
 
   disconnectPlayer({ player }: {player: Player}) {
-    this.addLog(`Игрок ${player.nickname} отключился от игры. Ждем его возвращения`)
+    this.addLog(`Игрок ${player.nickname} отключился от игры. Ждем его возвращения`, EGameLogType.system)
     player.isReady = false;
     const activePlayer = find(this.players, {isConnected: true, state: EPlayerState.dummy});
     if (activePlayer) {
@@ -142,10 +144,10 @@ export class Game {
     })
   };
 
-  addLog(log: string, force = false) {
+  addLog(log: string, type: EGameLogType = EGameLogType.info, force = false) {
     if (this.gameInProcess || force) {
       debugLog(clc.yellowBright(log))
-      this.gameLog.push(log)
+      this.gameLog.push({text: log, type})
     }
   }
 
@@ -172,7 +174,7 @@ export class Game {
     }
 
 
-    this.addLog(lastMessage ? lastMessage : 'Игра закончена.', true)
+    this.addLog(lastMessage ? lastMessage : 'Игра закончена.', EGameLogType.system, true)
 
     each(this.playersList, (pId) => {
       const pl = this.players[pId];
@@ -187,8 +189,8 @@ export class Game {
     debugLog('============================================================');
     // First line of the log is the seed — a bug report's log alone is enough to
     // reproduce the exact deal and draws.
-    this.addLog(`Сид игры: ${this.seed}`);
-    this.addLog('Игра началась');
+    this.addLog(`Сид игры: ${this.seed}`, EGameLogType.system);
+    this.addLog('Игра началась', EGameLogType.system);
     this.state = EGameState.sarted;
     gameStarter(this);
     const firstPlayerId = this.playersList[0];
@@ -279,7 +281,7 @@ export class Game {
 
   getFirstCard(): ICardEvent | ICardPanic {
     if (this.deck.length === 0) {
-      this.addLog('Колода закончилась, мешаем карты');
+      this.addLog('Колода закончилась, мешаем карты', EGameLogType.system);
       this.shuffleDiscarded();
       return this.getFirstCard();
     }
@@ -302,9 +304,13 @@ export class Game {
     return firstCard;
   }
 
+  // Добор карты по эффекту сыгранной карты ("возьмите одну карту события").
+  // Логируем явно: иначе в логе виден только отказ от обмена, а лишняя карта на
+  // руке выглядит как баг.
   grabEventCardFromDeck({player}: {player: Player}) {
     const eventCard = this.pickFirstEventCard();
     debugLog(`Игрок ${player.nickname} взял карту ${eventCard.id}`)
+    this.addLog(`Игрок ${player.nickname} берет карту из колоды`, EGameLogType.deck);
     player.getCard(eventCard);
   }
 
@@ -343,7 +349,7 @@ export class Game {
       const nextPlayer = player.getNextAlivePlayer();
       return this.changeTurn(nextPlayer.id)
     }
-    this.addLog(`Ходит игрок ${player.nickname}!`);
+    this.addLog(`Ходит игрок ${player.nickname}!`, EGameLogType.turn);
     player.changeTurnState(ETurnState.inCardPick);
     // In mock/test mode there is no interactive "draw a card" step: the player
     // immediately draws and enters the action phase (the pre-cardPick contract
@@ -360,7 +366,7 @@ export class Game {
     //this.resetGameState()
     //Удаляем карту из колоды сверху и даем её игроку
     debugLog('PLAYERS CURRENT ACTION', player.currentAction)
-    this.addLog(`Игрок ${player.nickname} взял карту и ходит...`);
+    this.addLog(`Игрок ${player.nickname} берет карту из колоды и ходит...`, EGameLogType.deck);
 	let grabbedCard = this.getFirstCard();
     //Если паника, то прекращаем граббинг и создаем панику
     if (grabbedCard.type === ECardType.panic) {
@@ -369,7 +375,9 @@ export class Game {
     player.currentAction = null;
     // Добавляем поднятую карту игроку на руку
     player.getCard(grabbedCard);
-    player.changeTurnState(ETurnState.inCardAction);
+    // Карантин тикает ДО перехода в inCardAction: подпись действия ("только
+    // топор или сброс") считается по тому же счетчику, что и доступные действия
+    // карт, иначе на последнем ходу карантина они разойдутся.
     if (player.quarantine > 0) {
       if (player.quarantineFresh) {
         // Quarantine was applied in this same turn-cycle: skip the first tick.
@@ -377,10 +385,11 @@ export class Game {
       } else {
         player.quarantine = player.quarantine - 1;
         if (player.quarantine === 0 ) {
-          this.addLog(`Игрок ${player.nickname} вышел из карантина`);
+          this.addLog(`Игрок ${player.nickname} вышел из карантина`, EGameLogType.quarantine);
         }
       }
     }
+    player.changeTurnState(ETurnState.inCardAction);
     checkAllDeckCards(this, !gameServer.isMock);
   }
 

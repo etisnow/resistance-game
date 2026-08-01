@@ -11,6 +11,7 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 import INotificationAction from 'shared/interfaces/notification';
 import {formatCards} from 'server/helpers/cardHelpers';
 import {debugLog} from 'server/helpers/util';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const notifyPlayerDiscardCards = ({game, player}: {game:Game, player:Player}) : INotificationAction => {
 	const clonedPlayer = clone(player);
@@ -30,7 +31,7 @@ export const notifyPlayerDiscardCards = ({game, player}: {game:Game, player:Play
 };
 
 export const forgetfullnessAct = ({game, player}: {game:Game, player:Player}) => {
-	game.addLog('Паника! Забывчивость: Игрок меняет три карты с руки на три из колоды');
+	game.addLog('Паника! Забывчивость: Игрок меняет три карты с руки на три из колоды', EGameLogType.panic);
 	player.changeTurnState(ETurnState.inCardActionProgress);
 
 

@@ -4,9 +4,10 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ETurnState} from 'shared/enum/player';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const goAwayAct = ({game, player} : {game: Game, player: Player}) => {
-	game.addLog(`Паника "убирайся прочь": игрок ${player.nickname} меняется местами с любым игроком не на карантине.`)
+	game.addLog(`Паника "убирайся прочь": игрок ${player.nickname} меняется местами с любым игроком не на карантине.`, EGameLogType.panic)
 	player.changeTurnState(ETurnState.inCardActionProgress);
 	const allPlayersExeptCurrent = player.getAllPlayablePlayersExceptCurrent();
 	if (allPlayersExeptCurrent.length === 0) {

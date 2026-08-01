@@ -82,7 +82,14 @@ export class Player {
 			case ETurnState.inOffenseTrade:
 				return this.processNotificationAction({ type: ENotificationAction.offenseTradeCard, text: 'Выбери карту для обмена' });
 			case ETurnState.inCardAction:
-				return this.processNotificationAction({ type: ENotificationAction.turnCard, text: 'Сбрось или сыграй карту' });
+				// На карантине из карт играется только топор (он же карантин и снимает),
+				// поэтому подпись действия должна объяснять, почему остальные карты не жмутся.
+				return this.processNotificationAction({
+					type: ENotificationAction.turnCard,
+					text: this.quarantine > 0
+						? 'Ты на карантине: можешь сыграть только топор или сбросить карту'
+						: 'Сбрось или сыграй карту',
+				});
 			case ETurnState.inCardPick:
 				return this.processNotificationAction({ type: ENotificationAction.cardPick, text: 'Возьми карту из колоды' });
 			case ETurnState.idle:

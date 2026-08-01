@@ -4,6 +4,7 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ETurnState} from 'shared/enum/player';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 
 export const friendshipAct = ({game, player} : {game: Game, player: Player}) => {
@@ -25,5 +26,5 @@ export const friendshipAct = ({game, player} : {game: Game, player: Player}) => 
 		text: 'Выбри с кем хочешь поменяться картами'
       },
     }));
-    game.addLog(`Игрок ${player.nickname} играет панику "Давай дружить"`);
+    game.addLog(`Игрок ${player.nickname} играет панику "Давай дружить"`, EGameLogType.panic);
 };

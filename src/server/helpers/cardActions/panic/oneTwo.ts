@@ -6,6 +6,7 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {filter, find} from 'lodash';
 import {debugLog} from 'server/helpers/util';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const getPlayerByStep = ({game, currentPlayer, isNext, step}: {game:Game, currentPlayer:Player, step: number, isNext: boolean}): Player => {
 	const nextPlayer = game.getPlayerByPosition({playerId: currentPlayer.id,isNext})
@@ -20,7 +21,7 @@ export const getPlayerByStep = ({game, currentPlayer, isNext, step}: {game:Game,
 
 export const oneTwoAct = ({game, player}: {game:Game, player:Player}) => {
 	player.changeTurnState(ETurnState.inCardActionProgress);
-	game.addLog(`Паника: раз-два: игрок ${player.nickname} меняется местами с третьим игроком по часовой или против часовой стрелке`);
+	game.addLog(`Паника: раз-два: игрок ${player.nickname} меняется местами с третьим игроком по часовой или против часовой стрелке`, EGameLogType.panic);
 	const left = getPlayerByStep({game, currentPlayer:player, isNext: true, step:2});
 	const right = getPlayerByStep({game, currentPlayer:player, isNext: false, step:2});
 
@@ -29,7 +30,7 @@ export const oneTwoAct = ({game, player}: {game:Game, player:Player}) => {
 	}).map(p=>p.id);
 
 	if (selectPlayersId.length === 0) {
-		game.addLog('Игрок не меняется ни с кем, т.к нет удовлетворяющих условий');
+		game.addLog('Игрок не меняется ни с кем, т.к нет удовлетворяющих условий', EGameLogType.panic);
 		player.changeTurnState(ETurnState.inOffenseTrade);
 		return;
 	}
@@ -53,7 +54,7 @@ export const oneTwoPlayerSelect = ({game, selectedPlayerId, player}: {game:Game,
 	debugLog('SELECTED PLAYER ID', selectedPlayerId)
 	const selectedPlayer = find(game.players, {id:selectedPlayerId});
 	if (!selectedPlayer) return;
-	game.addLog(`Игрок ${player.nickname} меняется местами с ${selectedPlayer.nickname}`);
+	game.addLog(`Игрок ${player.nickname} меняется местами с ${selectedPlayer.nickname}`, EGameLogType.panic);
 	game.swapPlayers(selectedPlayerId, player.id);
 	game.turnContext = null;
 	player.changeTurnState(ETurnState.inOffenseTrade);
