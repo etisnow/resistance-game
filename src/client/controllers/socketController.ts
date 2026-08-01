@@ -1,7 +1,7 @@
 import type { Socket } from 'socket.io-client';
 import type INotificationAction from 'shared/interfaces/notification';
 import RootController from 'client/controllers/rootController';
-import {EAppState, EGameState} from 'shared/enum/common';
+import {EAppState} from 'shared/enum/common';
 import {EServerEventType} from 'shared/enum/enumServerEvents';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
 import {ENotificationAction} from 'shared/enum/notifications';
@@ -45,9 +45,12 @@ function handleGlobalEvents(socket: Socket, root: RootController) {
 		root.launcherController.state = EAsyncState.idle;
 	});
 	socket.on(EServerEventType.updateGame, updateGame);
+	// NOTE: gameStarted намеренно НЕ переключает gameController.state. Сервер шлёт его
+	// перед updateGame (Game.start), и если пакеты приезжают разными тиками, то экран
+	// стола успевает отрисоваться на лобби-данных, где у игроков ещё нет цветов.
+	// Состояние игры приходит в updateGame — там же, где и цвета.
 	socket.on(EServerEventType.gameStarted, () => {
 		root.state = EAppState.game;
-		root.gameController.state = EGameState.sarted;
 	});
 
 	socket.on(EServerEventType.lobbyUpdate, ({games}: ILobbyUpdatePayload) => {

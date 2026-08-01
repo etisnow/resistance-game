@@ -33,7 +33,7 @@ const renderAction = (action: INotificationAction, controller: GameController) =
 
 const ActionInteracter = observer(({controller}: IActionInteracterProps) => {
 	const notifications = controller.notifications;
-	const firstNotification = notifications[0];
+	const firstNotification = notifications.length ? notifications[0] : undefined;
 	const endGameNotification = (firstNotification && firstNotification.type === ENotificationAction.gameEnd) ? firstNotification : null;
 	const action = endGameNotification ? endGameNotification : controller.currentAction
 	if  (!action) return null;

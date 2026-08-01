@@ -56,6 +56,17 @@ const Quarantine = ({quarantine, badgeRadius}: {quarantine: number; badgeRadius:
 	) :  null;
 }
 
+const playerBadgesByKey: Record<string, string | undefined> = resources.playerBadges;
+const colorBadgesCount = 11;
+
+const getBadgeResource = ({isDoor, isConnected, color}: {isDoor: boolean; isConnected: boolean; color: string}): string | undefined => {
+	if (isDoor) return playerBadgesByKey['door'];
+	if (!isConnected) return playerBadgesByKey['disconnected'];
+	// Бейджей всего colorBadgesCount, а цвет — это порядковый номер игрока,
+	// поэтому на столе больше 11 человек цвета начинают повторяться, но бейдж есть у всех.
+	return playerBadgesByKey[color] ?? playerBadgesByKey[String(Number(color) % colorBadgesCount)];
+}
+
 const getMarkTexture = (mark: EPlayerMark | undefined): PIXI.Texture | undefined => {
 	switch (mark) {
 		case EPlayerMark.question:
@@ -88,8 +99,6 @@ const PlayerBadge = ({
 		onLongPress = null,
 		mark,
 	}: IPlayerBadgeProps) => {
-	const playerBadgesByKey: Record<string, string | undefined> = resources.playerBadges;
-	const playerBadgeTexture = getPixiTexture(isDoor ? playerBadgesByKey['door'] : isConnected ? playerBadgesByKey[color] : playerBadgesByKey['disconnected']);
 /*	const longPress = useLongPress(() => {
 	});*/
 	const markPlayer = () => {
@@ -97,7 +106,13 @@ const PlayerBadge = ({
 		onLongPress && onLongPress(id);
 	}
 
+	// NOTE: цвет приходит только после gameStarter (до старта он ''), поэтому
+	// проверка обязана быть ДО поиска текстуры: getPixiTexture кидает исключение,
+	// а бросок из рендера роняет весь <Stage> целиком (error boundary тут нет).
 	if (!color && !isDoor) return null;
+	const badgeResource = getBadgeResource({isDoor, isConnected, color});
+	if (!badgeResource) return null;
+	const playerBadgeTexture = getPixiTexture(badgeResource);
 	const nick = isYou ? 'ТЫ' : (formatNickname(nickname) ?? undefined)
 	return (
 		<Container pointerdown={markPlayer} buttonMode={true} interactive={true}>

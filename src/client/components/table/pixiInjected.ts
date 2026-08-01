@@ -20,7 +20,7 @@ Globals.injectFrame(
 
 export const getPixiTexture = (resource: string | undefined) => {
 	if (!resource) {
-		throw new Error('Ресурс' + resource +' не найден.')
+		throw new Error('Ресурс ' + resource + ' не найден.')
 	}
 	return PIXI.Texture.from(resource)
 }

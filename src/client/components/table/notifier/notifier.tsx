@@ -151,7 +151,9 @@ const Notification = observer(({notification, controller}: {notification: INotif
 
 const Notifier = observer(({controller}: INotifierProps) => {
 	const notifications = controller.notifications;
-	const notification = notifications[0];
+	// length проверяем первым: чтение индекса за границей observable-массива
+	// печатает варнинг mobx на каждый рендер.
+	const notification = notifications.length ? notifications[0] : undefined;
 	if (!notification) return null;
 	return <Notification notification={notification} controller={controller}/>;
 });
