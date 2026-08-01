@@ -210,20 +210,21 @@ const calculateCardSelectedStypeProps = (): ICardStyleProps => {
 }
 
 // Карта под курсором «вытаскивается» из руки: растёт, выпрямляется и
-// приподнимается вдоль собственной оси. Подъём подобран так, чтобы нижняя кромка
-// осталась на месте (рост 1.18 от центра опускает низ на 9% высоты, ровно
-// столько же и поднимаем) — иначе карта уезжала бы из-под курсора и hover мигал.
-const hoverScale = 1.18;
-const hoverLiftFactor = (hoverScale - 1) / 2;
+// приподнимается вдоль собственной оси. Подъём равен приросту нижней кромки
+// (рост от центра опускает низ на половину прироста высоты, ровно столько же и
+// поднимаем) — иначе карта уезжала бы из-под курсора и hover мигал.
+// В ряду выбора рост скромнее, чтобы наведённая карта не спорила с выбранной.
+const hoverScale = 1.45;
+const notificationHoverScale = 1.15;
 
-const applyHoverStyle = (style: ICardStyleProps): ICardStyleProps => {
-	const lift = style.width * cardAspectRatio * hoverLiftFactor;
+const applyHoverStyle = (style: ICardStyleProps, scale: number): ICardStyleProps => {
+	const lift = style.width * cardAspectRatio * (scale - 1) / 2;
 	const rad = degToRag(style.angle);
 	return {
 		x: style.x + Math.sin(rad) * lift,
 		y: style.y - Math.cos(rad) * lift,
 		angle: style.angle * 0.5,
-		width: style.width * hoverScale,
+		width: style.width * scale,
 	};
 }
 
@@ -252,7 +253,8 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 		const style = autoWidth
 			? calculateNotificationCardStypeProps(cardNumber, cardsCount)
 			: calculateCardStypeProps(cardNumber, cardsCount);
-		return card.uniqueId === hoveredCardId ? applyHoverStyle(style) : style;
+		if (card.uniqueId !== hoveredCardId) return style;
+		return applyHoverStyle(style, autoWidth ? notificationHoverScale : hoverScale);
 	}
 	const defaultCardStyle: ICardStyleProps = { x:0,y:-getCenterOffset(),angle:-90, width: 0 };
 
