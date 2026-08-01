@@ -35,6 +35,13 @@ interface ICardProps {
 	menu?: (style: AnimatedCardStyle) => React.ReactNode;
 }
 
+// react-pixi-fiber присваивает обработчик прямо в свойство DisplayObject и снять
+// его не умеет: prop со значением undefined он только сопровождает варнингом
+// «ignoring prop», оставляя на спрайте прежний колбэк (у колоды это значило, что
+// клик по ней вызывал cardPick и после окончания взятия). Поэтому обработчики
+// передаём всегда определёнными, а «выключенное» состояние — это пустой вызов.
+const noop = () => {};
+
 // A style is "animated" when its values expose react-spring's `.interpolate`.
 const isAnimatedStyle = (style: CardStyle): style is AnimatedCardStyle =>
 	typeof (style.width as OpaqueInterpolation<number>)?.interpolate === 'function';
@@ -74,9 +81,9 @@ const Card = observer(({id, menu, onCardClick, onCardOver, onCardOut, canBeUsed,
 				buttonMode={true}
 				interactive={true}
 				texture={cardTexture}
-				pointerdown={onCardClick ?? undefined}
-				pointerover={onCardOver ?? undefined}
-				pointerout={onCardOut ?? undefined}
+				pointerdown={onCardClick ?? noop}
+				pointerover={onCardOver ?? noop}
+				pointerout={onCardOut ?? noop}
 				anchor={0.5}
 				{...style}
 				width={cardWidth}

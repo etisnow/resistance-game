@@ -113,7 +113,9 @@ const PlayerBadge = ({
 	const badgeResource = getBadgeResource({isDoor, isConnected, color});
 	if (!badgeResource) return null;
 	const playerBadgeTexture = getPixiTexture(badgeResource);
-	const nick = isYou ? 'ТЫ' : (formatNickname(nickname) ?? undefined)
+	// Пустая строка, а не undefined: prop со значением undefined react-pixi-fiber
+	// не применяет, а печатает «ignoring prop» на каждый рендер бейджа.
+	const nick = isYou ? 'ТЫ' : (formatNickname(nickname) ?? '')
 	return (
 		<Container pointerdown={markPlayer} buttonMode={true} interactive={true}>
 			{canBeSelected && (
