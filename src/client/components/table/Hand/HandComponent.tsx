@@ -232,18 +232,19 @@ const calculateCardSelectedStypeProps = (): ICardStyleProps => {
 // перестала мешать, — значит оторвать её от руки и закрыть ею колоду.
 const hoverScale = 1.8;
 const notificationHoverScale = 1.15;
-const hoverExtraLiftFactor = 0.15;
+const hoverExtraLiftFactor = 0.3;
 const hoverSpread = 0.75;
 
 const handHoverPad = () => playerCardWidthPix() * 1.1 * cardAspectRatio * hoverExtraLiftFactor;
 
+// Наклон веера гасим полностью: карта под курсором встаёт вертикально, поэтому и
+// поднимаем её строго вверх (вдоль наклонной оси она бы уезжала вбок).
 const applyHoverStyle = (style: ICardStyleProps, scale: number, extraLift = 0): ICardStyleProps => {
 	const lift = style.width * cardAspectRatio * (scale - 1) / 2 + extraLift;
-	const rad = degToRag(style.angle);
 	return {
-		x: style.x + Math.sin(rad) * lift,
-		y: style.y - Math.cos(rad) * lift,
-		angle: style.angle * 0.5,
+		x: style.x,
+		y: style.y - lift,
+		angle: 0,
 		width: style.width * scale,
 	};
 }
