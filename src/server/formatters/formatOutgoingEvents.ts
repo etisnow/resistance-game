@@ -112,7 +112,11 @@ const formatPlayer = (game: Game, viewer: Player) => (player: Player) => {
 	if (!player) return null;
 	const isViewer = viewer.id === player.id;
 	const isViewerThing = viewer.isThing;
-	const isViewerInfected = viewer.isThing;
+	// Заражённый — это не-нечто с заражением: у самого нечто своя, полная картина.
+	// Заразить может только нечто, поэтому заражённому достаточно видеть его
+	// одного: это и есть тот, кто его заразил. Остальные заражённые для него
+	// неотличимы от чистых.
+	const isViewerInfected = viewer.isInfected && !viewer.isThing;
 
 	return {
 		id: player.id,

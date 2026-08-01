@@ -30,8 +30,6 @@ interface IPlayerBadgeProps {
 
 
 const playerGlowTexture = getPixiTexture(resources.playerbadgeGlow);
-const playerThingTexture = getPixiTexture(resources.playerThing);
-const playerInfectedTexture = getPixiTexture(resources.playerInfected);
 /*Marks*/
 const playerStatusQuestion = getPixiTexture(resources.playerStatusQuestion);
 const playerStatusThing = getPixiTexture(resources.playerStatusThing);
@@ -59,9 +57,21 @@ const Quarantine = ({quarantine, badgeRadius}: {quarantine: number; badgeRadius:
 const playerBadgesByKey: Record<string, string | undefined> = resources.playerBadges;
 const colorBadgesCount = 11;
 
-const getBadgeResource = ({isDoor, isConnected, color}: {isDoor: boolean; isConnected: boolean; color: string}): string | undefined => {
+interface IBadgeResourceArgs {
+	isDoor: boolean;
+	isConnected: boolean;
+	color: string;
+	isThing: boolean;
+	isInfected: boolean;
+}
+
+const getBadgeResource = ({isDoor, isConnected, color, isThing, isInfected}: IBadgeResourceArgs): string | undefined => {
 	if (isDoor) return playerBadgesByKey['door'];
 	if (!isConnected) return playerBadgesByKey['disconnected'];
+	// Роль вместо цветного кружка — но только для того, кто её знает: сервер
+	// присылает isThing/isInfected нулём всем, кому знать не положено.
+	if (isThing) return playerBadgesByKey['thing'];
+	if (isInfected) return playerBadgesByKey['infected'];
 	// Бейджей всего colorBadgesCount, а цвет — это порядковый номер игрока,
 	// поэтому на столе больше 11 человек цвета начинают повторяться, но бейдж есть у всех.
 	return playerBadgesByKey[color] ?? playerBadgesByKey[String(Number(color) % colorBadgesCount)];
@@ -101,8 +111,10 @@ const PlayerBadge = ({
 	}: IPlayerBadgeProps) => {
 /*	const longPress = useLongPress(() => {
 	});*/
+	// Роль видна по самому бейджу — своей пометкой такого игрока помечать нечего.
+	const isRoleKnown = !isDoor && isConnected && (isThing || isInfected);
 	const markPlayer = () => {
-		if (canBeSelected || isYou) return;
+		if (canBeSelected || isYou || isRoleKnown) return;
 		onLongPress && onLongPress(id);
 	}
 
@@ -110,7 +122,7 @@ const PlayerBadge = ({
 	// проверка обязана быть ДО поиска текстуры: getPixiTexture кидает исключение,
 	// а бросок из рендера роняет весь <Stage> целиком (error boundary тут нет).
 	if (!color && !isDoor) return null;
-	const badgeResource = getBadgeResource({isDoor, isConnected, color});
+	const badgeResource = getBadgeResource({isDoor, isConnected, color, isThing, isInfected});
 	if (!badgeResource) return null;
 	const playerBadgeTexture = getPixiTexture(badgeResource);
 	// Пустая строка, а не undefined: prop со значением undefined react-pixi-fiber
@@ -144,25 +156,8 @@ const PlayerBadge = ({
 					{inTurn && (
 						<Circle xCoord={0} yCoord={-style.height/2} color={0x00FF00} r={style.height * 0.07}/>
 					)}
-					{isThing && (
-						<Sprite
-							texture={playerThingTexture}
-							anchor={0.5}
-							y={style.height/2}
-							width={style.height * 0.3}
-							height={style.height * 0.3}
-						/>
-					)}
-					{isInfected && (
-						<Sprite
-							texture={playerInfectedTexture}
-							anchor={0.5}
-							y={style.height/2}
-							width={style.height * 0.2}
-							height={style.height * 0.2}
-						/>
-					)}
-					{(mark && mark !==EPlayerMark.none) && (
+					{/* Роль игрока — это сам бейдж: отдельных значков нечто/заражения нет. */}
+					{(mark && mark !==EPlayerMark.none && !isRoleKnown) && (
 						<Sprite
 							texture={getMarkTexture(mark)}
 							anchor={0.5}

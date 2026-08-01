@@ -39,9 +39,6 @@ import playerbadgeGlow from "client/resources/images/playerbadgeGlow.png";
 import noise from "client/resources/images/noise.jpg";
 import deckCounterBg from "client/resources/images/deckCounterBg.png";
 
-import playerThing from "client/resources/images/thing.svg";
-import playerInfected from "client/resources/images/infected.svg";
-
 import playerBadge1 from "client/resources/images/playerBadges/1.png";
 import playerBadge2 from "client/resources/images/playerBadges/2.png";
 import playerBadge3 from "client/resources/images/playerBadges/3.png";
@@ -53,6 +50,8 @@ import playerBadge8 from "client/resources/images/playerBadges/8.png";
 import playerBadge9 from "client/resources/images/playerBadges/9.png";
 import playerBadge10 from "client/resources/images/playerBadges/10.png";
 import playerBadge11 from "client/resources/images/playerBadges/11.png";
+import playerBadgeThing from "client/resources/images/playerBadges/thing.png";
+import playerBadgeInfected from "client/resources/images/playerBadges/infected.png";
 
 import cardAct from "client/resources/images/buttons/act.png";
 import cardDiscard from "client/resources/images/buttons/discard.png";
@@ -113,9 +112,6 @@ const resources = {
 	cardTrade,
 	cardSelect,
 
-	playerThing,
-	playerInfected,
-
 	okay,
 
 	playerStatusQuestion,
@@ -137,6 +133,8 @@ const resources = {
 		10: playerBadge11,
 		'door': barricadeBadge,
 		'disconnected': disconnected,
+		'thing': playerBadgeThing,
+		'infected': playerBadgeInfected,
 	}
 };
 
