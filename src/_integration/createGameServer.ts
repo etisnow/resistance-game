@@ -12,6 +12,10 @@ export const createMockGameServer = (isTestTag = true): [GameServer, Game, ...Pl
 	// checkAllDeckCardsTestEdition explicitly, so disable the runtime guard here.
 	gameServer.ignoreChecks = true;
 	gameServer.initialize(createMockSocketServer());
+	// Мок-сервер — синглтон, и комнаты предыдущих сценариев иначе копятся в нём:
+	// правило «одна игра на человека» вернуло бы хосту прошлую комнату вместо
+	// новой. Каждый сценарий стартует с чистого сервера.
+	gameServer.games = {};
 	const [game, host] = gameServer.createGame({nickname: 'neerone', socket: createMockSocket(isTestTag)});
 	gameServer.connectGame({socket: createMockSocket(isTestTag), gameId: game.id, nickname:'Петя'});
 	gameServer.connectGame({socket: createMockSocket(isTestTag), gameId: game.id, nickname:'Гена'});

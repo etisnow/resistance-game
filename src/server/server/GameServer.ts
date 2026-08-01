@@ -12,11 +12,12 @@ import {
   isPlayerCanTradeCard,
 } from 'server/helpers/validators';
 import {debugLog} from 'server/helpers/util';
-import {each, find, some} from 'lodash';
+import {each, find, map, some} from 'lodash';
 import {EGameState} from 'shared/enum/common';
 import {gameHasBots, scheduleBots} from 'server/helpers/bot';
 import {getCard, getPanic} from 'shared/constant/cards';
 import {EEventID, EPanicID} from 'shared/enum/cards';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 export interface IBotGameOptions {
   withBots?: boolean;
@@ -24,6 +25,12 @@ export interface IBotGameOptions {
   firstPanic?: string;
   hand?: string[];
 }
+
+// Ник — единственный идентификатор человека между подключениями: клиент хранит
+// его локально и присылает при каждом входе. Сравниваем без учёта регистра и
+// краевых пробелов, иначе «Вася» и «вася » окажутся разными людьми.
+const sameNickname = (a: string, b: string): boolean =>
+  a.trim().toLowerCase() === b.trim().toLowerCase();
 
 
 class GameServer {
@@ -54,13 +61,72 @@ class GameServer {
     return player
   }
 
+  // Живая игра, хостом которой является человек с этим ником (у одного человека
+  // она может быть только одна — см. createGame).
+  findGameHostedByNickname(nickname: string): Game | null {
+    return find(this.games, (game) => {
+      if (!game.gameInProcess) return false;
+      const host = game.players[game.hostPlayerId];
+      return !!host && sameNickname(host.nickname, nickname);
+    }) || null;
+  }
+
+  // Закрыть комнату и вернуть всех живых людей в лаунчер.
+  private dropGame(game: Game, reason: string) {
+    each(game.players, (player) => {
+      if (player.isBot) return;
+      if (player.socket) this.notifySocket(player.socket, formatCommonError(reason));
+      this.releasePlayerSocket(player);
+    });
+    this.destroyGame(game.id);
+  }
+
+  // Сокет уже сидит в другой комнате (двойной клик, зависший клиент, вторая
+  // вкладка) — выпускаем его оттуда, иначе игрок останется там призраком.
+  private leaveCurrentGame(socket: IGameSocket, exceptGame?: Game) {
+    const currentPlayer = this.getPlayerBySocket(socket);
+    if (!currentPlayer || !currentPlayer.game) return;
+    if (exceptGame && currentPlayer.game === exceptGame) return;
+    this.leaveGame({player: currentPlayer});
+  }
+
+  // Человек занимает ровно одно место: его тёзки-призраки в остальных комнатах
+  // уходят вместе с ним. Иначе брошенная вкладка так и висит там «в онлайне», и
+  // комната ждёт игрока, которого нет.
+  private releaseOtherSeats(nickname: string, keepGame: Game) {
+    each(Object.values(this.games), (game) => {
+      if (game === keepGame || !game.gameInProcess) return;
+      const ghost = find(game.players, (p) => !p.isBot && sameNickname(p.nickname, nickname));
+      if (!ghost) return;
+      this.leaveGame({player: ghost});
+    });
+  }
+
   createGame({ socket, nickname, bots }: { socket: IGameSocket; nickname: string; bots?: IBotGameOptions }): [Game, Player] {
+    const hostedGame = this.findGameHostedByNickname(nickname);
+    const previousHost = hostedGame ? hostedGame.players[hostedGame.hostPlayerId] : undefined;
+    if (hostedGame && previousHost) {
+      if (bots?.withBots) {
+        // Дев-режим с ботами: человек в комнате один, старую просто закрываем,
+        // чтобы каждый запуск начинался с чистой игры.
+        this.dropGame(hostedGame, 'Твоя предыдущая игра с ботами закрыта.');
+      } else {
+        // Одна игра на человека: повторное «Создай игру» с тем же ником не
+        // плодит комнаты, а возвращает хоста в его собственную — после рефреша,
+        // из другой вкладки или с другого устройства.
+        const host = this.reconnectPlayer(previousHost, socket);
+        this.releaseOtherSeats(nickname, hostedGame);
+        return [hostedGame, host];
+      }
+    }
+    this.leaveCurrentGame(socket);
     const player = this.spawnPlayer(socket);
     const game = new Game({ player });
     game.hostPlayerId = player.id;
     player.isReady = true;
     player.register({ nickname, game });
     this.games[game.id] = game;
+    this.releaseOtherSeats(nickname, game);
     this.updateLobby();
     if (bots?.withBots) {
       this.setupBotGame({ game, host: player, options: bots });
@@ -133,10 +199,30 @@ class GameServer {
 
 
   reconnectPlayer = (connectedPlayer: Player, socket: IGameSocket) => {
+    const previousSocket = connectedPlayer.socket;
+    if (previousSocket && previousSocket !== socket) {
+      // Старое подключение перестаёт быть этим игроком СРАЗУ, не дожидаясь его
+      // disconnect. Иначе отложенный (до pingTimeout, а то и вовсе не
+      // приходящий) разрыв старой вкладки пометит только что вернувшегося
+      // игрока офлайн, а комнату — брошенной.
+      this.sockets.delete(previousSocket);
+      this.notifySocket(previousSocket, formatCommonError(
+        `Игрок с ником ${connectedPlayer.nickname} вошёл в игру заново — это подключение больше не в игре.`,
+      ));
+      this.notifySocket(previousSocket, formatLobbyState(this));
+    }
     connectedPlayer.isConnected = true;
     connectedPlayer.socket = socket;
     this.sockets.set(socket, connectedPlayer);
-    connectedPlayer.game.updateGame();
+    const game = connectedPlayer.game;
+    // Хост в лобби всегда готов (как при создании игры): иначе после его
+    // возвращения игру нельзя начать, пока он не нажмёт «я готов».
+    if (game.state === EGameState.lobby && game.hostPlayerId === connectedPlayer.id) {
+      connectedPlayer.isReady = true;
+    }
+    game.addLog(`Игрок ${connectedPlayer.nickname} вернулся в игру`, EGameLogType.system);
+    game.updateGame();
+    this.updateLobby();
     // Interactive prompts (select a card / player / decision) are one-shot
     // notification events that were lost while the player was offline. Re-send
     // the pending one so the selection overlay is restored on reconnect.
@@ -153,21 +239,15 @@ class GameServer {
     socket.emit(event.type, event.payload);
   }
 
-  tryReconnectPlayer = (game: Game, socket: IGameSocket, nickname: string, connectedPlayer: Player | null | undefined) : null | Player => {
-    if (game.state === EGameState.sarted) {
-      if (!connectedPlayer || !connectedPlayer.socket?.disconnected) {
-        this.notifySocket(socket, formatCommonError(`Игрок с ником ${nickname} еще онлайн.`))
-        return null;
-      }
-      return this.reconnectPlayer(connectedPlayer, socket);
-    } else {
-      if (connectedPlayer && !connectedPlayer.socket?.disconnected) {
-        this.notifySocket(socket, formatCommonError(`Игрок с ником ${nickname} уже зарегистрирован в этой игре и находится онлайн. Если это вы -выйдите с другого устройства.`))
-        return null;
-      }
-      if (!connectedPlayer) return null;
-      return this.reconnectPlayer(connectedPlayer, socket);
-    }
+  // Один ник — один человек: новое подключение всегда ЗАМЕЩАЕТ старый инстанс
+  // игрока (другая вкладка, другое устройство, зависшая сессия), а не отбивается
+  // ошибкой «игрок ещё онлайн». Старая проверка опиралась на socket.disconnected,
+  // но сервер узнаёт о разрыве с задержкой (а при потере сети — только по
+  // pingTimeout, если вообще), и человек не мог вернуться в игру, в которой он
+  // точно играет.
+  tryReconnectPlayer = (_game: Game, socket: IGameSocket, _nickname: string, connectedPlayer: Player | null | undefined) : null | Player => {
+    if (!connectedPlayer) return null;
+    return this.reconnectPlayer(connectedPlayer, socket);
   };
 
   connectGame({nickname, socket, gameId}: { socket: IGameSocket; nickname: string, gameId: string }) : Player | null {
@@ -180,16 +260,20 @@ class GameServer {
       this.notifySocket(socket, formatLobbyState(gameServer));
       return null;
     }
-    const connectedPlayer = find(game.players, {nickname});
+    const connectedPlayer = find(game.players, (player) => !player.isBot && sameNickname(player.nickname, nickname));
     if (connectedPlayer) {
-      return this.tryReconnectPlayer(game, socket, nickname, connectedPlayer);
+      const player = this.tryReconnectPlayer(game, socket, nickname, connectedPlayer);
+      if (player) this.releaseOtherSeats(nickname, game);
+      return player;
     } else if (game.state === EGameState.sarted) {
       const error = formatCommonError(`Игрок с ником ${nickname} не был найден в этой игре, а она уже началась.`)
       this.notifySocket(socket, error);
       return null;
     }
+    this.leaveCurrentGame(socket, game);
     const newPlayer = this.spawnPlayer(socket);
     newPlayer.register({ nickname, game });
+    this.releaseOtherSeats(nickname, game);
     return newPlayer;
   }
 
@@ -213,7 +297,11 @@ class GameServer {
   }
 
 
+  // Ищем по комнатам, а не только по сокетам: у отключившегося игрока живого
+  // сокета уже нет, но исключить его хост должен уметь.
   findPlayerById(playerId: string): Player | null {
+    const inGame = find(map(this.games, (game) => game.players[playerId]), (pl): pl is Player => !!pl);
+    if (inGame) return inGame;
     let player: Player | null = null;
     this.sockets.forEach((pl) => {
       if (!pl || pl.id !== playerId) return;
@@ -229,7 +317,11 @@ class GameServer {
   }
 
   destroyGame(id: string) {
-    if (this.games[id]) {
+    const game = this.games[id];
+    if (game) {
+      // Комнаты больше нет — помечаем игру завершённой, иначе привязанные к ней
+      // таймеры (боты) продолжают ходить в комнате-призраке.
+      game.gameInProcess = false;
       delete this.games[id]
     }
     this.updateLobby();

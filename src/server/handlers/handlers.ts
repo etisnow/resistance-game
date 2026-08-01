@@ -102,10 +102,15 @@ export const registerHandlers = (gameServer: GameServer, socket: IGameSocket) =>
 
 	socket.on('disconnect', () => safe('disconnect', () => {
 		const player = gameServer.getPlayerBySocket(socket);
-		if (!player) {
-			gameServer.sockets.delete(socket);
-			return;
-		}
+		// Сокет мёртв — в карте ему больше не место: иначе рассылка лобби и поиск
+		// игроков ходят по трупам, а карта растёт до бесконечности.
+		gameServer.sockets.delete(socket);
+		if (!player) return;
+		// Игрок уже переехал на новое подключение (реконнект / замещение тем же
+		// ником) — отключилась именно старая вкладка, живого игрока это не
+		// касается. Без этой проверки вернувшийся игрок тут же снова становился
+		// «офлайн», а комната — брошенной.
+		if (player.socket !== socket) return;
 		player.makeOffline();
 	}));
 };

@@ -10,6 +10,9 @@ export const createBrutforceServer = (): [GameServer, Game, ...Player[]] => {
 	gameServer.isMock = false;
 	gameServer.ignoreChecks = false;
 	gameServer.initialize(createMockSocketServer());
+	// Комнаты предыдущих прогонов не должны переезжать в новый: одна игра на
+	// человека — повторный createGame иначе вернул бы старую комнату.
+	gameServer.games = {};
 	const [game, player1] = gameServer.createGame({nickname: 'neerone', socket: createMockSocket()});
 	gameServer.connectGame({socket: createMockSocket(), gameId: game.id, nickname:'Петя'});
 	gameServer.connectGame({socket: createMockSocket(), gameId: game.id, nickname:'Гена'});

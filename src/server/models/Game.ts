@@ -133,7 +133,9 @@ export class Game {
   disconnectPlayer({ player }: {player: Player}) {
     this.addLog(`Игрок ${player.nickname} отключился от игры. Ждем его возвращения`, EGameLogType.system)
     player.isReady = false;
-    const activePlayer = find(this.players, {isConnected: true, state: EPlayerState.dummy});
+    // Боты «подключены» всегда, поэтому комнату живой они считаться не могут:
+    // иначе брошенная дев-игра с ботами живёт вечно и висит в списке комнат.
+    const activePlayer = find(this.players, (p) => p.isConnected && !p.isBot && p.state === EPlayerState.dummy);
     if (activePlayer) {
       return this.updateGame();
     }
