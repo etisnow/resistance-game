@@ -3,8 +3,11 @@ import { observer } from "mobx-react-lite"
 import {cardAspectRatio, fulldeck, thingCard} from 'shared/constant/cards';
 import {resources} from 'client/resources/resources';
 import {EEventID} from 'shared/enum/cards';
+import * as PIXI from 'pixi.js';
 import { Container } from 'react-pixi-fiber';
+import {interpolate} from 'react-spring/universal';
 import type {AnimatedValue, OpaqueInterpolation} from 'react-spring/universal';
+import {degToRag} from 'client/helpers/roomHelpers';
 import {AnimatedPixi, getPixiTexture} from '../pixiInjected';
 
 // The animated style object produced by react-spring's useTransition in HandComponent.
@@ -28,6 +31,9 @@ interface ICardProps {
 	// Колода (Deck) обработчики не передаёт.
 	onCardOver?: (() => void) | null;
 	onCardOut?: (() => void) | null;
+	// На сколько пикселей карта уезжает вверх при наведении: на столько же вниз
+	// вытягивается невидимая ловушка наведения (см. ниже).
+	hoverPad?: number;
 	canBeUsed?: boolean;
 	style: CardStyle;
 	// The `menu` renderer is only supplied by HandComponent, which always pairs it with
@@ -53,7 +59,7 @@ const isAnimatedStyle = (style: CardStyle): style is AnimatedCardStyle =>
 const {playerBadges: _playerBadges, ...cardImages} = resources;
 const cardResources: Record<string, string | undefined> = cardImages;
 
-const Card = observer(({id, menu, onCardClick, onCardOver, onCardOut, canBeUsed, style}: ICardProps) => {
+const Card = observer(({id, menu, onCardClick, onCardOver, onCardOut, hoverPad = 0, canBeUsed, style}: ICardProps) => {
 	const card = fulldeck[id] || (id === EEventID.thing ? thingCard : null);
 	const cardTexture = getPixiTexture(cardResources[id]);
 	const glowTexture = getPixiTexture(cardResources['glowEffect']);
@@ -65,6 +71,31 @@ const Card = observer(({id, menu, onCardClick, onCardOver, onCardOut, canBeUsed,
 	const cardGlowHeight = isAnimatedStyle(style) ? style.width.interpolate(w => w * cardAspectRatio * 1.1) : style.width * cardAspectRatio * 1.1
 	const cardWidth = isAnimatedStyle(style) ? style.width.interpolate(w => w) : style.width
 	const cardHeight = isAnimatedStyle(style) ? style.width.interpolate(w => w * cardAspectRatio) : style.width * cardAspectRatio
+
+	// Ловушка наведения: невидимый спрайт по размеру карты, вытянутый вниз (вдоль
+	// собственной оси карты, поэтому наклонённым картам веера тоже подходит).
+	// Карта под курсором поднимается над рукой, и без ловушки её нижняя кромка
+	// уезжала бы из-под курсора: pointerout → карта опускается → снова pointerover,
+	// и hover мигал бы. Ловушка лежит поверх карты и берёт на себя наведение и
+	// клик; меню рисуется после неё и перехватывает клики первым.
+	const padExtend = hoverPad * 1.4;
+	const hoverTrap = padExtend > 0 && isAnimatedStyle(style) ? (
+		<AnimatedPixi.Sprite
+			texture={PIXI.Texture.WHITE}
+			alpha={0}
+			buttonMode={true}
+			interactive={true}
+			anchor={0.5}
+			angle={style.angle}
+			x={interpolate([style.x, style.angle], (x, a) => x - Math.sin(degToRag(a)) * padExtend / 2)}
+			y={interpolate([style.y, style.angle], (y, a) => y + Math.cos(degToRag(a)) * padExtend / 2)}
+			width={cardWidth}
+			height={style.width.interpolate(w => w * cardAspectRatio + padExtend)}
+			pointerdown={onCardClick ?? noop}
+			pointerover={onCardOver ?? noop}
+			pointerout={onCardOut ?? noop}
+		/>
+	) : null;
 
 	return (
 		<Container  >
@@ -89,6 +120,7 @@ const Card = observer(({id, menu, onCardClick, onCardOver, onCardOut, canBeUsed,
 				width={cardWidth}
 				height={cardHeight}
 			/>
+			{hoverTrap}
 			{menu && isAnimatedStyle(style) && (
 				<React.Fragment>
 					{menu(style)}

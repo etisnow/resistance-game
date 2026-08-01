@@ -216,15 +216,21 @@ const calculateCardSelectedStypeProps = (): ICardStyleProps => {
 }
 
 // Карта под курсором «вытаскивается» из руки: растёт, выпрямляется и
-// приподнимается вдоль собственной оси. Подъём равен приросту нижней кромки
-// (рост от центра опускает низ на половину прироста высоты, ровно столько же и
-// поднимаем) — иначе карта уезжала бы из-под курсора и hover мигал.
-// В ряду выбора рост скромнее, чтобы наведённая карта не спорила с выбранной.
+// приподнимается вдоль собственной оси. Подъём складывается из двух частей:
+// половина прироста высоты (иначе нижняя кромка уехала бы вниз) плюс
+// hoverExtraLiftFactor — на столько карта реально встаёт над рукой. На этот
+// «лишний» подъём Card растягивает вниз невидимую ловушку наведения, чтобы карта
+// не уезжала из-под курсора.
+// В ряду выбора рост скромнее (карта не должна спорить с выбранной) и подъёма
+// над соседями не нужно — там ряд ровный.
 const hoverScale = 1.8;
 const notificationHoverScale = 1.15;
+const hoverExtraLiftFactor = 0.22;
 
-const applyHoverStyle = (style: ICardStyleProps, scale: number): ICardStyleProps => {
-	const lift = style.width * cardAspectRatio * (scale - 1) / 2;
+const handHoverPad = () => playerCardWidthPix() * 1.1 * cardAspectRatio * hoverExtraLiftFactor;
+
+const applyHoverStyle = (style: ICardStyleProps, scale: number, extraLift = 0): ICardStyleProps => {
+	const lift = style.width * cardAspectRatio * (scale - 1) / 2 + extraLift;
 	const rad = degToRag(style.angle);
 	return {
 		x: style.x + Math.sin(rad) * lift,
@@ -260,7 +266,9 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 			? calculateNotificationCardStypeProps(cardNumber, cardsCount)
 			: calculateCardStypeProps(cardNumber, cardsCount);
 		if (card.uniqueId !== hoveredCardId) return style;
-		return applyHoverStyle(style, autoWidth ? notificationHoverScale : hoverScale);
+		return autoWidth
+			? applyHoverStyle(style, notificationHoverScale)
+			: applyHoverStyle(style, hoverScale, handHoverPad());
 	}
 	const defaultCardStyle: ICardStyleProps = { x:0,y:-getCenterOffset(),angle:-90, width: 0 };
 
@@ -285,12 +293,15 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 
 	const pivotAtCenter = {x:-getWindowWidth() / 2 , y: 0}
 
-	// Обработчики наведения вешаем только на устройствах с курсором.
+	// Обработчики наведения вешаем только на устройствах с курсором. Там же —
+	// ловушка наведения под картой (в ряду выбора карта над соседями не встаёт,
+	// значит и ловушка не нужна).
 	const hoverHandlers = (uniqueId: string | null | undefined) => {
 		if (!isHoverCapable || !uniqueId) return {};
 		return {
 			onCardOver: () => setHoveredCardId(uniqueId),
 			onCardOut: () => setHoveredCardId(current => current === uniqueId ? null : current),
+			hoverPad: autoWidth ? 0 : handHoverPad(),
 		};
 	};
 
