@@ -5,6 +5,7 @@ import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
+import {EEventID} from 'shared/enum/cards';
 import {EGameLogType} from 'shared/enum/gameLogType';
 
 
@@ -48,5 +49,6 @@ export const axeSelect = ({game, player, selectedPlayerId} : {game: Game, player
 	selectedPlayer.quarantine = 0;
 
 	game.addLog(`Игрок ${player.nickname} играет карту "Топор" на ${selectedPlayer.nickname}`, EGameLogType.card);
+	game.addCardEffect({cardId: EEventID.axe, player, target: selectedPlayer});
 	player.changeTurnState(ETurnState.inOffenseTrade)
 };

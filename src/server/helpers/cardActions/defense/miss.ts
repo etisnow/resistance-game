@@ -36,11 +36,13 @@ export const missAct = ({card, game, player} : {card:ICardEvent, game: Game, pla
 		//game.endTurn(offensePlayer.id);
 
 		game.addLog(`Игрок ${player.nickname} играет карту "Мимо", но следующим оказался сам ${offensePlayer.nickname}: обмен отменяется и ход передается дальше`, EGameLogType.defense);
+		game.addCardEffect({cardId: EEventID.miss, player, target: offensePlayer});
 		game.grabEventCardFromDeck({player});
 
 		return
 	}
 	game.addLog(`Игрок ${player.nickname} играет карту "Мимо" и отказывается от обмена: вместо него с игроком ${context.offensePlayer.nickname} меняется ${nextPlayer.nickname}`, EGameLogType.defense);
+	game.addCardEffect({cardId: EEventID.miss, player, target: offensePlayer});
 	game.grabEventCardFromDeck({player});
 	player.changeTurnState(ETurnState.idle);
 

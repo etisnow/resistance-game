@@ -51,6 +51,7 @@ export const quarantineSelect = ({game, player, selectedPlayerId} : {game: Game,
       },
     }));
 	game.addLog(`Игрок ${selectedPlayer.nickname} теперь на карантине`, EGameLogType.quarantine);
+	game.addCardEffect({cardId: EEventID.quarantine, player, target: selectedPlayer});
 	player.changeTurnState(ETurnState.inOffenseTrade)
 	//player.changeTurnState(ETurnState.idle);
 	//const nextPlayer = player.getNextAlivePlayer();

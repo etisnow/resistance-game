@@ -17,6 +17,7 @@ export const positionswapAct = ({card, game, player} : {card:ICardEvent, game: G
 		offensePlayer: player,
 		defensePlayer: null,
 		cardUniqueId: card.uniqueId,
+		cardId: EEventID.positionswap,
 	};
 
 	player.changeTurnState(ETurnState.inCardActionProgress);
@@ -41,7 +42,8 @@ export const positionswapSelect = ({game, player, selectedPlayerId} : {game: Gam
 		type: ETurnContextType.positionswap,
 		offensePlayer: player,
 		defensePlayer: defensePlayer,
-		cardUniqueId: game.turnContext.cardUniqueId
+		cardUniqueId: game.turnContext.cardUniqueId,
+		cardId: game.turnContext.cardId,
 	};
     const hasLeaveMeAloneCard = !!find(defensePlayer.hand, {id: EEventID.leaveMeAlone});
     let text = `Игрок ${player.nickname} предлагает поменяться местами`
@@ -86,6 +88,7 @@ export const positionswapFinish = ({game, player, action}: {game:Game, player:Pl
 	}
 	//КЕЙС КОГДА ИГРОК ПРИМЕНИЛ КАРТУ LEAVEME ALONE
 	game.addLog(`Игрок ${defensePlayer.nickname} применил "Мне и здесь неплохо" и остался на месте`, EGameLogType.card);
+	game.addCardEffect({cardId: EEventID.leaveMeAlone, player: defensePlayer, target: offensePlayer});
 	//discardCard({game, player, cardUniqueId: leaveMeAloneCard.uniqueId});
 	if (leaveMeAloneCard.uniqueId) {
 		player.discardCard(leaveMeAloneCard.uniqueId)

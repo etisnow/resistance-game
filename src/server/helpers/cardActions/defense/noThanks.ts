@@ -18,6 +18,7 @@ export const noThanksAct = ({card, game, player} : {card:ICardEvent, game: Game,
 	if (!card.uniqueId) return;
 	player.discardCard(card.uniqueId);
 	game.addLog(`${player.nickname}: используя карту "Нет уж спасибо" отказывается от обмена с игроком ${context.offensePlayer.nickname}`, EGameLogType.defense);
+	game.addCardEffect({cardId: EEventID.noThanks, player, target: context.offensePlayer});
 	game.grabEventCardFromDeck({player});
     game.notifyAllPlayersExeptPlayer(formatPlayerNotification({
       player: player,

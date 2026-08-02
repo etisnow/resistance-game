@@ -7,7 +7,7 @@ import {ECardType} from 'shared/enum/cards';
 import {EAppState, EGameState} from 'shared/enum/common';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import type {IFormatTradeContext} from 'shared/interfaces/common';
+import type {IFormatCardEffect, IFormatTradeContext} from 'shared/interfaces/common';
 import fscreen from 'fscreen';
 import {each, merge} from "lodash";
 import {EAsyncState} from 'shared/enum/async';
@@ -40,6 +40,9 @@ export default class GameController {
 	@observable isLayoutSequential: boolean = true;
 	@observable isFullScreen: boolean = false;
 	@observable tradeContext: IFormatTradeContext[] | null = null;
+	// Разовые применения карт (подсмотр, отказ от обмена и т.п.): стол рисует их
+	// поверх бейджа игрока. Смотри IFormatCardEffect.
+	@observable cardEffects: IFormatCardEffect[] = [];
 	@observable currentAction: INotificationAction | null = null;
 	@observable hand: IHandMap = {};
 	@observable handActions: IHandActionsMap = {};
@@ -198,7 +201,7 @@ export default class GameController {
 	// Одним действием: без него mobx отдаёт реакциям каждое присваивание по
 	// отдельности, и компонент успевает отрисоваться с новым контекстом хода, но
 	// ещё старой рукой и логом — а анимация обмена сверяет ровно их между собой.
-	@action updateGame = ({tradeContext, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions, hostPlayerId, isPlayerCanCancel}: IGameUpdatePayload) => {
+	@action updateGame = ({tradeContext, cardEffects, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions, hostPlayerId, isPlayerCanCancel}: IGameUpdatePayload) => {
 		this.updatePlayers(players);
 		this.updateHand(hand);
 		this.updateHandActions(handActions);
@@ -208,6 +211,7 @@ export default class GameController {
 		this.isPlayerCanCancel = isPlayerCanCancel;
 		this.currentPlayerId = currentPlayer.id;
 		this.tradeContext = tradeContext;
+		this.cardEffects = cardEffects;
 		this.currentAction = currentAction;
 		this.state = state;
 		this.gameLog = gameLog;

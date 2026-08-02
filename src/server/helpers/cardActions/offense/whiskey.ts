@@ -5,6 +5,7 @@ import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
 import {formatCards} from 'server/helpers/cardHelpers';
+import {EEventID} from 'shared/enum/cards';
 import {EGameLogType} from 'shared/enum/gameLogType';
 
 
@@ -21,4 +22,5 @@ export const whiskeyAct = ({card, game, player} : {card:ICardEvent, game: Game, 
       },
     }));
     game.addLog(`${player.nickname}: я слишком пьян для этого дерьма! Вот мои карты.`, EGameLogType.card);
+    game.addCardEffect({cardId: EEventID.whiskey, player});
 };

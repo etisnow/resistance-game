@@ -1,5 +1,6 @@
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import type { ICardEvent} from 'shared/interfaces/cards';
+import type { EEventID } from 'shared/enum/cards';
 import {Player} from 'server/models/Player';
 
 export interface ITurnContextTrade {
@@ -15,6 +16,9 @@ export interface ITurnContextPositionSwap {
 	offensePlayer: Player,
 	defensePlayer: Player | null,
 	cardUniqueId: string,
+	// Местами меняют две разные карты («Смена мест» и «Сматывай удочки»), и на
+	// стрелке клиент показывает именно ту, которой ходят.
+	cardId: EEventID,
 }
 
 export interface ITurnContextBurn {
@@ -22,6 +26,7 @@ export interface ITurnContextBurn {
 	offensePlayer: Player,
 	defensePlayer: Player | null,
 	cardUniqueId: string;
+	cardId: EEventID,
 }
 
 export interface ITurnContextSeduction {

@@ -6,6 +6,7 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
 import {formatCards} from 'server/helpers/cardHelpers';
+import {EEventID} from 'shared/enum/cards';
 import {EGameLogType} from 'shared/enum/gameLogType';
 
 
@@ -38,6 +39,7 @@ export const analysisSelect = ({game, player, selectedPlayerId} : {game: Game, p
 	game.addLog(`Игрок ${player.nickname} играет карту Анализ на игрока ${selectedPlayer.nickname}`, EGameLogType.card)
 
 	game.addLog(`Игрок ${player.nickname} анализирует ${selectedPlayer.nickname}`, EGameLogType.card);
+	game.addCardEffect({cardId: EEventID.analysis, player, target: selectedPlayer});
     player.notify(formatPlayerNotification({
       player: player,
       notification: {

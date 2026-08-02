@@ -21,6 +21,7 @@ export const fearAct = ({card, game, player} : {card:ICardEvent, game: Game, pla
 	player.changeTurnState(ETurnState.idle);
 	player.discardCard(card.uniqueId);
 	game.addLog(`${player.nickname}: используя карту Страх отказывается от обмена с игроком ${context.offensePlayer.nickname}`, EGameLogType.defense);
+	game.addCardEffect({cardId: EEventID.fear, player, target: context.offensePlayer});
 	game.grabEventCardFromDeck({player});
 	//const offensePlayer = context.offensePlayer;
 	//offensePlayer.getCard(context.offenseCard);

@@ -19,6 +19,7 @@ export const flamethrowerAct = ({card, game, player} : {card:ICardEvent, game: G
 		offensePlayer: player,
 		defensePlayer: null,
 		cardUniqueId: card.uniqueId,
+		cardId: EEventID.flamethrower,
 	};
 
 
@@ -45,7 +46,8 @@ export const flamethrowerSelect = ({game, player, selectedPlayerId} : {game: Gam
 		type: ETurnContextType.burn,
 		offensePlayer: player,
 		defensePlayer: defensePlayer,
-		cardUniqueId: game.turnContext.cardUniqueId
+		cardUniqueId: game.turnContext.cardUniqueId,
+		cardId: game.turnContext.cardId,
 	};
     let decisionMenu = [{
 		text: 'Сгореть',
@@ -111,6 +113,7 @@ export const flamethrowerFinish = ({game, player, action} : {game: Game, player:
 			if (noFireCard && noFireCard.uniqueId) {
 				defensePlayer.discardCard(noFireCard.uniqueId)
 			}
+			game.addCardEffect({cardId: EEventID.noFire, player: defensePlayer, target: offensePlayer});
 			game.grabEventCardFromDeck({player});
 			break;
 		}

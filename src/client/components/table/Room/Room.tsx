@@ -7,11 +7,17 @@ import {degToRag, playerRoomDiag, roomRadii} from 'client/helpers/roomHelpers';
 import GameController from 'client/controllers/gameController';
 import PlayerBadge from 'client/components/table/PlayerBadge/PlayerBadge';
 import CardFlights from 'client/components/table/Room/CardFlight';
+import CardEffects from 'client/components/table/Room/CardEffect';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ENotificationAction} from 'shared/enum/notifications';
-import {AnimatedPixi} from 'client/components/table/pixiInjected';
-import {Container} from 'react-pixi-fiber';
+import {AnimatedPixi, getPixiTexture} from 'client/components/table/pixiInjected';
+import {cardColor, cardImage, tradeColor} from 'client/helpers/cardVisuals';
+import {cardAspectRatio} from 'shared/constant/cards';
+import {EPanicID} from 'shared/enum/cards';
+import {Container, Sprite} from 'react-pixi-fiber';
+import Circle from 'client/components/pixiPrimitives/Circle';
+import {emojiTexture} from 'client/helpers/emojiTexture';
 import {tableCenterX, tableCenterY} from 'client/helpers/window';
 import type {IPlayersMap} from 'client/controllers/socketTypes';
 import type {IFormatTradeContext} from 'shared/interfaces/common';
@@ -26,6 +32,15 @@ interface IPoint {
 	y: number;
 }
 
+// Размер карты действия на стрелке и радиус значка обмена — в долях радиуса
+// бейджа. Карта не должна съедать саму стрелку: соседи по столу сидят близко.
+const arrowIconShare = 0.55;
+// Значок обмена: радиус кружка в долях радиуса бейджа, цвет подложки и шрифты,
+// в которых у эмодзи есть цветной глиф.
+const tradeIconShare = 0.42;
+const tradeIconBackground = 0x14110c;
+const handshakeEmoji = '\u{1F91D}';
+
 interface IArrowShape {
 	ax: number;
 	ay: number;
@@ -39,6 +54,10 @@ interface IArrowShape {
 	arrowY: number;
 	arrowRotation: number;
 	arrowHeight: number;
+	// Середина стрелки: там показывается карта, которой ходят (или значок обмена).
+	midX: number;
+	midY: number;
+	iconSize: number;
 	color: number;
 }
 
@@ -80,27 +99,23 @@ const getDistanceBetweenPoints = (x1: number, y1: number, x2: number, y2: number
 	return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
 }
 
-const getColorByArrowType = (arrowType: ETurnContextType): number => {
-	switch (arrowType) {
-		case ETurnContextType.positionswap:
-			return 0x00adff;
-		case ETurnContextType.burn:
-			return 0xff0000;
-		default:
-			return 0xffdf00;
-	}
+// Цвет стрелки — цвет карты, которой ходят. Обмен идёт без открытой карты, у
+// цепной реакции карта своя — паника, с которой всё началось.
+const getArrowColor = ({type, cardId}: IFormatTradeContext): number => {
+	if (cardId) return cardColor(cardId);
+	if (type === ETurnContextType.chainReaction) return cardColor(EPanicID.chainReaction);
+	return tradeColor;
 }
 
 interface ILineAnimationArgs {
-	type: ETurnContextType;
+	context: IFormatTradeContext;
 	newPlayerList: string[];
 	badgeRadius: number;
-	offensePlayerId: string | null;
-	defensePlayerId: string | null;
 	players: IPlayersMap;
 }
 
-const lineAnimation = ({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players}: ILineAnimationArgs): IArrowShape => {
+const lineAnimation = ({context, newPlayerList, badgeRadius, players}: ILineAnimationArgs): IArrowShape => {
+	const {offensePlayerId, defensePlayerId} = context;
 	const biggerBadgeRad = badgeRadius + 5;
 
 	const {x:ax,y:ay} = getPositionFromPlayerList({players, playerId: offensePlayerId ?? '', playerList: newPlayerList});
@@ -137,7 +152,10 @@ const lineAnimation = ({type, newPlayerList, badgeRadius, offensePlayerId, defen
 		arrowY: arrowY,
 		arrowRotation: angleBetweenPointsDeg + 90,
 		arrowHeight: arrowHeight,
-		color: getColorByArrowType(type),
+		midX: midX,
+		midY: midY,
+		iconSize: badgeRadius * arrowIconShare,
+		color: getArrowColor(context),
 	}
 }
 
@@ -194,9 +212,12 @@ const Room = observer(({controller} : IRoomProps) => {
 		arrowY: 0,
 		arrowRotation: 0,
 		arrowHeight: 0,
+		midX: 0,
+		midY: 0,
+		iconSize: 0,
 		color: 0,
-		from: ({offensePlayerId, defensePlayerId, type}) => {
-			const {ax,ay, arrowRotation, color} = lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
+		from: (context) => {
+			const {ax, ay, arrowRotation, color} = lineAnimation({context, newPlayerList, badgeRadius, players});
 			return {
 				ax,
 				ay,
@@ -210,17 +231,20 @@ const Room = observer(({controller} : IRoomProps) => {
 				arrowY: ay,
 				arrowRotation,
 				arrowHeight: 0,
+						midX: ax,
+				midY: ay,
+				iconSize: 0,
 				color,
 			}
 		},
-		enter: ({offensePlayerId, defensePlayerId, type}) => {
-			return lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
+		enter: (context) => {
+			return lineAnimation({context, newPlayerList, badgeRadius, players});
 		},
-		update: ({offensePlayerId, defensePlayerId, type}) => {
-			return lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
+		update: (context) => {
+			return lineAnimation({context, newPlayerList, badgeRadius, players});
 		},
-		leave: ({offensePlayerId, defensePlayerId, type}) => {
-			const {bx, by, arrowRotation, color} = lineAnimation({type, newPlayerList, badgeRadius, offensePlayerId, defensePlayerId, players});
+		leave: (context) => {
+			const {bx, by, arrowRotation, color} = lineAnimation({context, newPlayerList, badgeRadius, players});
 			return {
 				ax: bx,
 				ay: by,
@@ -234,6 +258,9 @@ const Room = observer(({controller} : IRoomProps) => {
 				arrowY: by,
 				arrowRotation,
 				arrowHeight: 0,
+						midX: bx,
+				midY: by,
+				iconSize: 0,
 				color,
 			}
 		},
@@ -283,13 +310,42 @@ const Room = observer(({controller} : IRoomProps) => {
 					</AnimatedPixi.Container>
 				)
 			})}
-			{map(arrows, ({key, props }) => {
+			{map(arrows, ({key, item, props }) => {
 				if (!props.bx || !props.by) return null
+				const {midX, midY, iconSize, color, ...arrowProps} = props;
+				const actionImage = cardImage(item.cardId);
 				return (
 					<Container key={key}>
 						<AnimatedPixi.Arrow
-							{...props}
+							{...arrowProps}
+							color={color}
 						/>
+						{actionImage ? (
+							// Карта, которой ходят, — прямо на стрелке: видно, что применили.
+							<AnimatedPixi.Sprite
+								texture={getPixiTexture(actionImage)}
+								anchor={0.5}
+								x={midX}
+								y={midY}
+								width={iconSize}
+								height={iconSize.interpolate(size => size * cardAspectRatio)}
+							/>
+						) : (
+							// У обмена карта скрыта — вместо неё «по рукам» на кружке цвета
+							// стрелки: на тёмном столе один эмодзи без подложки теряется.
+							// Двигается контейнер, а его содержимое статично — так стол не
+							// перерисовывает круги и эмодзи покадрово.
+							<AnimatedPixi.Container x={midX} y={midY}>
+								<Circle r={badgeRadius * tradeIconShare} color={getArrowColor(item)}/>
+								<Circle r={badgeRadius * tradeIconShare * 0.84} color={tradeIconBackground}/>
+								<Sprite
+									texture={emojiTexture(handshakeEmoji)}
+									anchor={0.5}
+									width={badgeRadius * tradeIconShare * 1.15}
+									height={badgeRadius * tradeIconShare * 1.15}
+								/>
+							</AnimatedPixi.Container>
+						)}
 					</Container>
 				)
 			})}
@@ -297,6 +353,11 @@ const Room = observer(({controller} : IRoomProps) => {
 				controller={controller}
 				getPosition={playerId => getPositionFromPlayerList({players, playerId, playerList: newPlayerList})}
 				cardWidth={badgeDiagonal * 0.42}
+			/>
+			<CardEffects
+				controller={controller}
+				getPosition={playerId => getPositionFromPlayerList({players, playerId, playerList: newPlayerList})}
+				badgeRadius={badgeRadius}
 			/>
 		</Container>
 	)

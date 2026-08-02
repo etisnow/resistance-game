@@ -17,6 +17,9 @@ import type {IFormatTradeContext} from 'shared/interfaces/common';
 
 // Сколько летит одна карта.
 const flightMs = 750;
+// Больше стольких карт разом в воздухе не держим: цепная реакция за столом на
+// восьмерых иначе поднимает в воздух всю колоду.
+const maxFlights = 8;
 // Насколько карта уходит вбок от прямой между игроками, в долях длины пути:
 // это и есть «горб» параболы.
 const arcRatio = 0.25;
@@ -202,7 +205,7 @@ const CardFlights = observer(({controller, getPosition, cardWidth}: ICardFlights
 		remember();
 
 		if (!started.length) return;
-		setFlights(current => [...current, ...started]);
+		setFlights(current => [...current, ...started].slice(-maxFlights));
 		const startedIds = map(started, ({id}) => id);
 		const timeout = setTimeout(() => {
 			setFlights(current => filter(current, ({id}) => !startedIds.includes(id)));

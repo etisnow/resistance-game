@@ -70,6 +70,7 @@ const formatTradeContext = (game: Game) : IFormatTradeContext[] | undefined => {
 			return [{
 				offensePlayerId: turnContext.offensePlayer ? turnContext.offensePlayer.id : null,
 				defensePlayerId: turnContext.defensePlayer ? turnContext.defensePlayer.id : null,
+				cardId: turnContext.cardId,
 				type: turnContext.type,
 			}]
 	}
@@ -100,6 +101,7 @@ const formatUpdatePlayerPayload = ({ game, viewer }: {game: Game, viewer: Player
 		isClockwise:  game.isClockwise,
 		gameLog: game.gameLog,
 		tradeContext: formatTradeContext(game),
+		cardEffects: game.cardEffects,
 		deck: formatDeck(game),
 		currentAction: viewer.currentAction,
 		isPlayerCanCancel: isPlayerCanCancel(game, viewer),

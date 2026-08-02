@@ -5,7 +5,7 @@
 import type { ECardType } from 'shared/enum/cards';
 import type { EGameState } from 'shared/enum/common';
 import type { ICardEvent } from 'shared/interfaces/cards';
-import type { IFormatTradeContext } from 'shared/interfaces/common';
+import type { IFormatCardEffect, IFormatTradeContext } from 'shared/interfaces/common';
 import type INotificationAction from 'shared/interfaces/notification';
 import type { IGameLogEntry } from 'shared/interfaces/gameLog';
 import type Player from 'client/models/Player';
@@ -27,6 +27,7 @@ export type IHandActionsMap = { [key: string]: IHandActionEntry[] };
 
 export interface IGameUpdatePayload {
 	tradeContext: IFormatTradeContext[] | null;
+	cardEffects: IFormatCardEffect[];
 	players: IPlayersMap;
 	playersList: string[];
 	deck: IDeckPayload;

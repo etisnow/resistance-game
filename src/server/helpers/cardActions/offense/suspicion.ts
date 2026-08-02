@@ -6,6 +6,7 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
 import {formatCards} from 'server/helpers/cardHelpers';
+import {EEventID} from 'shared/enum/cards';
 import {EGameLogType} from 'shared/enum/gameLogType';
 
 
@@ -48,5 +49,6 @@ export const suspicionSelect = ({game, player, selectedPlayerId} : {game: Game, 
       },
     }));
 	game.addLog(`Игрок ${player.nickname} играет карту "Подозрение" на игрока ${playerToView.nickname}`, EGameLogType.card);
+	game.addCardEffect({cardId: EEventID.suspicion, player, target: playerToView});
 	player.changeTurnState(ETurnState.inOffenseTrade)
 };

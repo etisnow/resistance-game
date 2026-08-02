@@ -30,7 +30,12 @@ import {formatCards} from 'server/helpers/cardHelpers';
 import type {IServerEvent} from 'shared/interfaces/socket';
 import {EGameLogType} from 'shared/enum/gameLogType';
 import type {IGameLogEntry} from 'shared/interfaces/gameLog';
+import type {IFormatCardEffect} from 'shared/interfaces/common';
 
+// Сколько последних применений карт держим для клиента: он показывает только
+// то, что случилось с прошлого обновления, но переподключившемуся полезно
+// увидеть хвост, а не пустоту.
+const cardEffectsKept = 8;
 
 export class Game {
   id: string = '';
@@ -44,6 +49,8 @@ export class Game {
   hostPlayerId: string = '';
   gameLog: IGameLogEntry[] = [];
   turnContext: ITurnContext | null = null;
+  cardEffects: IFormatCardEffect[] = [];
+  cardEffectSeq: number = 0;
   gameInProcess:boolean = true;
   // Every game runs on its own seeded RNG so the whole game is reproducible from
   // this one number (logged as the first game-log line). A bug report's log is
@@ -155,6 +162,21 @@ export class Game {
       debugLog(clc.yellowBright(log))
       this.gameLog.push({text: log, type})
     }
+  }
+
+  // Применение карты, после которого на столе не остаётся стрелки: подсмотр
+  // «Подозрением», отказ от обмена и прочие разовые действия. Клиент рисует их
+  // поверх бейджа игрока, поэтому хвост держим коротким — старое ему не нужно.
+  addCardEffect({cardId, player, target}: {cardId: string, player: Player, target?: Player | null}) {
+    if (!this.gameInProcess) return;
+    this.cardEffectSeq += 1;
+    this.cardEffects.push({
+      seq: this.cardEffectSeq,
+      cardId,
+      playerId: player.id,
+      targetPlayerId: target ? target.id : null,
+    });
+    if (this.cardEffects.length > cardEffectsKept) this.cardEffects = this.cardEffects.slice(-cardEffectsKept);
   }
 
   end = (lastMessage: string) => {
