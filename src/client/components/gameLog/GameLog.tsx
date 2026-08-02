@@ -8,6 +8,7 @@ import GameController from 'client/controllers/gameController';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {EGameLogType} from 'shared/enum/gameLogType';
 import type {IGameLogEntry} from 'shared/interfaces/gameLog';
+import {renderCardMentions} from 'client/components/hint/CardHint';
 
 interface IGameLogProps {
 	controller: GameController
@@ -57,12 +58,13 @@ const getNickHighlights = (controller: GameController): INickHighlight[] => {
 	return highlights.sort((a, b) => b.nickname.length - a.nickname.length);
 };
 
-const renderTextWithNicks = (text: string, highlights: INickHighlight[]) => {
-	if (!highlights.length) return text;
+// Ники разбираем первыми: игрок с ником «Топор» остаётся игроком, а не картой.
+const renderLogText = (text: string, highlights: INickHighlight[]) => {
+	if (!highlights.length) return renderCardMentions(text);
 	const pattern = new RegExp(`(${map(highlights, (h) => escapeRegExp(h.nickname)).join('|')})`, 'g');
 	return map(text.split(pattern), (part, index) => {
 		const highlight = find(highlights, (h) => h.nickname === part);
-		if (!highlight) return <React.Fragment key={index}>{part}</React.Fragment>;
+		if (!highlight) return <React.Fragment key={index}>{renderCardMentions(part)}</React.Fragment>;
 		return <span
 			key={index}
 			className={cn('logNick', {isYou: highlight.isYou})}
@@ -77,7 +79,7 @@ const LogLine = ({entry, highlights}: {entry: IGameLogEntry, highlights: INickHi
 	const type = entry.type || EGameLogType.info;
 	return <div className={cn('logLine', `logLine--${type}`)}>
 		<span className={'logIcon'}>{LOG_ICONS[type] || LOG_ICONS[EGameLogType.info]}</span>
-		<span className={'logText'}>{renderTextWithNicks(entry.text, highlights)}</span>
+		<span className={'logText'}>{renderLogText(entry.text, highlights)}</span>
 	</div>;
 };
 

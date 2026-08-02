@@ -1,0 +1,66 @@
+// Якорь подсказки — ровно то, что в неё завернули: слово, миниатюра, бейдж.
+.hoverHint {
+    display: inline;
+    cursor: help;
+}
+
+// Слово-упоминание карты: пунктир снизу — единственный намёк, что тут есть что
+// посмотреть. Перенос по словам запрещаем: окошко целится в центр якоря, а
+// разорванное на две строки название дало бы центр где-то посередине абзаца.
+.cardMention {
+    border-bottom: 1px dashed currentColor;
+    white-space: nowrap;
+}
+
+.hoverHintPopup {
+    position: fixed;
+    z-index: 1000;
+    display: flex;
+    // Подсказка по наведению не ловит курсор: иначе она сама уводила бы
+    // указатель со слова и мигала. Прикреплённой курсор нужен — там крестик.
+    pointer-events: none;
+
+    &.isPinned {
+        pointer-events: auto;
+    }
+}
+
+// Полупрозрачная «стена» под прикреплённой подсказкой: тап мимо закрывает её.
+.hoverHintBackdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999;
+    background: #00000040;
+}
+
+.hoverHintClose {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid #ffffff59;
+    background: #000000d9;
+    color: white;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+// Карта в подсказке — крупно, чтобы читался её текст: примерно как карта под
+// курсором в руке (там это ~40% высоты экрана). Второе ограничение — по
+// ширине: на узком экране карта не должна упираться в края.
+.cardHint .cardHintImage {
+    height: min(46vh, 122vw);
+    max-height: 460px;
+    aspect-ratio: 1 / 1.46;
+    width: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    filter: drop-shadow(0 6px 18px #000000cc);
+}

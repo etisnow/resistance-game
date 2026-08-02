@@ -5,7 +5,9 @@ import {Container, Sprite, Text} from 'react-pixi-fiber';
 import Circle from 'client/components/pixiPrimitives/Circle';
 import {resources} from 'client/resources/resources';
 import {getPixiTexture} from 'client/components/table/pixiInjected';
+import {toggleCardHintFor} from 'client/components/hint/canvasHint';
 import {EPlayerMark} from 'shared/enum/playerMarks';
+import {EEventID} from 'shared/enum/cards';
 
 interface IPlayerBadgeProps {
 	id: string;
@@ -41,17 +43,33 @@ const formatNickname = (nickname: string | null): string | null => {
 	return nickname.substring(0,4).toUpperCase()
 };
 
-const Quarantine = ({quarantine, badgeRadius}: {quarantine: number; badgeRadius: number}) => {
+// Точки отсчитывают оставшиеся ходы карантина. Нажатие по ним показывает саму
+// карту «Карантин»: по жёлтым точкам не догадаться, что именно на игрока сыграли.
+// Сами точки крошечные, поэтому область нажатия растягиваем на всю ширину бейджа
+// и делаем не тоньше пальца.
+const quarantineHitHeight = 30;
+
+const Quarantine = ({quarantine, badgeRadius, isInteractive}: {quarantine: number; badgeRadius: number; isInteractive: boolean}) => {
 	const r = badgeRadius * 0.05;
 	const yOffset = badgeRadius * 0.45;
 	const xOffset = r * 4;
-	return quarantine ? (
-		<Container>
+	if (!quarantine) return null;
+	const hitWidth = Math.max(badgeRadius, r * 4 * quarantine);
+	const hitArea = new PIXI.Rectangle(-hitWidth / 2, yOffset - quarantineHitHeight / 2, hitWidth, quarantineHitHeight);
+	return (
+		<Container
+			interactive={isInteractive}
+			buttonMode={isInteractive}
+			hitArea={hitArea}
+			pointerdown={(event: PIXI.interaction.InteractionEvent) => isInteractive
+				? toggleCardHintFor(EEventID.quarantine, event)
+				: null}
+		>
 			{ map(range(quarantine), (_q, index) => {
 				return <Circle key={index} xCoord={(index * r * 4) - xOffset } yCoord={yOffset} color={0xFFFF00} r={r}/>
 			})}
 		</Container>
-	) :  null;
+	);
 }
 
 const playerBadgesByKey: Record<string, string | undefined> = resources.playerBadges;
@@ -118,6 +136,17 @@ const PlayerBadge = ({
 		onLongPress && onLongPress(id);
 	}
 
+	// Дверь — это не игрок, а лежащая на столе карта «Заколоченная дверь»:
+	// нажатие по ней показывает саму карту. Пока дверь можно выбрать целью
+	// (топор), выбор важнее подсказки.
+	const onBadgePointerDown = (event: PIXI.interaction.InteractionEvent) => {
+		if (canBeSelected) {
+			onSelect && onSelect(id);
+			return;
+		}
+		if (isDoor) toggleCardHintFor(EEventID.barricade, event);
+	};
+
 	// NOTE: цвет приходит только после gameStarter (до старта он ''), поэтому
 	// проверка обязана быть ДО поиска текстуры: getPixiTexture кидает исключение,
 	// а бросок из рендера роняет весь <Stage> целиком (error boundary тут нет).
@@ -145,14 +174,14 @@ const PlayerBadge = ({
 				width={style.height}
 				height={style.height}
 				alpha={quarantine>0 ? 0.4 : 1}
-				interactive={canBeSelected}
-				buttonMode={canBeSelected}
-				pointerdown={() => (onSelect && canBeSelected) ? onSelect(id) : null}
+				interactive={canBeSelected || isDoor}
+				buttonMode={canBeSelected || isDoor}
+				pointerdown={onBadgePointerDown}
 			/>
 			{!isDoor && (
 				<React.Fragment>
 					<Text text={nick} anchor={0.5} style={{fontFamily : 'Arial', fontSize: 14, fill : 0xFFFFFF, align : 'center'}}/>
-					<Quarantine quarantine={quarantine} badgeRadius={style.height/2} />
+					<Quarantine quarantine={quarantine} badgeRadius={style.height/2} isInteractive={!canBeSelected} />
 					{inTurn && (
 						<Circle xCoord={0} yCoord={-style.height/2} color={0x00FF00} r={style.height * 0.07}/>
 					)}

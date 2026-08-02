@@ -14,6 +14,7 @@ import ActionCanceler from 'client/components/table/ActionCanceler/ActionCancele
 import TableMenu from 'client/components/table/TableMenu/TableMenu';
 import {StageBoundary} from 'client/components/table/StageBoundary';
 import {TableStage} from 'client/components/table/TableStage';
+import {CardHintOverlay} from 'client/components/hint/CardHint';
 
 
 interface ITableProps {
@@ -40,6 +41,8 @@ const Table = observer(({controller} : ITableProps) => {
 						<Notifier controller={controller} />
 					</TableStage>
 				</StageBoundary>
+				{/* Подсказка по тому, что нарисовано на столе: дверь, карантин. */}
+				<CardHintOverlay/>
 
 				{/*<div className={"debug-div"}><div></div></div>*/}
 {/*
