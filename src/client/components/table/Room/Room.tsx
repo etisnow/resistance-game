@@ -7,6 +7,7 @@ import {degToRag, playerRoomDiag, roomRadii} from 'client/helpers/roomHelpers';
 import GameController from 'client/controllers/gameController';
 import PlayerBadge from 'client/components/table/PlayerBadge/PlayerBadge';
 import CardFlights from 'client/components/table/Room/CardFlight';
+import CardDraws from 'client/components/table/Room/CardDraw';
 import CardEffects from 'client/components/table/Room/CardEffect';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {ETurnContextType} from 'shared/enum/turnContextType';
@@ -382,6 +383,15 @@ const Room = observer(({controller} : IRoomProps) => {
 				controller={controller}
 				getPosition={playerId => getPositionFromPlayerList({players, playerId, playerList: newPlayerList})}
 				cardWidth={badgeDiagonal * 0.42}
+			/>
+			{/* Взятие карты из колоды: колода лежит в центре стола, то есть в начале
+			    координат этого контейнера. Ширина карты в колоде — та же
+			    badgeDiagonal, что и у Deck. */}
+			<CardDraws
+				controller={controller}
+				getPosition={playerId => getPositionFromPlayerList({players, playerId, playerList: newPlayerList})}
+				deckCardWidth={badgeDiagonal}
+				badgeRadius={badgeRadius}
 			/>
 			<CardEffects
 				controller={controller}

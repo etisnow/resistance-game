@@ -30,12 +30,15 @@ import {formatCards} from 'server/helpers/cardHelpers';
 import type {IServerEvent} from 'shared/interfaces/socket';
 import {EGameLogType} from 'shared/enum/gameLogType';
 import type {IGameLogEntry} from 'shared/interfaces/gameLog';
-import type {IFormatCardEffect} from 'shared/interfaces/common';
+import type {IFormatCardDraw, IFormatCardEffect} from 'shared/interfaces/common';
 
 // Сколько последних применений карт держим для клиента: он показывает только
 // то, что случилось с прошлого обновления, но переподключившемуся полезно
 // увидеть хвост, а не пустоту.
 const cardEffectsKept = 8;
+// То же самое для взятий карт из колоды: хвост короче — за столом на восьмерых
+// круг успевает пройти быстро, а показывать чужие давние взятия незачем.
+const cardDrawsKept = 6;
 
 // Контексты хода, которые бывают только внутри события паники: пока стол ждёт
 // ответа по такому контексту, паника считается идущей и её карта лежит на столе.
@@ -62,6 +65,8 @@ export class Game {
   turnContext: ITurnContext | null = null;
   cardEffects: IFormatCardEffect[] = [];
   cardEffectSeq: number = 0;
+  cardDraws: IFormatCardDraw[] = [];
+  cardDrawSeq: number = 0;
   // Сработавшая паника: карта лежит на столе всё время своего события, клиент
   // показывает её крупно в центре и не даёт тянуть новую карту, пока она там.
   panicCard: ICardPanic | null = null;
@@ -220,6 +225,17 @@ export class Game {
       targetPlayerId: target ? target.id : null,
     });
     if (this.cardEffects.length > cardEffectsKept) this.cardEffects = this.cardEffects.slice(-cardEffectsKept);
+  }
+
+  // Карты ушли из колоды игроку на руку. Клиент по этому событию пускает карту
+  // от колоды: взявшему — лицом к нему в руку, остальным — рубашкой в его
+  // кружок. Обмены и цепную реакцию сюда не пишем: те карты идут не из колоды и
+  // летают по своим правилам (см. CardFlight).
+  addCardDraw({player, count = 1}: {player: Player, count?: number}) {
+    if (!this.gameInProcess) return;
+    this.cardDrawSeq += 1;
+    this.cardDraws.push({seq: this.cardDrawSeq, playerId: player.id, count});
+    if (this.cardDraws.length > cardDrawsKept) this.cardDraws = this.cardDraws.slice(-cardDrawsKept);
   }
 
   end = (lastMessage: string) => {
@@ -387,6 +403,7 @@ export class Game {
     const eventCard = this.pickFirstEventCard();
     debugLog(`Игрок ${player.nickname} взял карту ${eventCard.id}`)
     this.addLog(`Игрок ${player.nickname} берет карту из колоды`, EGameLogType.deck);
+    this.addCardDraw({player});
     player.getCard(eventCard);
   }
 
@@ -450,6 +467,7 @@ export class Game {
     }
     player.currentAction = null;
     // Добавляем поднятую карту игроку на руку
+    this.addCardDraw({player});
     player.getCard(grabbedCard);
     // Карантин тикает ДО перехода в inCardAction: подпись действия ("только
     // топор или сброс") считается по тому же счетчику, что и доступные действия

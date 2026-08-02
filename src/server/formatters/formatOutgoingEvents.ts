@@ -113,6 +113,7 @@ const formatUpdatePlayerPayload = ({ game, viewer }: {game: Game, viewer: Player
 		gameLog: game.gameLog,
 		tradeContext: formatTradeContext(game),
 		cardEffects: game.cardEffects,
+		cardDraws: game.cardDraws,
 		panicCard: formatPanicCard(game),
 		deck: formatDeck(game),
 		currentAction: viewer.currentAction,

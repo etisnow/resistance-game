@@ -147,6 +147,9 @@ const fanRadius = () => clamp(getWindowWidth(), 200, 500)
 const fanCenterX = 0
 const fanCenterY = () => fanRadius() - (getWindowHeight() * 0.06)
 
+// Ширина карты в руке.
+const handCardWidth = () => playerCardWidthPix() * 1.1;
+
 const calculateSize = () => {
 	const width = Math.round(clamp(getWindowWidth() * 0.85, 0, 300));
 	const height = Math.round(width * cardAspectRatio);
@@ -182,9 +185,23 @@ const calculateCardStypeProps = (cardNumber: number, cardsCount: number, indexSh
 	const {x: rotationXPoint,y: rotationYPoint} = getCirclePoint(radius, cardRotationDeg, fanCenterX, centerY);
 	var angleBetweenPointsDeg = Math.atan2(rotationYPoint - centerY, rotationXPoint - fanCenterX) * 180 / Math.PI;
 
-	const width = playerCardWidthPix() * 1.1;
+	const width = handCardWidth();
 
 	return {x,y: y + playerHandHeight() * 0.65,angle:angleBetweenPointsDeg + 90, width}
+}
+
+// Место карты веера в координатах сцены — им заканчивается полёт карты, взятой
+// из колоды (см. CardDraw): карта ложится ровно в своё гнездо, с его наклоном и
+// шириной. Считаем здесь, а не у стола: вся геометрия веера тут, и повторённая
+// снаружи она однажды с ним разъедется. Контейнер руки опущен к низу экрана и
+// сдвинут пивотом на полширины — это и есть поправка.
+export const handCardScenePoint = (cardNumber: number, cardsCount: number): ICardStyleProps => {
+	const style = calculateCardStypeProps(cardNumber, cardsCount);
+	return {
+		...style,
+		x: getWindowWidth() / 2 + style.x,
+		y: getWindowHeight() - playerHandHeight() + style.y,
+	};
 }
 
 // Ряд карт в окне выбора (упорство и прочие selectCard/okayCard): ровная строка

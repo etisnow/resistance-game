@@ -41,6 +41,9 @@ export const tenacitySelect = ({game, player, cardUniqueId} : {game: Game, playe
 	game.addLog(`Игрок ${player.nickname} играет карту "Упорство"`, EGameLogType.card);
 	each(game.turnContext.cards, (card) => {
 		if (card.uniqueId === cardUniqueId) {
+			// Три карты упорства подняты из колоды заранее — со стола выбранная всё
+			// равно уходит игроку в руку, и лететь ей неоткуда, кроме как из колоды.
+			game.addCardDraw({player});
 			player.getCard(card);
 		} else {
 			game.discardedDeckPush(card);

@@ -26,6 +26,7 @@ export const blindDateSelect = ({game, cardUniqueId, player}: {game:Game, player
 	debugLog('BLIND DATE CARD UNIQUE', cardUniqueId);
 	player.discardCard(cardUniqueId);
 	const first = game.pickFirstEventCard();
+	game.addCardDraw({player});
 	player.getCard(first);
 	game.turnContext = null;
 	player.changeTurnState(ETurnState.inOffenseTrade);

@@ -69,6 +69,7 @@ export const forgetfullnessSelect = ({game, cardUniqueId, player}: {game:Game, p
 	const first = game.pickFirstEventCard();
 	const second = game.pickFirstEventCard();
 	const third = game.pickFirstEventCard();
+	game.addCardDraw({player, count: 3});
 	player.getCard(first);
 	player.getCard(second);
 	player.getCard(third);

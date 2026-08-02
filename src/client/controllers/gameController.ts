@@ -7,7 +7,7 @@ import {ECardType} from 'shared/enum/cards';
 import {EAppState, EGameState} from 'shared/enum/common';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import type {IFormatCardEffect, IFormatPanicCard, IFormatTradeContext} from 'shared/interfaces/common';
+import type {IFormatCardDraw, IFormatCardEffect, IFormatPanicCard, IFormatTradeContext} from 'shared/interfaces/common';
 import fscreen from 'fscreen';
 import {each, merge} from "lodash";
 import {EAsyncState} from 'shared/enum/async';
@@ -48,6 +48,9 @@ export default class GameController {
 	// Разовые применения карт (подсмотр, отказ от обмена и т.п.): стол рисует их
 	// поверх бейджа игрока. Смотри IFormatCardEffect.
 	@observable cardEffects: IFormatCardEffect[] = [];
+	// Взятия карт из колоды: стол пускает по ним карту от колоды к игроку.
+	// Смотри IFormatCardDraw и CardDraw.
+	@observable cardDraws: IFormatCardDraw[] = [];
 	// Сработавшая паника: лежит крупно в центре стола, пока идёт её событие (это
 	// решает сервер) и пока не вышел panicCardMinMs. Смотри syncPanicCard.
 	@observable panicCard: IFormatPanicCard | null = null;
@@ -266,7 +269,7 @@ export default class GameController {
 	// Одним действием: без него mobx отдаёт реакциям каждое присваивание по
 	// отдельности, и компонент успевает отрисоваться с новым контекстом хода, но
 	// ещё старой рукой и логом — а анимация обмена сверяет ровно их между собой.
-	@action updateGame = ({tradeContext, cardEffects, panicCard, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions, hostPlayerId, isPlayerCanCancel}: IGameUpdatePayload) => {
+	@action updateGame = ({tradeContext, cardEffects, cardDraws, panicCard, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions, hostPlayerId, isPlayerCanCancel}: IGameUpdatePayload) => {
 		this.updatePlayers(players);
 		this.updateHand(hand);
 		this.updateHandActions(handActions);
@@ -277,6 +280,7 @@ export default class GameController {
 		this.currentPlayerId = currentPlayer.id;
 		this.tradeContext = tradeContext;
 		this.cardEffects = cardEffects;
+		this.cardDraws = cardDraws;
 		this.syncPanicCard(panicCard);
 		this.currentAction = currentAction;
 		this.state = state;
