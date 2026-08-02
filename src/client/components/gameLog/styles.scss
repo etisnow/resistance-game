@@ -1,3 +1,5 @@
+@use '../../styles/scrollbar';
+
 .gameLogWrapper {
     width: 100%;
     max-width: 500px;
@@ -68,6 +70,7 @@
     }
 
     .gameLogList {
+        @include scrollbar.prettyScroll;
         flex: 1 1 auto;
         overflow: auto;
         padding: 4px 10px 10px;

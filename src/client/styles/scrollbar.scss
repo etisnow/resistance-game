@@ -1,0 +1,30 @@
+// Общая полоса прокрутки для всего, что листают: справочник карт, лог. Своя, а
+// не системная, потому что системная на тёмном полупрозрачном фоне выглядит
+// инородной светлой плашкой.
+//
+// Ползунок рисуется внутри правого паддинга контейнера, так что запас справа —
+// забота места вызова: где содержимое должно остаться симметричным, паддинг
+// компенсируют отрицательным margin.
+@mixin prettyScroll {
+	overscroll-behavior: contain;
+	scrollbar-width: thin;
+	scrollbar-color: #ffffff59 transparent;
+
+	&::-webkit-scrollbar {
+		width: 8px;
+	}
+
+	&::-webkit-scrollbar-track {
+		background: #ffffff14;
+		border-radius: 4px;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background: #ffffff59;
+		border-radius: 4px;
+
+		&:hover {
+			background: #ffffff8c;
+		}
+	}
+}

@@ -1,3 +1,5 @@
+@use '../../../styles/scrollbar';
+
 // Вровень с шапкой лога (та тоже начинается с top: 2%), справа — под неё в
 // .gameLogHeader зарезервирован padding-right.
 .tableMenuButton {
@@ -102,30 +104,10 @@
 	// Полоса прокрутки живёт в своём жёлобе справа: без отступа она наезжала бы
 	// на правую колонку карт, а тени миниатюр обрезались бы краем скролла.
 	.cardsCatalogScroll {
+		@include scrollbar.prettyScroll;
 		overflow-y: auto;
-		overscroll-behavior: contain;
 		padding-right: 10px;
 		margin-right: -10px;
-		scrollbar-width: thin;
-		scrollbar-color: #ffffff59 transparent;
-
-		&::-webkit-scrollbar {
-			width: 8px;
-		}
-
-		&::-webkit-scrollbar-track {
-			background: #ffffff14;
-			border-radius: 4px;
-		}
-
-		&::-webkit-scrollbar-thumb {
-			background: #ffffff59;
-			border-radius: 4px;
-
-			&:hover {
-				background: #ffffff8c;
-			}
-		}
 	}
 
 	.cardsCatalogSection + .cardsCatalogSection {
