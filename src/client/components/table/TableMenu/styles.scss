@@ -40,21 +40,153 @@
 		text-align: center;
 		margin-bottom: 15px;
 	}
+}
 
-	.tableMenuItem {
-		width: 100%;
-		padding: 9px;
-		margin-bottom: 10px;
-		border: 0;
-		border-radius: 5px;
+// Кнопка меню — не только в самом меню: тем же выглядит «Назад» в справочнике.
+.tableMenuItem {
+	width: 100%;
+	padding: 9px;
+	margin-bottom: 10px;
+	border: 0;
+	border-radius: 5px;
+	color: white;
+	font-size: 14px;
+	cursor: pointer;
+	box-shadow: 0 4px 7px black;
+	background: linear-gradient(180deg, #6c920e 0%, #005213 100%);
+
+	&.danger {
+		background: linear-gradient(180deg, #922e0e 0%, #520500 100%);
+	}
+}
+
+// Справочник карт. Затемнение слабее, чем у меню: сквозь него должен читаться
+// стол — за тем и открывают справочник посреди партии.
+.cardsCatalogOverlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 200;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.45);
+}
+
+.cardsCatalog {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	max-width: 460px;
+	max-height: 88%;
+	padding: 18px;
+	border-radius: 12px;
+	border: 1px solid #ffffff1f;
+	// Само окно тоже полупрозрачное: подложка только приглушает стол под
+	// картами, чтобы миниатюры не спорили с тем, что происходит на нём.
+	background: rgba(0, 0, 0, 0.35);
+	backdrop-filter: blur(6px);
+	box-shadow: 0 12px 32px #000000a6;
+
+	.cardsCatalogTitle {
+		flex-shrink: 0;
+		margin-bottom: 14px;
 		color: white;
-		font-size: 14px;
-		cursor: pointer;
-		box-shadow: 0 4px 7px black;
-		background: linear-gradient(180deg, #6c920e 0%, #005213 100%);
+		font-size: 17px;
+		text-align: center;
+		text-shadow: 0 2px 4px black;
+	}
 
-		&.danger {
-			background: linear-gradient(180deg, #922e0e 0%, #520500 100%);
+	// Полоса прокрутки живёт в своём жёлобе справа: без отступа она наезжала бы
+	// на правую колонку карт, а тени миниатюр обрезались бы краем скролла.
+	.cardsCatalogScroll {
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		padding-right: 10px;
+		margin-right: -10px;
+		scrollbar-width: thin;
+		scrollbar-color: #ffffff59 transparent;
+
+		&::-webkit-scrollbar {
+			width: 8px;
 		}
+
+		&::-webkit-scrollbar-track {
+			background: #ffffff14;
+			border-radius: 4px;
+		}
+
+		&::-webkit-scrollbar-thumb {
+			background: #ffffff59;
+			border-radius: 4px;
+
+			&:hover {
+				background: #ffffff8c;
+			}
+		}
+	}
+
+	.cardsCatalogSection + .cardsCatalogSection {
+		margin-top: 22px;
+	}
+
+	// Заголовок раздела — тихий: он разделяет ряды карт, а не соперничает с ними.
+	// Линейка тянется до конца строки, поэтому заголовок и она в одной сетке.
+	.cardsCatalogSectionTitle {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		align-items: center;
+		gap: 10px;
+		margin-bottom: 10px;
+		color: #ffffffd9;
+		font-size: 12px;
+		letter-spacing: 1.2px;
+		text-transform: uppercase;
+		text-shadow: 0 2px 4px black;
+
+		&:after {
+			content: '';
+			height: 1px;
+			background: linear-gradient(90deg, #ffffff40, #ffffff00);
+		}
+	}
+
+	// Ровно три в ряд: миниатюра тянется по колонке, высота — от пропорций карты.
+	.cardsCatalogGrid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 12px 10px;
+	}
+
+	// Якорь подсказки поверх миниатюры: CardHint вешает .cardMention с пунктиром
+	// и inline-раскладкой — под картинку в сетке это не годится.
+	.cardsCatalogItem {
+		display: block;
+		border-bottom: 0;
+		cursor: pointer;
+	}
+
+	// Карта под курсором чуть подаётся вперёд — тот же язык, что и в руке.
+	.cardsCatalogThumb {
+		display: block;
+		width: 100%;
+		aspect-ratio: 1 / 1.46;
+		object-fit: contain;
+		border-radius: 6px;
+		box-shadow: 0 3px 8px #000000b3;
+		transition: transform 0.12s ease-out, box-shadow 0.12s ease-out;
+	}
+
+	.cardsCatalogItem:hover .cardsCatalogThumb {
+		transform: translateY(-2px) scale(1.03);
+		box-shadow: 0 6px 14px #000000cc;
+	}
+
+	.cardsCatalogBack {
+		flex-shrink: 0;
+		margin-top: 16px;
+		margin-bottom: 0;
 	}
 }
