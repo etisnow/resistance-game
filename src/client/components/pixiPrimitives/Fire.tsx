@@ -11,6 +11,10 @@ import {noiseGlsl} from 'client/components/pixiPrimitives/noiseGlsl';
 // Время и «сколько горения прошло» приходят пропсами: их гонит пружина
 // react-spring снаружи (см. AnimatedPixi.Fire), так что своего тикера у огня нет.
 
+// Сколько искр в струе. Их состояние считает процессор и кладёт в uniform-массив
+// (см. updateJetParticles): для шейдера это всего лишь чтение готовых чисел.
+const JET_PARTICLES = 28;
+
 const vertex = `
 attribute vec2 aVertexPosition;
 attribute vec2 aUv;
@@ -55,6 +59,9 @@ uniform float uOrigin;
 // Считаются они по-разному, но живут от одних и тех же uTime/uLife (см. ветки
 // в main).
 uniform float uMode;
+// Искры струи: xy — место (снос поперёк и путь вдоль), z — размер, w — жизнь.
+uniform vec4 uSparks[${JET_PARTICLES}];
+uniform vec3 uSparkColors[${JET_PARTICLES}];
 
 ${noiseGlsl}
 
@@ -176,42 +183,25 @@ void main() {
 
 		float glow = 0.0;
 		vec3 tint = vec3(0.0);
-		for (int i = 0; i < 28; i++) {
-			float fi = float(i);
-			float rnd = hash(vec2(fi, uSeed * 13.0));
-			// Возраст: 0 — только вылетела из сопла, 1 — догорела на излёте.
-			float age = fract(uTime * 0.95 + fi / 28.0 + rnd * 0.02);
-			float along = age * 1.04;
-			// До цели струю почти не водит: из огнемёта целятся, а не машут им.
-			// По самой цели она ходит чуть-чуть, а вот за ней поток уже
-			// разбрасывает во все стороны — там его ничто не держит.
-			float amp = 0.05 * smoothstep(0.0, uOrigin * 0.9, along)
-				+ 0.55 * smoothstep(uOrigin, 1.0, along);
-			// Старея, частица раздувается и остывает.
-			float size = (0.034 + 0.115 * age) * (0.65 + 0.7 * rnd);
-			// Дальше 2.2 своих размеров частица не светит вовсе — там вычитание
-			// ниже обнуляет яркость точно. Для такого пикселя её можно не считать,
-			// а этот цикл — самое дорогое место всего огня. Поперёк отсекаем по
-			// верхней оценке сноса (сумме амплитуд), чтобы не считать два синуса
-			// ради частицы, которая всё равно не достаёт.
-			float reach2 = 2.2 * size;
-			if (abs(up - along) > reach2) continue;
-			if (abs(sx) > reach2 + 0.54 * amp) continue;
-			// Поток змеится: по нему бежит волна, весь ствол вдобавок водит из
-			// стороны в сторону, и у каждой частицы свой снос. Всё это — в меру
-			// amp, то есть почти никак до цели и вовсю за ней.
-			float wander = (sin(along * 4.5 - uTime * 4.2 + rnd * 6.283) * 0.16
-				+ sin(uTime * 1.7 + uSeed * 6.283) * 0.2
-				+ (rnd - 0.5) * 0.18) * amp;
-			vec2 rel = vec2(sx - wander, up - along) / max(size, 0.01);
+		// Где какая частица, какого размера и какого цвета — считает процессор
+		// один раз на кадр (см. updateJetParticles). Раньше это делал каждый
+		// пиксель заново: хеш, два синуса и четыре smoothstep на частицу, то есть
+		// одна и та же работа миллионы раз подряд.
+		for (int i = 0; i < ${JET_PARTICLES}; i++) {
+			// x — снос поперёк потока, y — сколько пролетела, z — размер,
+			// w — насколько ещё жива.
+			vec4 spark = uSparks[i];
+			// Дальше 2.2 своих размеров частица не светит вовсе: вычитание ниже
+			// обнуляет яркость точно. Для такого пикселя её можно не считать.
+			float reach2 = 2.2 * spark.z;
+			if (abs(up - spark.y) > reach2) continue;
+			if (abs(sx - spark.x) > reach2) continue;
+			vec2 rel = vec2(sx - spark.x, up - spark.y) / max(spark.z, 0.01);
 			// Свечение по закону обратных квадратов, но с обрезанным хвостом: у
 			// честного 1/d² хвост бесконечный, и он затягивает весь квад дымкой.
-			float brightness = max(0.34 / (dot(rel, rel) + 0.06) - 0.06, 0.0)
-				* smoothstep(1.0, 0.72, age);
-			vec3 hue = mix(vec3(1.0, 1.0, 0.95), vec3(1.0, 0.62, 0.04), smoothstep(0.03, 0.35, age));
-			hue = mix(hue, vec3(1.0, 0.11, 0.01), smoothstep(0.35, 0.85, age));
+			float brightness = max(0.34 / (dot(rel, rel) + 0.06) - 0.06, 0.0) * spark.w;
 			glow += brightness;
-			tint += hue * brightness;
+			tint += uSparkColors[i] * brightness;
 		}
 		// У самого сопла — раскалённое устье: огонь всё-таки откуда-то бьёт.
 		float muzzle = exp(-up * 16.0) * exp(-abs(sx) * 9.0) * 1.4;
@@ -342,6 +332,43 @@ export interface IFireProps {
 	mode?: 'fire' | 'jet' | 'smoke' | 'ash' | 'burst';
 }
 
+// Состояние искр струи на текущий кадр. Формулы те же, что раньше жили в
+// шейдере: искра летит от сопла, стареет, раздувается, сносится потоком (до цели
+// почти не сносится — из огнемёта целятся, а не машут им) и остывает от белого к
+// красному. Считать это на пиксель было чистой потерей: для всего кадра значения
+// одни и те же.
+const updateJetParticles = (sparks: Float32Array, colors: Float32Array, {time, seed, originUp}: IFireProps) => {
+	for (let i = 0; i < JET_PARTICLES; i++) {
+		// Своя «случайность» у каждой искры: разброс по фазе, размеру и сносу.
+		const rnd = (Math.sin((i + 1) * 12.9898 + seed * 78.233) * 43758.5453) % 1;
+		const random = rnd < 0 ? rnd + 1 : rnd;
+		const age = (time * 0.95 + i / JET_PARTICLES + random * 0.02) % 1;
+		const along = age * 1.04;
+		const aim = smoothstep(0, originUp * 0.9, along);
+		const past = smoothstep(originUp, 1, along);
+		const amp = 0.05 * aim + 0.55 * past;
+		const wander = (Math.sin(along * 4.5 - time * 4.2 + random * 6.283) * 0.16
+			+ Math.sin(time * 1.7 + seed * 6.283) * 0.2
+			+ (random - 0.5) * 0.18) * amp;
+		sparks[i * 4] = wander;
+		sparks[i * 4 + 1] = along;
+		sparks[i * 4 + 2] = (0.034 + 0.115 * age) * (0.65 + 0.7 * random);
+		sparks[i * 4 + 3] = smoothstep(1, 0.72, age);
+		// Молодая искра бела, к старости желтеет и краснеет.
+		const warm = smoothstep(0.03, 0.35, age);
+		const cool = smoothstep(0.35, 0.85, age);
+		colors[i * 3] = 1;
+		colors[i * 3 + 1] = (1 - warm + 0.62 * warm) * (1 - cool) + 0.11 * cool;
+		colors[i * 3 + 2] = (0.95 * (1 - warm) + 0.04 * warm) * (1 - cool) + 0.01 * cool;
+	}
+};
+
+// Тот же smoothstep, что в GLSL: формулы искр обязаны совпадать с шейдерными.
+const smoothstep = (edge0: number, edge1: number, value: number): number => {
+	const t = Math.min(1, Math.max(0, (value - edge0) / (edge1 - edge0 || 1)));
+	return t * t * (3 - 2 * t);
+};
+
 // Слой, который сейчас ничего не рисует, вообще не отдаём на отрисовку. Это не
 // экономия на спичках: у струи квад в полстола, и её шейдер — самое дорогое, что
 // есть на экране, а живёт она только первую половину костра. Пороги повторяют
@@ -391,6 +418,8 @@ const buildMesh = (): FireMesh => {
 		uAspect: 1,
 		uOrigin: 0,
 		uMode: 0,
+		uSparks: new Float32Array(JET_PARTICLES * 4),
+		uSparkColors: new Float32Array(JET_PARTICLES * 3),
 	});
 	// Пламя кроет собой, а не подсвечивает: складывание (ADD) на нескольких слоях
 	// огня разом уводит всю середину в белый, и вместо мультяшных языков выходит
@@ -422,6 +451,13 @@ export const behavior = {
 		instance.blendMode = (mode === 'jet' || mode === 'burst') ? PIXI.BLEND_MODES.ADD : PIXI.BLEND_MODES.NORMAL;
 
 		instance.renderable = hasAnythingToDraw(mode, life);
+		if (mode === 'jet' && instance.renderable) {
+			updateJetParticles(
+				instance.shader.uniforms.uSparks as Float32Array,
+				instance.shader.uniforms.uSparkColors as Float32Array,
+				settings,
+			);
+		}
 
 		const {uniforms} = instance.shader;
 		uniforms.uTime = time;
