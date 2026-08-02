@@ -27,7 +27,8 @@ const CARD_ALIASES: {[key in EEventID | EPanicID]?: string[]} = {
 	[EEventID.noFire]: ['никакого шашлыка'],
 	[EEventID.analysis]: ['анализ', 'анализа'],
 	[EEventID.noThanks]: ['нет уж, спасибо', 'нет уж спасибо'],
-	[EEventID.miss]: ['"мимо"', '«мимо»'],
+	[EEventID.miss]: ['"мимо"', '«мимо»', '"мимо!"', '«мимо!»'],
+	[EEventID.thing]: ['нечто'],
 
 	[EPanicID.threeFour]: ['три, четыре'],
 	[EPanicID.chainReaction]: ['цепная реакция', 'цепной реакции'],

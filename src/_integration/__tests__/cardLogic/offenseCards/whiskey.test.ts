@@ -2,7 +2,8 @@ import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
 import {createMockGameServer} from '_integration/createGameServer';
 import {ETurnState} from 'shared/enum/player';
-import {map} from 'lodash';
+import {each, findLast, map} from 'lodash';
+import {cardLogName} from 'shared/constant/cardNames';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {expectOkayCard, requirePlayer} from '_integration/helpers';
 import {ETurnContextType} from 'shared/enum/turnContextType';
@@ -52,6 +53,13 @@ describe('whiskey test',  () => {
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
 		expect(game.turnContext?.type).toBe(ETurnContextType.trade)
 		expect(offensePlayer.hand.length).toBe(4);
+
+		//В логе перечислены реальные карты руки — чтобы потом можно было посмотреть, что показывали
+		const whiskeyLog = findLast(game.gameLog, (entry) => entry.text.includes('слишком пьян'));
+		expect(whiskeyLog).not.toBe(undefined);
+		each(offensePlayer.hand, (handCard) => {
+			expect(whiskeyLog?.text).toContain(cardLogName(handCard.id));
+		});
 
 		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 

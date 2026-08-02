@@ -1,5 +1,7 @@
 import {describe, expect, test} from 'bun:test';
 import {splitCardMentions} from 'client/components/hint/cardMentions';
+import {cardLogName, cardNames} from 'shared/constant/cardNames';
+import {EEventID, EPanicID} from 'shared/enum/cards';
 
 // Названия карт в логе — то, за что можно взяться курсором. Разбор строки
 // должен склеиваться обратно в исходный текст (иначе строка лога поедет) и не
@@ -43,6 +45,19 @@ describe('упоминания карт в логе', () => {
 	test('слишком обычные слова считаются картой только в кавычках', () => {
 		expect(mentions('Игрок Bob играет карту "Мимо" и отказывается от обмена')).toEqual(['miss:"Мимо"']);
 		expect(mentions('Выстрел прошел мимо')).toEqual([]);
+	});
+
+	// Виски и паника пишут карты в лог через cardLogName — значит каждое такое
+	// название обязано находиться разбором, иначе карта окажется без подсказки.
+	test('любая карта, записанная в лог через cardLogName, узнаётся', () => {
+		const cardIds = [...Object.values(EEventID), ...Object.values(EPanicID)]
+			.filter((cardId) => cardNames[cardId]);
+		expect(cardIds.length).toBeGreaterThan(0);
+		cardIds.forEach((cardId) => {
+			const text = `Вот мои карты: ${cardLogName(cardId)}, и всё`;
+			expect(mentions(text).map((mention) => mention.split(':')[0])).toEqual([cardId]);
+			expect(joined(text)).toBe(text);
+		});
 	});
 
 	test('текст без карт остаётся одним куском', () => {

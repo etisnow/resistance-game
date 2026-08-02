@@ -61,5 +61,13 @@ test.describe.serial('Виски (whiskey)', () => {
 				(n) => n.type === 'okayCard' && Object.keys(n.cards ?? {}).length === remaining.length,
 			),
 		);
+
+		// Окошко закроется, а лог остаётся: в нём должны быть названия всех
+		// показанных карт, чтобы потом можно было поднять, что было на руках.
+		const logLine = (await session.snapshot('Bob')).gameLog.find((l) => l.includes('слишком пьян'));
+		expect(logLine).toBeTruthy();
+		['«Страх»', '«Мимо!»', '«Нет уж, спасибо!»', '«Соблазн»'].forEach((name) => {
+			expect(logLine).toContain(name);
+		});
 	});
 });

@@ -9,7 +9,7 @@ import {EClientEventType} from 'shared/enum/enumClientEvents';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import type {IFormatCardDraw, IFormatCardEffect, IFormatPanicCard, IFormatTradeContext} from 'shared/interfaces/common';
 import fscreen from 'fscreen';
-import {each, merge} from "lodash";
+import {difference, each, filter, keys, merge, reduce} from "lodash";
 import {EAsyncState} from 'shared/enum/async';
 import type {
 	IDeckPayload,
@@ -51,6 +51,11 @@ export default class GameController {
 	// Взятия карт из колоды: стол пускает по ним карту от колоды к игроку.
 	// Смотри IFormatCardDraw и CardDraw.
 	@observable cardDraws: IFormatCardDraw[] = [];
+	// Мои карты, только что взятые из колоды: рука вводит их полётом от колоды, а
+	// не обычным появлением. Смотри markDrawnCards и HandComponent.
+	@observable drawnCardIds: string[] = [];
+	// Номер последнего учтённого взятия. null — обновлений ещё не было.
+	lastDrawSeq: number | null = null;
 	// Сработавшая паника: лежит крупно в центре стола, пока идёт её событие (это
 	// решает сервер) и пока не вышел panicCardMinMs. Смотри syncPanicCard.
 	@observable panicCard: IFormatPanicCard | null = null;
@@ -246,6 +251,28 @@ export default class GameController {
 		}
 	};
 
+	// Какие из моих карт прямо сейчас пришли из колоды: рука вводит их не как
+	// обычные новые карты, а полётом от колоды (см. HandComponent). Считаем это
+	// здесь, потому что только здесь ещё видна рука ДО обновления: дальше она уже
+	// перезаписана. Сверяем два источника — событие взятия с сервера и саму руку;
+	// если пришло не столько карт, сколько взято (скажем, обмен случился в том же
+	// обновлении), какая из них какая — непонятно, и полёт не назначаем никому.
+	markDrawnCards = (cardDraws: IFormatCardDraw[], viewerId: string, newHand: IHandMap) => {
+		const latestSeq = reduce(cardDraws, (acc: number, {seq}) => Math.max(acc, seq), 0);
+		const seenSeq = this.lastDrawSeq;
+		const fresh = seenSeq === null ? [] : filter(cardDraws, ({seq}) => seq > seenSeq);
+		this.lastDrawSeq = latestSeq;
+		// Первое обновление — это вход в игру: вся рука «новая», но прилетать ей
+		// неоткуда. Так же и переподключившийся не догоняет чужие взятия разом.
+		if (seenSeq === null) {
+			this.drawnCardIds = [];
+			return;
+		}
+		const drawnCount = reduce(fresh, (acc: number, {playerId, count}) => acc + (playerId === viewerId ? count : 0), 0);
+		const arrived = difference(keys(newHand), keys(this.hand));
+		this.drawnCardIds = drawnCount > 0 && arrived.length === drawnCount ? arrived : [];
+	};
+
 	updateHand = (newHand: IHandMap) => {
 		each(this.hand, card => {
 			if (card.uniqueId && !newHand[card.uniqueId]) delete this.hand[card.uniqueId]
@@ -271,6 +298,7 @@ export default class GameController {
 	// ещё старой рукой и логом — а анимация обмена сверяет ровно их между собой.
 	@action updateGame = ({tradeContext, cardEffects, cardDraws, panicCard, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions, hostPlayerId, isPlayerCanCancel}: IGameUpdatePayload) => {
 		this.updatePlayers(players);
+		this.markDrawnCards(cardDraws, currentPlayer.id, hand);
 		this.updateHand(hand);
 		this.updateHandActions(handActions);
 		this.hostPlayerId = hostPlayerId;
@@ -306,6 +334,10 @@ export default class GameController {
 		this.isPanicHoldOver = true;
 		this.panicCard = null;
 		this.isCardPickDeferred = false;
+		// Следующая игра начинается со своего счёта взятий, и рука в ней раздаётся,
+		// а не прилетает из колоды.
+		this.drawnCardIds = [];
+		this.lastDrawSeq = null;
 		this.state = EGameState.lobby;
 		this.root.launcherController.state = EAsyncState.idle;
 		this.root.state = EAppState.launcher;

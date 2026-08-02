@@ -45,6 +45,11 @@ interface IHandProps {
 	onCardAction: null | OnCardAction;
 	y: number;
 	autoWidth?: boolean;
+	// uniqueId карт, которые прямо сейчас взяты из колоды: они не появляются в
+	// руке, а прилетают от колоды. Смотри drawnFrom и GameController.drawnCardIds.
+	drawnCardIds?: string[];
+	// Место и размер карты в колоде, в координатах контейнера руки.
+	drawnFrom?: ICardStyleProps;
 }
 
 
@@ -190,20 +195,6 @@ const calculateCardStypeProps = (cardNumber: number, cardsCount: number, indexSh
 	return {x,y: y + playerHandHeight() * 0.65,angle:angleBetweenPointsDeg + 90, width}
 }
 
-// Место карты веера в координатах сцены — им заканчивается полёт карты, взятой
-// из колоды (см. CardDraw): карта ложится ровно в своё гнездо, с его наклоном и
-// шириной. Считаем здесь, а не у стола: вся геометрия веера тут, и повторённая
-// снаружи она однажды с ним разъедется. Контейнер руки опущен к низу экрана и
-// сдвинут пивотом на полширины — это и есть поправка.
-export const handCardScenePoint = (cardNumber: number, cardsCount: number): ICardStyleProps => {
-	const style = calculateCardStypeProps(cardNumber, cardsCount);
-	return {
-		...style,
-		x: getWindowWidth() / 2 + style.x,
-		y: getWindowHeight() - playerHandHeight() + style.y,
-	};
-}
-
 // Ряд карт в окне выбора (упорство и прочие selectCard/okayCard): ровная строка
 // без наклона и без наложения — в прежнем веере соседние карты закрывали
 // центральную и выделить её было нечем.
@@ -267,7 +258,12 @@ const applyHoverStyle = (style: ICardStyleProps, scale: number, extraLift = 0): 
 }
 
 
-const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelectCard, onCardAction, y, autoWidth = false} : IHandProps) => {
+// Полёт карты из колоды в руку — та же пружина, что двигает карты в веере, но
+// помягче: путь через полстола длиннее любого движения внутри руки, и на общей
+// жёсткости карта долетала бы рывком.
+const drawFlightConfig = {tension: 120, friction: 26};
+
+const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelectCard, onCardAction, y, autoWidth = false, drawnCardIds, drawnFrom} : IHandProps) => {
 
 	const [hoveredCardId, setHoveredCardId] = React.useState<string | null>(null);
 
@@ -306,6 +302,14 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 	}
 	const defaultCardStyle: ICardStyleProps = { x:0,y:-getCenterOffset(),angle:-90, width: 0 };
 
+	// Взятая карта не появляется в руке из ниоткуда — она и есть та самая карта,
+	// что лежала в колоде, и въезжает в свой гнездо оттуда, одним движением: это
+	// одна карта и одна анимация, а не «вылет из колоды» плюс «появление в руке».
+	// Остальные карты веера при этом расступаются ей навстречу — их обычным
+	// update-переходом, гнездо для неё готово с первого кадра.
+	const isDrawn = (card: ICardAny): boolean =>
+		!autoWidth && !!drawnFrom && !!card.uniqueId && !!drawnCardIds && drawnCardIds.includes(card.uniqueId);
+
 
 	// react-spring v8's useTransition typings demand the spring's target keys (x/y/angle/width)
 	// at the top level via Merge<DS, ...>, but the runtime expects them only inside
@@ -313,11 +317,11 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 	// We type the options object with the real UseTransitionProps and bridge that single
 	// upstream typings flaw with a cast to the precise expected parameter shape.
 	const transitionOptions: UseTransitionProps<ICardAny, ICardStyleProps> = {
-		from: defaultCardStyle,
+		from: (card) => isDrawn(card) && drawnFrom ? drawnFrom : defaultCardStyle,
 		enter: styleUpdater,
 		update: styleUpdater,
 		leave: () => defaultCardStyle,
-		config: config.default,
+		config: (card) => isDrawn(card) ? drawFlightConfig : config.default,
 	};
 	const transitions = useTransition<ICardAny, ICardStyleProps>(
 		Object.values(cards),

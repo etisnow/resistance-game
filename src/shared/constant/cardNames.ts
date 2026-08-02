@@ -35,3 +35,8 @@ export const cardNames: {[key in EEventID | EPanicID]?: string} = {
 	[EPanicID.friendship]: 'Давай дружить?',
 	[EPanicID.forgetfulness]: 'Забывчивость',
 };
+
+// Название карты для строки лога. Кавычки нужны не только для читаемости:
+// по названию клиент вешает на слово подсказку с самой картой (cardMentions),
+// поэтому писать карту в лог руками не надо — только через этот хелпер.
+export const cardLogName = (cardId: EEventID | EPanicID) => `«${cardNames[cardId] || cardId}»`;

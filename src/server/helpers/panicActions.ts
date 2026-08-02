@@ -13,7 +13,7 @@ import {goAwayAct} from 'server/helpers/cardActions/panic/goAway';
 import {oopsAct} from 'server/helpers/cardActions/panic/oops';
 import {friendshipAct} from 'server/helpers/cardActions/panic/friendship';
 import {forgetfullnessAct} from 'server/helpers/cardActions/panic/forgetfulness';
-import {cardNames} from 'shared/constant/cardNames';
+import {cardLogName} from 'shared/constant/cardNames';
 import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const panicAction = ({game, player, panicCard}: {game:Game, player:Player, panicCard: ICardPanic}) => {
@@ -21,7 +21,7 @@ export const panicAction = ({game, player, panicCard}: {game:Game, player:Player
     // время события паники (см. Game.panicCard и клиентский PanicCard). В лог
     // пишем её название — оно же становится подсказкой с картинкой карты.
     game.addLog(
-      `Игрок ${player.nickname} достает карту паники «${cardNames[panicCard.id] || panicCard.id}»`,
+      `Игрок ${player.nickname} достает карту паники ${cardLogName(panicCard.id)}`,
       EGameLogType.panic,
     );
 
