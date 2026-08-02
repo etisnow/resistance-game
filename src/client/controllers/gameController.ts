@@ -1,4 +1,4 @@
-import {computed, observable} from "mobx";
+import {action, computed, observable} from "mobx";
 import SocketController from 'client/controllers/socketController';
 import Player from 'client/models/Player';
 import type INotificationAction from 'shared/interfaces/notification';
@@ -195,7 +195,10 @@ export default class GameController {
 		this.handActions = handActions
 	};
 
-	updateGame = ({tradeContext, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions, hostPlayerId, isPlayerCanCancel}: IGameUpdatePayload) => {
+	// Одним действием: без него mobx отдаёт реакциям каждое присваивание по
+	// отдельности, и компонент успевает отрисоваться с новым контекстом хода, но
+	// ещё старой рукой и логом — а анимация обмена сверяет ровно их между собой.
+	@action updateGame = ({tradeContext, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions, hostPlayerId, isPlayerCanCancel}: IGameUpdatePayload) => {
 		this.updatePlayers(players);
 		this.updateHand(hand);
 		this.updateHandActions(handActions);
