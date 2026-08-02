@@ -8,11 +8,16 @@ import type {IHintAnchor} from 'client/components/hint/HoverHint';
 class CardHintStore {
 	@observable cardId: string | null = null;
 	@observable anchor: IHintAnchor | null = null;
+	// Прикнопленная подсказка живёт до крестика или тапа мимо и потому закрывает
+	// собой стол. Открытая наведением — наоборот, не должна мешать столу: он под
+	// ней продолжает получать движения курсора, иначе наведение сразу теряется.
+	@observable isPinned: boolean = true;
 
-	show = (cardId: string, anchor: IHintAnchor) => {
+	show = (cardId: string, anchor: IHintAnchor, isPinned: boolean = true) => {
 		runInAction(() => {
 			this.cardId = cardId;
 			this.anchor = anchor;
+			this.isPinned = isPinned;
 		});
 	};
 
@@ -20,6 +25,7 @@ class CardHintStore {
 		runInAction(() => {
 			this.cardId = null;
 			this.anchor = null;
+			this.isPinned = true;
 		});
 	};
 

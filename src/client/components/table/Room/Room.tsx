@@ -1,8 +1,8 @@
 import React from 'react';
-import {clamp, clone, map} from 'lodash';
+import {clamp, clone, filter, map} from 'lodash';
 import './styles.scss';
 import {observer} from "mobx-react-lite";
-import {config, useTransition} from 'react-spring/universal';
+import {config, useSpring, useTransition} from 'react-spring/universal';
 import {degToRag, playerRoomDiag, roomRadii} from 'client/helpers/roomHelpers';
 import GameController from 'client/controllers/gameController';
 import PlayerBadge from 'client/components/table/PlayerBadge/PlayerBadge';
@@ -39,7 +39,12 @@ const arrowIconShare = 0.55;
 // в которых у эмодзи есть цветной глиф.
 const tradeIconShare = 0.42;
 const tradeIconBackground = 0x14110c;
+// Взаимные действия карту на стрелке не показывают: у обмена она вообще скрыта,
+// а смена мест — это не «применили карту к игроку», а договорённость. Поэтому у
+// них свои значки: «по рукам» и «поменялись».
 const handshakeEmoji = '\u{1F91D}';
+const swapEmoji = '\u{1F504}';
+const fireEmoji = '\u{1F525}';
 
 interface IArrowShape {
 	ax: number;
@@ -58,7 +63,7 @@ interface IArrowShape {
 	midX: number;
 	midY: number;
 	iconSize: number;
-	color: number;
+	arrowColor: number;
 }
 
 const getPlayerDeg = (playerId: string, playerList: string[]): number => {
@@ -97,6 +102,22 @@ const midpoint = (x1: number, y1: number, x2: number, y2: number): IPoint => {
 
 const getDistanceBetweenPoints = (x1: number, y1: number, x2: number, y2: number): number => {
 	return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
+}
+
+// Значок действия на стрелке: он читается издалека лучше, чем миниатюра карты.
+// Если у типа хода значка нет, на стрелке показывается сама карта, которой ходят.
+const getArrowEmoji = ({type}: IFormatTradeContext): string | undefined => {
+	switch (type) {
+		case ETurnContextType.trade:
+		case ETurnContextType.chainReaction:
+			return handshakeEmoji;
+		case ETurnContextType.positionswap:
+			return swapEmoji;
+		case ETurnContextType.burn:
+			return fireEmoji;
+		default:
+			return undefined;
+	}
 }
 
 // Цвет стрелки — цвет карты, которой ходят. Обмен идёт без открытой карты, у
@@ -155,10 +176,114 @@ const lineAnimation = ({context, newPlayerList, badgeRadius, players}: ILineAnim
 		midX: midX,
 		midY: midY,
 		iconSize: badgeRadius * arrowIconShare,
-		color: getArrowColor(context),
+		arrowColor: getArrowColor(context),
 	}
 }
 
+
+// Ключ стрелки — всё её действие целиком, а не один атакующий: с ключом по
+// атакующему следующий его обмен попадал в тот же элемент перехода, и если тот
+// подвис, новая стрелка не появлялась вовсе — стол показывал старую.
+const arrowKey = ({offensePlayerId, defensePlayerId, type}: IFormatTradeContext): string =>
+	`${offensePlayerId ?? ''}>${defensePlayerId ?? ''}:${type}`;
+
+interface ITradeArrowProps {
+	item: IFormatTradeContext;
+	target: IArrowShape;
+	badgeRadius: number;
+	isLive: boolean;
+}
+
+// Каждая стрелка живёт сама по себе: появляется, когда её действие есть в
+// контексте хода, и гаснет, когда оно закончилось. Раньше этим заведовал общий
+// useTransition, но он то не убирал отживший элемент (стрелка оставалась висеть
+// навсегда), то отдавал его новому действию с тем же ключом — и тогда новая
+// стрелка не появлялась вовсе. Здесь показывать нечего, кроме того, что сейчас
+// в контексте.
+const TradeArrow = ({item, target, badgeRadius, isLive}: ITradeArrowProps) => {
+	// Стрелка вырастает из атакующего и в него же схлопывается, когда гаснет.
+	const collapsed = {...target, bx: target.ax, by: target.ay, mid1X: target.ax, mid1Y: target.ay,
+		mid2X: target.ax, mid2Y: target.ay, arrowX: target.ax, arrowY: target.ay, arrowHeight: 0,
+		midX: target.ax, midY: target.ay, iconSize: 0, fade: 0};
+	// Цвет держим внутри пружины, хотя он и не меняется: animated() перерисовывает
+	// примитив каждый кадр ОДНИМИ анимируемыми пропсами, и статичный цвет до него
+	// просто не доезжает — линия получается чёрной.
+	const shape = useSpring<IArrowShape & {fade: number}>({
+		...target,
+		fade: isLive ? 1 : 0,
+		from: collapsed,
+		config: config.stiff,
+	});
+	const {midX, midY, iconSize, fade, ...arrowProps} = shape;
+	const emoji = getArrowEmoji(item);
+	const actionImage = emoji ? undefined : cardImage(item.cardId);
+	return (
+		<AnimatedPixi.Container alpha={fade}>
+			<AnimatedPixi.Arrow {...arrowProps}/>
+			{actionImage ? (
+				// Карта, которой ходят, — прямо на стрелке: видно, что применили.
+				<AnimatedPixi.Sprite
+					texture={getPixiTexture(actionImage)}
+					anchor={0.5}
+					x={midX}
+					y={midY}
+					width={iconSize}
+					height={iconSize.interpolate(size => size * cardAspectRatio)}
+				/>
+			) : (
+				// Значок на кружке цвета стрелки: на тёмном столе один эмодзи без
+				// подложки теряется. Двигается контейнер, а его содержимое
+				// статично — так стол не перерисовывает круги и эмодзи покадрово.
+				<AnimatedPixi.Container x={midX} y={midY}>
+					<Circle r={badgeRadius * tradeIconShare} color={getArrowColor(item)}/>
+					<Circle r={badgeRadius * tradeIconShare * 0.84} color={tradeIconBackground}/>
+					<Sprite
+						texture={emojiTexture(emoji ?? handshakeEmoji)}
+						anchor={0.5}
+						width={badgeRadius * tradeIconShare * 1.15}
+						height={badgeRadius * tradeIconShare * 1.15}
+					/>
+				</AnimatedPixi.Container>
+			)}
+		</AnimatedPixi.Container>
+	);
+};
+
+// Сколько уходящая стрелка ещё висит на столе, растворяясь.
+const arrowFadeMs = 400;
+
+// Стрелки, которые сейчас надо рисовать: все действия из контекста хода плюс
+// те, что только что закончились — им дают короткое время растаять.
+const useArrows = (tradeContext: IFormatTradeContext[]) => {
+	const [leaving, setLeaving] = React.useState<IFormatTradeContext[]>([]);
+	const shownBefore = React.useRef<IFormatTradeContext[]>([]);
+	// Таймеры уборки снимаем только при размонтировании: чистить их из cleanup
+	// эффекта нельзя, иначе следующее действие отменяет уборку предыдущего.
+	const cleanupTimers = React.useRef<ReturnType<typeof setTimeout>[]>([]);
+	React.useEffect(() => () => cleanupTimers.current.forEach(clearTimeout), []);
+
+	const liveKeys = map(tradeContext, arrowKey);
+	const signature = liveKeys.join('|');
+
+	React.useEffect(() => {
+		const gone = filter(shownBefore.current, (context) => !liveKeys.includes(arrowKey(context)));
+		shownBefore.current = map(tradeContext, (context) => context);
+		if (!gone.length) return;
+		setLeaving((current) => [...current, ...gone]);
+		const goneKeys = map(gone, arrowKey);
+		const timer = setTimeout(() => {
+			setLeaving((current) => filter(current, (context) => !goneKeys.includes(arrowKey(context))));
+			cleanupTimers.current = filter(cleanupTimers.current, (item) => item !== timer);
+		}, arrowFadeMs);
+		cleanupTimers.current.push(timer);
+	}, [signature]);
+
+	// Вернувшееся действие рисуем как живое, а не как уходящее.
+	return [
+		...map(tradeContext, (context) => ({context, isLive: true})),
+		...map(filter(leaving, (context) => !liveKeys.includes(arrowKey(context))), (context) => ({context, isLive: false})),
+	];
+};
 
 const Room = observer(({controller} : IRoomProps) => {
 
@@ -199,73 +324,7 @@ const Room = observer(({controller} : IRoomProps) => {
 
 	const badgeDiagonal = playerRoomDiag(playersCount);
 	const badgeRadius = badgeDiagonal/2;
-	const arrows = useTransition<IFormatTradeContext, IArrowShape>(tradeContext, ({offensePlayerId}) => offensePlayerId ?? '', {
-		ax: 0,
-		ay: 0,
-		bx: 0,
-		by: 0,
-		mid1X: 0,
-		mid1Y: 0,
-		mid2X: 0,
-		mid2Y: 0,
-		arrowX: 0,
-		arrowY: 0,
-		arrowRotation: 0,
-		arrowHeight: 0,
-		midX: 0,
-		midY: 0,
-		iconSize: 0,
-		color: 0,
-		from: (context) => {
-			const {ax, ay, arrowRotation, color} = lineAnimation({context, newPlayerList, badgeRadius, players});
-			return {
-				ax,
-				ay,
-				bx: ax,
-				by: ay,
-				mid1X: ax,
-				mid1Y: ay,
-				mid2X: ax,
-				mid2Y: ay,
-				arrowX: ax,
-				arrowY: ay,
-				arrowRotation,
-				arrowHeight: 0,
-						midX: ax,
-				midY: ay,
-				iconSize: 0,
-				color,
-			}
-		},
-		enter: (context) => {
-			return lineAnimation({context, newPlayerList, badgeRadius, players});
-		},
-		update: (context) => {
-			return lineAnimation({context, newPlayerList, badgeRadius, players});
-		},
-		leave: (context) => {
-			const {bx, by, arrowRotation, color} = lineAnimation({context, newPlayerList, badgeRadius, players});
-			return {
-				ax: bx,
-				ay: by,
-				bx: bx,
-				by: by,
-				mid1X: bx,
-				mid1Y: by,
-				mid2X: bx,
-				mid2Y: by,
-				arrowX: bx,
-				arrowY: by,
-				arrowRotation,
-				arrowHeight: 0,
-						midX: bx,
-				midY: by,
-				iconSize: 0,
-				color,
-			}
-		},
-		config: config.stiff
-	});
+	const arrows = useArrows(tradeContext);
 
 
 
@@ -310,49 +369,15 @@ const Room = observer(({controller} : IRoomProps) => {
 					</AnimatedPixi.Container>
 				)
 			})}
-			{map(arrows, ({key, item, props }) => {
-				if (!props.bx || !props.by) return null
-				const {midX, midY, iconSize, color, ...arrowProps} = props;
-				const actionImage = cardImage(item.cardId);
-				// Вся стрелка проявляется и гаснет по размеру своего значка. Это не
-				// только красиво: отживший элемент перехода react-spring со стола не
-				// убирает, и без затухания от него остаётся видимый огрызок.
-				const fade = iconSize.interpolate(size => clamp(size / (badgeRadius * arrowIconShare), 0, 1));
-				return (
-					<AnimatedPixi.Container key={key} alpha={fade}>
-						<AnimatedPixi.Arrow
-							{...arrowProps}
-							color={color}
-						/>
-						{actionImage ? (
-							// Карта, которой ходят, — прямо на стрелке: видно, что применили.
-							<AnimatedPixi.Sprite
-								texture={getPixiTexture(actionImage)}
-								anchor={0.5}
-								x={midX}
-								y={midY}
-								width={iconSize}
-								height={iconSize.interpolate(size => size * cardAspectRatio)}
-							/>
-						) : (
-							// У обмена карта скрыта — вместо неё «по рукам» на кружке цвета
-							// стрелки: на тёмном столе один эмодзи без подложки теряется.
-							// Двигается контейнер, а его содержимое статично — так стол не
-							// перерисовывает круги и эмодзи покадрово.
-							<AnimatedPixi.Container x={midX} y={midY}>
-								<Circle r={badgeRadius * tradeIconShare} color={getArrowColor(item)}/>
-								<Circle r={badgeRadius * tradeIconShare * 0.84} color={tradeIconBackground}/>
-								<Sprite
-									texture={emojiTexture(handshakeEmoji)}
-									anchor={0.5}
-									width={badgeRadius * tradeIconShare * 1.15}
-									height={badgeRadius * tradeIconShare * 1.15}
-								/>
-							</AnimatedPixi.Container>
-						)}
-					</AnimatedPixi.Container>
-				)
-			})}
+			{map(arrows, ({context, isLive}) => (
+				<TradeArrow
+					key={arrowKey(context)}
+					item={context}
+					target={lineAnimation({context, newPlayerList, badgeRadius, players})}
+					badgeRadius={badgeRadius}
+					isLive={isLive}
+				/>
+			))}
 			<CardFlights
 				controller={controller}
 				getPosition={playerId => getPositionFromPlayerList({players, playerId, playerList: newPlayerList})}

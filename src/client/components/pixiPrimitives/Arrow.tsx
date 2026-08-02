@@ -4,7 +4,7 @@ import {degToRag} from 'client/helpers/roomHelpers';
 import type { GraphicsBehaviorThis } from "./behaviorTypes";
 
 interface ArrowProps {
-	color: number;
+	arrowColor: number;
 	ax: number;
 	ay: number;
 	mid1X: number;
@@ -36,7 +36,7 @@ export const behavior = {
     oldProps: ArrowProps | undefined,
     newProps: ArrowProps,
   ) {
-    const { color, ax, ay,mid1X, mid1Y, mid2X, mid2Y, bx, by, arrowX, arrowY, arrowHeight, arrowRotation } = newProps;
+    const { arrowColor: color, ax, ay,mid1X, mid1Y, mid2X, mid2Y, bx, by, arrowX, arrowY, arrowHeight, arrowRotation } = newProps;
     if (typeof oldProps !== "undefined") {
       instance.clear();
     }

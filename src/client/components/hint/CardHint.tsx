@@ -48,13 +48,13 @@ export const CardHint = ({cardId, children, className}: ICardHintProps) => {
 // DOM-окошком поверх сцены. Нажатие — жест «прикалывающий», поэтому окошко с
 // крестиком и закрывается тапом мимо.
 export const CardHintOverlay = observer(() => {
-	const {cardId, anchor} = cardHintStore;
+	const {cardId, anchor, isPinned} = cardHintStore;
 	if (!cardId || !anchor) return null;
 	const image = cardImages[cardId];
 	if (!image) return null;
 	return <HintPopup
 		anchor={anchor}
-		isPinned={true}
+		isPinned={isPinned}
 		onClose={cardHintStore.hide}
 		className={'cardHint'}
 	>

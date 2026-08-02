@@ -6,6 +6,9 @@ import {cardAspectRatio} from 'shared/constant/cards';
 import {Sprite} from 'react-pixi-fiber';
 import {AnimatedPixi, getPixiTexture} from 'client/components/table/pixiInjected';
 import {cardImage} from 'client/helpers/cardVisuals';
+import * as PIXI from 'pixi.js';
+import {cardHintStore} from 'client/components/hint/cardHintStore';
+import {displayObjectAnchor} from 'client/components/hint/canvasHint';
 import GameController from 'client/controllers/gameController';
 
 // Разовые применения карт — подсмотр «Подозрением», отказ «Нет уж спасибо»,
@@ -13,13 +16,18 @@ import GameController from 'client/controllers/gameController';
 // самой картой поверх бейджа того, кто её применил, со сдвигом в сторону того,
 // на кого применили: сразу видно и что сделали, и против кого.
 
-// Сколько карта висит над бейджем.
-const effectMs = 1800;
+// Сколько карта висит над бейджем. Долго: по ней ещё и подсказку смотрят.
+const effectMs = 3400;
+// Доли времени показа: проявление и начало растворения. Тает карта медленно —
+// так понятнее, что она уходит, и успеваешь навести на неё курсор.
+const fadeInPart = 0.07;
+const fadeOutFrom = 0.55;
 // Больше стольких значков разом на столе не держим: в быстрой игре они копятся
 // и превращаются в кашу (а на слабом железе ещё и тормозят).
 const maxShown = 4;
-// Доли радиуса бейджа: размер карты и сдвиг в сторону цели.
-const cardShare = 1.05;
+// Доли радиуса бейджа: размер карты, сдвиг в сторону цели и подъём за время показа.
+const cardShare = 1.7;
+const riseShare = 0.35;
 const offsetShare = 0.6;
 
 interface IPoint {
@@ -46,27 +54,64 @@ const AppliedCard = ({cardId, x, y, badgeRadius}: Omit<IEffect, 'seq'> & {badgeR
 		from: {t: 0},
 		config: {duration: effectMs},
 	});
+	// Наведение показывает саму карту крупно — тем же окошком, что и названия
+	// карт в логе. Прячем только своё: чужую (прикнопленную) подсказку не трогаем.
+	// Хранилище подсказки трогаем вне обработчика канваса: у стола свой
+	// реконсилятор, и начатое внутри него обновление до DOM-дерева не доезжает —
+	// хранилище меняется, а окошко не перерисовывается.
+	const showHint = (event: PIXI.interaction.InteractionEvent) => {
+		const anchor = displayObjectAnchor(event.currentTarget);
+		// Подсказка по наведению — не прикнопленная: у прикнопленной есть подложка
+		// во весь экран, она перехватывала бы у стола движения курсора, стол терял
+		// бы наведение, и окошко мигало бы.
+		setTimeout(() => cardHintStore.show(cardId, anchor, false), 0);
+	};
+	const hideHint = React.useCallback(() => {
+		setTimeout(() => {
+			// Чужую подсказку (например, прикнопленную по двери) не закрываем.
+			if (cardHintStore.cardId === cardId) cardHintStore.hide();
+		}, 0);
+	}, [cardId]);
+	// Карта растаяла, пока на ней держали курсор — окошко забирать некому.
+	React.useEffect(() => hideHint, [hideHint]);
 	const image = cardImage(cardId);
 	if (!image) return null;
 
 	const size = badgeRadius * cardShare;
-	// Карта успевает проявиться, повисеть и растаять; заодно чуть всплывает.
+	const rise = badgeRadius * riseShare;
+	// Карта успевает проявиться, повисеть и растаять; заодно всплывает вверх.
 	const alpha = t.interpolate(progress => {
-		if (progress < 0.12) return progress / 0.12;
-		if (progress > 0.75) return (1 - progress) / 0.25;
+		if (progress < fadeInPart) return progress / fadeInPart;
+		if (progress > fadeOutFrom) return (1 - progress) / (1 - fadeOutFrom);
 		return 1;
 	});
-	const riseY = t.interpolate(progress => y - badgeRadius * 0.25 * progress);
-
+	const riseY = t.interpolate(progress => y - rise * progress);
 	return (
-		<AnimatedPixi.Container x={x} y={riseY} alpha={alpha}>
+		<React.Fragment>
+			<AnimatedPixi.Container x={x} y={riseY} alpha={alpha}>
+				<Sprite
+					texture={getPixiTexture(image)}
+					anchor={0.5}
+					width={size}
+					height={size * cardAspectRatio}
+				/>
+			</AnimatedPixi.Container>
+			{/* Ловушка наведения: невидимый спрайт на весь путь карты. Наведение на
+			    саму карту срывалось бы — она всплывает и уходит из-под курсора, а
+			    каждый такой уход закрывал бы подсказку. */}
 			<Sprite
-				texture={getPixiTexture(image)}
+				texture={PIXI.Texture.WHITE}
+				alpha={0}
 				anchor={0.5}
+				x={x}
+				y={y - rise / 2}
 				width={size}
-				height={size * cardAspectRatio}
+				height={size * cardAspectRatio + rise}
+				interactive={true}
+				pointerover={showHint}
+				pointerout={hideHint}
 			/>
-		</AnimatedPixi.Container>
+		</React.Fragment>
 	);
 };
 
