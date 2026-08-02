@@ -1,5 +1,6 @@
 import React from 'react';
 import {filter, includes, map, reduce} from 'lodash';
+import * as PIXI from 'pixi.js';
 import {Text} from 'react-pixi-fiber';
 import {useSpring} from 'react-spring/universal';
 import {AnimatedPixi, getPixiTexture} from 'client/components/table/pixiInjected';
@@ -51,6 +52,21 @@ const jetOvershoot = 5.0;
 const jetPart = 0.5;
 // Насколько позже струи занимается сам игрок: пламени надо долететь.
 const burnDelay = 0.08;
+// Насколько глушится сцена вокруг пожара и как широко ложится отсвет на соседей
+// (в долях радиуса бейджа). Затемнение неглубокое: стол должен читаться.
+const dimStrength = 0.55;
+// Насколько блик сдвинут от центра кружка к пожару — в долях габарита кружка
+// (сам кружок в этих долях имеет радиус 0.5).
+const glintPull = 0.3;
+// Тень позади соседа: ширина и длина в радиусах бейджа.
+const shadowWidthShare = 4.4;
+const shadowLengthShare = 4.0;
+// Доли времени, за которые затемнение наезжает и уходит.
+const dimFadeIn = 0.22;
+const dimFadeOut = 0.3;
+
+// Сглаживание концов: тот же smoothstep, только над готовой долей 0..1.
+const ease = (value: number): number => value * value * (3 - 2 * value);
 // Куда упирается основание пламени: чуть ниже центра кружка, чтобы огонь шёл
 // из-под бейджа, а не из его середины.
 const fireBaseShare = 1.3;
@@ -78,13 +94,25 @@ export interface IBurn {
 // каждом кадре пружины.
 const seedOf = (seq: number): number => (seq * 0.6180339887) % 1;
 
+// Прямоугольник во весь холст (в координатах стола) — им костёр приглушает
+// сцену вокруг себя.
+export interface IDimRect {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
+
 interface IBurningPlayerProps {
 	burn: IBurn;
 	controller: GameController;
 	badgeRadius: number;
+	dim: IDimRect;
+	// Места соседей по столу: на них ложатся блики от пожара.
+	glints: IPoint[];
 }
 
-const BurningPlayer = ({burn: {seq, playerId, x, y, fromX, fromY}, controller, badgeRadius}: IBurningPlayerProps) => {
+const BurningPlayer = ({burn: {seq, playerId, x, y, fromX, fromY}, controller, badgeRadius, dim, glints}: IBurningPlayerProps) => {
 	const {t} = useSpring<{t: number}>({
 		t: 1,
 		from: {t: 0},
@@ -123,11 +151,86 @@ const BurningPlayer = ({burn: {seq, playerId, x, y, fromX, fromY}, controller, b
 	// потом огонь начинает его выедать.
 	const charProgress = t.interpolate(progress =>
 		Math.min(1, Math.max(0, (progress - charFrom) / (charTo - charFrom))));
+	// Сцена вокруг пожара приглушается: на тёмном столе огонь читается ярче, и
+	// сразу видно, что происходит именно здесь. Затемнение — первым ребёнком
+	// костра, поэтому сам огонь, кружок и блики ложатся уже поверх него. Наезжает
+	// и уходит оно медленно и со сглаживанием по краям: резкое затемнение читается
+	// как мигание света, а не как отсвет пожара.
+	const dimAlpha = t.interpolate(progress => {
+		const rising = ease(Math.min(1, progress / dimFadeIn));
+		const falling = ease(Math.min(1, Math.max(0, (1 - progress) / dimFadeOut)));
+		return dimStrength * rising * falling;
+	});
+	// Куда смотрит сосед относительно пожара. Костёр стоит в начале координат
+	// контейнера, поэтому направление «на огонь» — это просто путь к нулю.
+	const towardsFire = (point: IPoint): IPoint => {
+		const dx = -(point.x - x);
+		const dy = -(point.y - y);
+		const length = Math.hypot(dx, dy) || 1;
+		return {x: dx / length, y: dy / length};
+	};
 	// Воздух дрожит, пока есть чему гореть, и успокаивается вместе с пламенем.
 	const heat = t.interpolate(progress =>
 		Math.min(1, progress / charFrom) * Math.min(1, Math.max(0, (1 - progress) / 0.3)));
 	return (
 		<AnimatedPixi.Container x={x} y={y} interactiveChildren={false}>
+			{/* Приглушённая сцена. Спрайт белой точки, растянутый на весь холст и
+			    залитый чёрным: отдельная картинка для этого не нужна. */}
+			<AnimatedPixi.Sprite
+				texture={PIXI.Texture.WHITE}
+				tint={0x000000}
+				alpha={dimAlpha}
+				x={dim.x - x}
+				y={dim.y - y}
+				width={dim.width}
+				height={dim.height}
+			/>
+			{/* Тени соседей: пожар светит сбоку, и позади каждого ложится тёмный
+			    след. Рисуем до бликов, чтобы свет ложился поверх тени. */}
+			{map(glints, (point, index) => {
+				const toFire = towardsFire(point);
+				// Тень тянется от игрока прочь от огня: квад растёт «вверх», значит
+				// доворачиваем его на четверть оборота от направления на пожар.
+				const away = Math.atan2(-toFire.y, -toFire.x);
+				return (
+					<AnimatedPixi.Fire
+						key={index}
+						x={point.x - x}
+						y={point.y - y}
+						rotation={away + Math.PI / 2}
+						fireWidth={badgeRadius * shadowWidthShare}
+						fireHeight={badgeRadius * shadowLengthShare}
+						originUp={0}
+						time={time}
+						life={life}
+						seed={seed + index * 0.31}
+						mode={'shadow'}
+					/>
+				);
+			})}
+			{/* Отсветы пожара на соседях: они уже приглушены затемнением, и живой
+			    дрожащий свет по ним читается сразу. */}
+			{map(glints, (point, index) => {
+				const toFire = towardsFire(point);
+				return (
+					<AnimatedPixi.Fire
+						key={index}
+						// Квад ровно по габариту кружка: по нему шейдер и обрезает свет.
+						x={point.x - x}
+						y={point.y - y + badgeRadius}
+						fireWidth={badgeRadius * 2}
+						fireHeight={badgeRadius * 2}
+						// Ось y у квада смотрит вверх, у стола — вниз, отсюда минус.
+						glintX={toFire.x * glintPull}
+						glintY={-toFire.y * glintPull}
+						originUp={0.5}
+						time={time}
+						life={life}
+						seed={seed + index * 0.19}
+						mode={'glint'}
+					/>
+				);
+			})}
 			{/* Главный столб — за кружком: сквозь него видно, как кружок обугливается. */}
 			<AnimatedPixi.Fire
 				y={fireBase}
@@ -289,12 +392,22 @@ interface IBurningPlayersProps {
 	burns: IBurn[];
 	controller: GameController;
 	badgeRadius: number;
+	dim: IDimRect;
+	// Соседи горящего — по одному списку на костёр.
+	glintsOf: (burn: IBurn) => IPoint[];
 }
 
-const BurningPlayers = ({burns, controller, badgeRadius}: IBurningPlayersProps) => (
+const BurningPlayers = ({burns, controller, badgeRadius, dim, glintsOf}: IBurningPlayersProps) => (
 	<React.Fragment>
 		{map(burns, burn => (
-			<BurningPlayer key={burn.seq} burn={burn} controller={controller} badgeRadius={badgeRadius}/>
+			<BurningPlayer
+				key={burn.seq}
+				burn={burn}
+				controller={controller}
+				badgeRadius={badgeRadius}
+				dim={dim}
+				glints={glintsOf(burn)}
+			/>
 		))}
 	</React.Fragment>
 );

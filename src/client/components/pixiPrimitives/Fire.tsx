@@ -55,10 +55,13 @@ uniform float uAspect;
 // уже за ней начинает разбрасывать.
 uniform float uOrigin;
 // Что именно рисуем: 0 — костёр, 1 — струя из огнемёта, 2 — дым, 3 — пепел,
-// 4 — вспышка с ударной волной.
+// 4 — вспышка с ударной волной, 5 — блик на соседе, 6 — тень от соседа.
 // Считаются они по-разному, но живут от одних и тех же uTime/uLife (см. ветки
 // в main).
 uniform float uMode;
+// Куда внутри кружка смещён блик (в долях его габарита): свет ложится на тот бок
+// игрока, что обращён к пожару.
+uniform vec2 uGlint;
 // Искры струи: xy — место (снос поперёк и путь вдоль), z — размер, w — жизнь.
 uniform vec4 uSparks[${JET_PARTICLES}];
 uniform vec3 uSparkColors[${JET_PARTICLES}];
@@ -76,6 +79,36 @@ void main() {
 	// Пламя разгорается быстро, держится, пока есть чему гореть, и опадает уже
 	// к самому концу — вместе с последними остатками кружка.
 	float power = smoothstep(0.0, 0.12, uLife) * (1.0 - smoothstep(0.78, 1.0, uLife));
+
+	if (uMode > 5.5) {
+		// Тень соседа: пожар светит сбоку, и позади игрока ложится тёмный след.
+		// Квад повёрнут от огня, поэтому тень просто тянется «вверх» по нему.
+		float spread = 0.2 + 0.6 * up;
+		float body = 1.0 - smoothstep(spread * 0.3, spread, abs(x));
+		// От самого кружка тень отходит не сразу: под ним её не видно, а к концу
+		// она растворяется, иначе получится не тень, а чёрная полоса.
+		float along = smoothstep(0.2, 0.34, up) * (1.0 - smoothstep(0.45, 0.95, up));
+		float flicker = 0.78 + 0.22 * sin(uTime * 7.0 + uSeed * 6.283);
+		float shade = body * along * flicker * power * 0.95;
+		gl_FragColor = vec4(vec3(0.0), shade);
+		return;
+	}
+
+	if (uMode > 4.5) {
+		// Блик пожара на соседе: пятно тёплого света на том боку, что обращён к
+		// огню. Рисуем шейдером, а не спрайтом свечения: все готовые картинки
+		// свечения в игре зелёные, тинтом их в тёплый белый не перекрасить.
+		// Квад блика — ровно габарит кружка игрока, поэтому сам кружок здесь это
+		// круг радиусом 0.5 от центра квада. Всё, что вне него, отсекаем: свет
+		// лежит на игроке, а не висит в воздухе рядом с ним.
+		vec2 p = vec2(sx, up - 0.5);
+		float inBadge = 1.0 - smoothstep(0.45, 0.5, length(p));
+		// Две несоразмерные волны: от одной мерцание выходит ровным, как маячок.
+		float flicker = 0.6 + 0.27 * sin(uTime * 9.0 + uSeed * 6.283) + 0.13 * sin(uTime * 21.0);
+		float glint = exp(-length(p - uGlint) * 11.0) * flicker * power * inBadge;
+		gl_FragColor = vec4(vec3(1.0, 0.88, 0.74) * glint, glint);
+		return;
+	}
 
 	if (uMode > 3.5) {
 		// Вспышка и ударная волна в тот миг, когда струя достаёт до игрока. Живут
@@ -294,12 +327,12 @@ void main() {
 	float white = smoothstep(0.94, 0.98, fuel);
 
 	// Искры: сетка клеток, в каждой своя искра, летящая вверх быстрее пламени.
-	// Их нарочно много — сожжение должно выглядеть громко.
+	// Редкие: сплошной рой из них забивает сами языки пламени.
 	vec2 sparkGrid = vec2(sx * 14.0, up * 5.0 - uTime * 2.6) + uSeed * 5.0;
 	vec2 cellId = floor(sparkGrid);
 	vec2 cellUv = fract(sparkGrid) - 0.5;
 	float cellRnd = hash(cellId);
-	float ember = step(0.74, cellRnd) * smoothstep(0.24, 0.0, length(cellUv * vec2(1.0, 0.55)));
+	float ember = step(0.9, cellRnd) * smoothstep(0.22, 0.0, length(cellUv * vec2(1.0, 0.55)));
 	ember *= exp(-abs(x) * 1.6) * (0.35 + 0.65 * hash(cellId + 3.0));
 
 	// Раскалённое основание — там, где горит сам бейдж.
@@ -329,7 +362,10 @@ export interface IFireProps {
 	life: number;
 	seed: number;
 	// Костёр (по умолчанию), струя огнемёта или дым — см. uMode в шейдере.
-	mode?: 'fire' | 'jet' | 'smoke' | 'ash' | 'burst';
+	mode?: 'fire' | 'jet' | 'smoke' | 'ash' | 'burst' | 'glint' | 'shadow';
+	// Куда внутри кружка смещён блик — см. uGlint.
+	glintX?: number;
+	glintY?: number;
 }
 
 // Состояние искр струи на текущий кадр. Формулы те же, что раньше жили в
@@ -404,6 +440,8 @@ const emptyFire: IFireProps = {
 	life: 0,
 	seed: 0,
 	mode: 'fire',
+	glintX: 0,
+	glintY: 0,
 };
 
 const buildMesh = (): FireMesh => {
@@ -418,6 +456,7 @@ const buildMesh = (): FireMesh => {
 		uAspect: 1,
 		uOrigin: 0,
 		uMode: 0,
+		uGlint: new Float32Array(2),
 		uSparks: new Float32Array(JET_PARTICLES * 4),
 		uSparkColors: new Float32Array(JET_PARTICLES * 3),
 	});
@@ -439,7 +478,7 @@ export const behavior = {
 		const known = instance.fireProps ?? emptyFire;
 		const settings: IFireProps = {...known, ...omitBy(newProps, isUndefined) as Partial<IFireProps>};
 		instance.fireProps = settings;
-		const {fireWidth, fireHeight, originUp, time, life, seed, mode} = settings;
+		const {fireWidth, fireHeight, originUp, time, life, seed, mode, glintX, glintY} = settings;
 
 		// Перестраивать квад на каждый кадр незачем: размер меняется только вместе
 		// с размером стола.
@@ -448,7 +487,11 @@ export const behavior = {
 		}
 		// Струя именно светит — её складываем с тем, что под ней. Костёр и дым,
 		// наоборот, кроют собой: сложением их слои уводят середину в белый.
-		instance.blendMode = (mode === 'jet' || mode === 'burst') ? PIXI.BLEND_MODES.ADD : PIXI.BLEND_MODES.NORMAL;
+		instance.blendMode = (mode === 'jet' || mode === 'burst' || mode === 'glint')
+			? PIXI.BLEND_MODES.ADD : PIXI.BLEND_MODES.NORMAL;
+		// Тень ложится под кружки соседей, а не поверх них: сортировка внутри
+		// костра этого не даёт (он рисуется последним), поэтому её просто делаем
+		// ниже всех остальных слоёв самого костра — см. порядок в Burn.
 
 		instance.renderable = hasAnythingToDraw(mode, life);
 		if (mode === 'jet' && instance.renderable) {
@@ -465,8 +508,11 @@ export const behavior = {
 		uniforms.uSeed = seed;
 		uniforms.uAspect = fireHeight > 0 ? fireWidth / fireHeight : 1;
 		uniforms.uOrigin = originUp;
-		uniforms.uMode = mode === 'burst' ? 4
-			: (mode === 'ash' ? 3 : (mode === 'smoke' ? 2 : (mode === 'jet' ? 1 : 0)));
+		uniforms.uMode = mode === 'shadow' ? 6 : (mode === 'glint' ? 5 : (mode === 'burst' ? 4
+			: (mode === 'ash' ? 3 : (mode === 'smoke' ? 2 : (mode === 'jet' ? 1 : 0)))));
+		const glint = uniforms.uGlint as Float32Array;
+		glint[0] = glintX ?? 0;
+		glint[1] = glintY ?? 0;
 		this.applyDisplayObjectProps(oldProps, newProps);
 	},
 };

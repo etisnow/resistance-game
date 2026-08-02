@@ -20,7 +20,7 @@ import {EPanicID} from 'shared/enum/cards';
 import {Container, Sprite} from 'react-pixi-fiber';
 import Circle from 'client/components/pixiPrimitives/Circle';
 import {emojiTexture} from 'client/helpers/emojiTexture';
-import {tableCenterX, tableCenterY} from 'client/helpers/window';
+import {getWindowHeight, getWindowWidth, tableCenterX, tableCenterY} from 'client/helpers/window';
 import type {IPlayersMap} from 'client/controllers/socketTypes';
 import type {IFormatTradeContext} from 'shared/interfaces/common';
 import type Player from 'client/models/Player';
@@ -345,6 +345,25 @@ const Room = observer(({controller} : IRoomProps) => {
 	const positionOf = (playerId: string): IPoint =>
 		lastPositions.current[playerId] ?? getPositionFromPlayerList({players, playerId, playerList: newPlayerList});
 
+	// Весь холст в координатах стола: им костёр приглушает сцену вокруг себя.
+	const dimRect = {
+		x: -tableCenterX(),
+		y: -tableCenterY(),
+		width: getWindowWidth(),
+		height: getWindowHeight(),
+	};
+	// Соседи горящего по столу — на них ложатся отсветы пожара. Рассадка на время
+	// костра заморожена, так что места соседей за это время никуда не уедут.
+	const glintsOf = ({playerId}: {playerId: string}): IPoint[] => {
+		const seat = newPlayerList.indexOf(playerId);
+		if (seat < 0 || newPlayerList.length < 2) return [];
+		const around = [
+			newPlayerList[(seat + 1) % newPlayerList.length],
+			newPlayerList[(seat - 1 + newPlayerList.length) % newPlayerList.length],
+		];
+		return map(filter(around, (id): id is string => !!id && id !== playerId), positionOf);
+	};
+
 	const transitions = useTransition<string, IBadgeLayout>(newPlayerList, playerId => playerId, {
 		x: 0,
 		y: 0,
@@ -456,6 +475,8 @@ const Room = observer(({controller} : IRoomProps) => {
 				burns={burns}
 				controller={controller}
 				badgeRadius={badgeRadius}
+				dim={dimRect}
+				glintsOf={glintsOf}
 			/>
 		</Container>
 	)
