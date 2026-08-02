@@ -89,6 +89,13 @@ void main() {
 		// Пепел: редкие чёрные хлопья, летящие вместе с огнём. Слой отдельный,
 		// потому что огонь светится (складывается с фоном), а пепел, наоборот,
 		// должен темнить — в одном проходе это не совмещается.
+		// Ниже основания и выше полосы, где пепел живёт, считать нечего — а там
+		// девять клеток с хешами на каждый пиксель.
+		float ashAlive = smoothstep(0.0, 0.06, up) * (1.0 - smoothstep(0.7, 1.0, up));
+		if (ashAlive <= 0.0) {
+			gl_FragColor = vec4(0.0);
+			return;
+		}
 		vec2 grid = vec2(sx * 11.0, up * 11.0 - uTime * 2.2) + uSeed * 11.0;
 		vec2 cell = floor(grid);
 		vec2 inCell = fract(grid);
@@ -119,8 +126,7 @@ void main() {
 		}
 		// У кромок пепла больше: в раскалённой середине ему гореть и гореть.
 		float edgeBias = 0.35 + 0.65 * smoothstep(0.05, 0.5, abs(x));
-		float alive = smoothstep(0.0, 0.06, up) * (1.0 - smoothstep(0.7, 1.0, up));
-		float ashAlpha = speck * edgeBias * alive * power;
+		float ashAlpha = speck * edgeBias * ashAlive * power;
 		gl_FragColor = vec4(vec3(0.015, 0.012, 0.012) * ashAlpha, ashAlpha);
 		return;
 	}
@@ -131,14 +137,18 @@ void main() {
 		// снизу тот же огонь. Плотность обязана сойти на нет у всех четырёх кромок
 		// квада, иначе вместо облака проступит серый прямоугольник.
 		float rise = smoothstep(0.12, 0.45, uLife) * (1.0 - smoothstep(0.9, 1.0, uLife));
+		float edges = (1.0 - smoothstep(0.55, 1.0, abs(x)))
+			* (1.0 - smoothstep(0.55, 1.0, up)) * smoothstep(0.0, 0.18, up);
+		if (edges * rise <= 0.0) {
+			gl_FragColor = vec4(0.0);
+			return;
+		}
 		vec2 sq = vec2(sx * 3.4, up * 1.9 - uTime * 0.8) + uSeed * 3.1;
 		float wob = fbm(sq * 2.1);
 		float puff = fbm(sq + vec2((wob - 0.5) * 1.4, -(wob - 0.5) * 0.8));
 		float drift = (fbm(vec2(uSeed * 6.0, up * 2.0 - uTime * 0.6)) - 0.5) * 0.8 * up;
 		float spread = 0.18 + 0.6 * up;
 		float body = 1.0 - smoothstep(spread * 0.2, spread, abs(x - drift));
-		float edges = (1.0 - smoothstep(0.55, 1.0, abs(x)))
-			* (1.0 - smoothstep(0.55, 1.0, up)) * smoothstep(0.0, 0.18, up);
 		float density = clamp((puff * 2.2 - 0.45) * 1.5, 0.0, 1.0) * body * edges * rise;
 		// Подсвеченный снизу дым: у огня он теплее и светлее, выше — серый.
 		vec3 smokeColor = mix(vec3(0.38, 0.27, 0.21), vec3(0.19, 0.19, 0.2), smoothstep(0.05, 0.5, up));
@@ -152,21 +162,47 @@ void main() {
 		// Отдельными клубами он читался бы как гирлянда колец, а ровным конусом с
 		// ползущей внутри текстурой — как неподвижная картинка; здесь же поток
 		// живёт сам собой, потому что частицы летят, стареют и гаснут.
+		// Досюда не достаёт ни одна частица — а цикл ниже стоит дороже всего
+		// остального огня вместе взятого, и на пустой пиксель его гонять незачем.
+		// Оценка сверху: самая крупная из тех, что могли долететь до этой высоты,
+		// плюс предельный снос потока в этом месте.
+		float ampHere = 0.05 * smoothstep(0.0, uOrigin * 0.9, up)
+			+ 0.55 * smoothstep(uOrigin, 1.0, up);
+		float sizeHere = (0.034 + 0.115 * min(1.0, up / 1.04 + 0.4)) * 1.35;
+		if (abs(sx) > 0.54 * ampHere + 2.2 * sizeHere) {
+			gl_FragColor = vec4(0.0);
+			return;
+		}
+
 		float glow = 0.0;
 		vec3 tint = vec3(0.0);
-		for (int i = 0; i < 38; i++) {
+		for (int i = 0; i < 28; i++) {
 			float fi = float(i);
 			float rnd = hash(vec2(fi, uSeed * 13.0));
 			// Возраст: 0 — только вылетела из сопла, 1 — догорела на излёте.
-			float age = fract(uTime * 0.95 + fi / 38.0 + rnd * 0.02);
+			float age = fract(uTime * 0.95 + fi / 28.0 + rnd * 0.02);
 			float along = age * 1.04;
-			// Поток змеится: по нему бежит волна, весь ствол вдобавок водит из
-			// стороны в сторону, и у каждой частицы свой снос.
-			float wander = sin(along * 4.5 - uTime * 4.2 + rnd * 6.283) * 0.16 * along
-				+ sin(uTime * 1.7 + uSeed * 6.283) * 0.22 * along
-				+ (rnd - 0.5) * 0.2 * along;
+			// До цели струю почти не водит: из огнемёта целятся, а не машут им.
+			// По самой цели она ходит чуть-чуть, а вот за ней поток уже
+			// разбрасывает во все стороны — там его ничто не держит.
+			float amp = 0.05 * smoothstep(0.0, uOrigin * 0.9, along)
+				+ 0.55 * smoothstep(uOrigin, 1.0, along);
 			// Старея, частица раздувается и остывает.
-			float size = (0.03 + 0.10 * age) * (0.65 + 0.7 * rnd);
+			float size = (0.034 + 0.115 * age) * (0.65 + 0.7 * rnd);
+			// Дальше 2.2 своих размеров частица не светит вовсе — там вычитание
+			// ниже обнуляет яркость точно. Для такого пикселя её можно не считать,
+			// а этот цикл — самое дорогое место всего огня. Поперёк отсекаем по
+			// верхней оценке сноса (сумме амплитуд), чтобы не считать два синуса
+			// ради частицы, которая всё равно не достаёт.
+			float reach2 = 2.2 * size;
+			if (abs(up - along) > reach2) continue;
+			if (abs(sx) > reach2 + 0.54 * amp) continue;
+			// Поток змеится: по нему бежит волна, весь ствол вдобавок водит из
+			// стороны в сторону, и у каждой частицы свой снос. Всё это — в меру
+			// amp, то есть почти никак до цели и вовсю за ней.
+			float wander = (sin(along * 4.5 - uTime * 4.2 + rnd * 6.283) * 0.16
+				+ sin(uTime * 1.7 + uSeed * 6.283) * 0.2
+				+ (rnd - 0.5) * 0.18) * amp;
 			vec2 rel = vec2(sx - wander, up - along) / max(size, 0.01);
 			// Свечение по закону обратных квадратов, но с обрезанным хвостом: у
 			// честного 1/d² хвост бесконечный, и он затягивает весь квад дымкой.
@@ -198,6 +234,13 @@ void main() {
 		// Сердцевина потока — добела: там свечений столько, что цвет уходит в белый.
 		jetColor = mix(jetColor, vec3(1.0, 1.0, 0.96), smoothstep(1.6, 3.2, glow));
 		gl_FragColor = vec4(jetColor * jetAlpha, jetAlpha);
+		return;
+	}
+
+	// Края квада пламя не достаёт никогда (см. edgeFade ниже) — там незачем
+	// считать шесть слоёв шума.
+	if (abs(x) >= 1.0 || up >= 0.995 || power <= 0.0) {
+		gl_FragColor = vec4(0.0);
 		return;
 	}
 
@@ -299,6 +342,16 @@ export interface IFireProps {
 	mode?: 'fire' | 'jet' | 'smoke' | 'ash' | 'burst';
 }
 
+// Слой, который сейчас ничего не рисует, вообще не отдаём на отрисовку. Это не
+// экономия на спичках: у струи квад в полстола, и её шейдер — самое дорогое, что
+// есть на экране, а живёт она только первую половину костра. Пороги повторяют
+// огибающие из шейдера: там, где они дают ноль, рисовать нечего.
+const hasAnythingToDraw = (mode: IFireProps['mode'], life: number): boolean => {
+	if (mode === 'burst') return life < 0.4;
+	if (mode === 'smoke') return life > 0.1 && life < 1.0;
+	return life > 0.0 && life < 1.0;
+};
+
 // Костёр помнит свои пропсы на себе, и вот почему: пружина react-spring, обновляя
 // объект между кадрами, отдаёт applyProps ТОЛЬКО анимируемые значения (время и
 // ход горения) — остальных в них просто нет. Брать их из такого обновления
@@ -367,6 +420,8 @@ export const behavior = {
 		// Струя именно светит — её складываем с тем, что под ней. Костёр и дым,
 		// наоборот, кроют собой: сложением их слои уводят середину в белый.
 		instance.blendMode = (mode === 'jet' || mode === 'burst') ? PIXI.BLEND_MODES.ADD : PIXI.BLEND_MODES.NORMAL;
+
+		instance.renderable = hasAnythingToDraw(mode, life);
 
 		const {uniforms} = instance.shader;
 		uniforms.uTime = time;

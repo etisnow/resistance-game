@@ -2,9 +2,11 @@ import React from 'react';
 import {clamp} from 'lodash';
 import {computed, observable, runInAction} from 'mobx';
 
-// Выше 3x бэкбуфер растить бессмысленно: на глаз разницы уже нет, а площадь (и
-// вместе с ней нагрузка на GPU) растёт квадратично.
-const maxResolution = 3;
+// Выше 2x бэкбуфер растить бессмысленно: на глаз разницы уже нет, а площадь (и
+// вместе с ней нагрузка на GPU) растёт квадратично. Раньше здесь стояло 3 — на
+// телефонах с такой плотностью пикселей это втрое больше работы на кадр, и
+// тяжёлые шейдеры (сожжение огнемётом) начинали заикаться.
+const maxResolution = 2;
 
 const readResolution = (): number => clamp(window.devicePixelRatio || 1, 1, maxResolution);
 
