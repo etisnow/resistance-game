@@ -1,5 +1,5 @@
 import React from 'react';
-import {clamp, clone, filter, map} from 'lodash';
+import {clamp, clone, each, filter, includes, map} from 'lodash';
 import './styles.scss';
 import {observer} from "mobx-react-lite";
 import {config, useSpring, useTransition} from 'react-spring/universal';
@@ -9,6 +9,7 @@ import PlayerBadge from 'client/components/table/PlayerBadge/PlayerBadge';
 import CardFlights from 'client/components/table/Room/CardFlight';
 import CardDraws from 'client/components/table/Room/CardDraw';
 import CardEffects from 'client/components/table/Room/CardEffect';
+import BurningPlayers, {useBurns} from 'client/components/table/Room/Burn';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ENotificationAction} from 'shared/enum/notifications';
@@ -32,6 +33,15 @@ interface IPoint {
 	x: number;
 	y: number;
 }
+
+// Кружок игрока: место за столом и прозрачность (ею гаснет уходящий).
+interface IBadgeLayout extends IPoint {
+	alpha: number;
+}
+
+// Насколько дальше своего места за столом уезжает кружок выбывшего: он уходит
+// от стола наружу, за край экрана ему при этом лететь незачем.
+const leaveShare = 2.2;
 
 // Размер карты действия на стрелке и радиус значка обмена — в долях радиуса
 // бейджа. Карта не должна съедать саму стрелку: соседи по столу сидят близко.
@@ -293,39 +303,91 @@ const Room = observer(({controller} : IRoomProps) => {
 	if (!currentPlayer || !currentPlayerId || !playersList) return null;
 	const {marks} = currentPlayer;
 	const tradeContext: IFormatTradeContext[] = controller.tradeContext || [];
-	let newPlayerList = clone(playersList);
-	if (controller.isLayoutSequential && currentPlayer.turnState !== ETurnState.dead) {
-		const indexOfCurrentPlayer = playersList.indexOf(currentPlayerId);
-		let beforeCurrentPlayer = newPlayerList.slice(0, indexOfCurrentPlayer);
-		newPlayerList.splice(0, indexOfCurrentPlayer);
-		newPlayerList = newPlayerList.concat(beforeCurrentPlayer);
-	}
 
+	// Рассадка и места предыдущего рендера. Сожжение приходит ровно тем же
+	// обновлением, которым сгоревший уходит со стола, — а стол на нём уже успел
+	// бы пересадить оставшихся. Костру нужна прежняя рассадка целиком: и куда
+	// бить струёй, и откуда, и на какое место вернуть горящего.
+	const lastPositions = React.useRef<Record<string, IPoint>>({});
+	const prevPositions = React.useRef<Record<string, IPoint>>({});
+	const lastSeats = React.useRef<string[]>([]);
+	const prevSeats = React.useRef<string[]>([]);
+	const positionBefore = (playerId: string): IPoint => prevPositions.current[playerId] ?? {x: 0, y: 0};
+	const seatBefore = (playerId: string): number => prevSeats.current.indexOf(playerId);
+
+	const burns = useBurns(controller, positionBefore, seatBefore);
+	const burningIds = map(burns, ({playerId}) => playerId);
+
+	// Пока человек горит, стол стоит: сгоревший остаётся на своём месте, и никто
+	// не пересаживается. Сожжение — событие, его дают разглядеть, а не подменяют
+	// место соседним игроком в ту же секунду. Сам сгоревший смотрит на свой
+	// костёр с того же места, что и сидел: разворачивать под него стол (мёртвым
+	// его показывают иначе) на время костра тоже рано.
+	let seatedList = clone(playersList);
+	const isBurningSelf = includes(burningIds, currentPlayerId);
+	// Обычно стол разворачивают так, чтобы смотрящий сидел первым. Сгоревшего в
+	// списке уже нет, поэтому пока горит он сам, стол держат за его соседа —
+	// того, кто сидел за ним, — и сам сгоревший встаёт перед ним обратно на своё
+	// нулевое место.
+	const anchorId = isBurningSelf ? prevSeats.current[1] : currentPlayerId;
+	const indexOfAnchor = playersList.indexOf(anchorId ?? '');
+	if (controller.isLayoutSequential && indexOfAnchor >= 0
+		&& (currentPlayer.turnState !== ETurnState.dead || isBurningSelf)) {
+		let beforeAnchor = seatedList.slice(0, indexOfAnchor);
+		seatedList.splice(0, indexOfAnchor);
+		seatedList = seatedList.concat(beforeAnchor);
+	}
+	const newPlayerList = clone(seatedList);
+	each(burns, ({playerId, seat}) => {
+		if (includes(newPlayerList, playerId)) return;
+		newPlayerList.splice(clamp(seat < 0 ? newPlayerList.length : seat, 0, newPlayerList.length), 0, playerId);
+	});
 
 	const playersCount = newPlayerList.length;
 
-	const transitions = useTransition<string, IPoint>(newPlayerList, playerId => playerId, {
+	prevPositions.current = lastPositions.current;
+	prevSeats.current = lastSeats.current;
+	lastPositions.current = {...lastPositions.current};
+	lastSeats.current = newPlayerList;
+	each(newPlayerList, (playerId) => {
+		lastPositions.current[playerId] = getPositionFromPlayerList({players, playerId, playerList: newPlayerList});
+	});
+	// Место игрока за столом. Последнее известное запоминаем: цель летящей карты
+	// может не дожить до конца её полёта.
+	const positionOf = (playerId: string): IPoint =>
+		lastPositions.current[playerId] ?? getPositionFromPlayerList({players, playerId, playerList: newPlayerList});
+
+	const transitions = useTransition<string, IBadgeLayout>(newPlayerList, playerId => playerId, {
 		x: 0,
 		y: 0,
+		alpha: 1,
 		from: {
-			x: 0, y: 0
+			x: 0, y: 0, alpha: 1
 		},
 		enter: playerId => {
-			return getPositionFromPlayerList({players, playerId, playerList: newPlayerList});
+			return {...getPositionFromPlayerList({players, playerId, playerList: newPlayerList}), alpha: 1};
 		},
 		update: playerId => {
-			return getPositionFromPlayerList({players, playerId, playerList: newPlayerList});
+			return {...getPositionFromPlayerList({players, playerId, playerList: newPlayerList}), alpha: 1};
 		},
-		leave: () => {
-			return {
-				x: 0, y: 0
-			}
+		// Выбывший встаёт и уходит из-за стола: его кружок отъезжает со своего
+		// места наружу и там гаснет. В центр стола ему нельзя — там колода, и
+		// уход выглядел бы как ещё один ход, а не как «игрока больше нет».
+		leave: playerId => {
+			const {x, y} = positionOf(playerId);
+			return {x: x * leaveShare, y: y * leaveShare, alpha: 0};
 		},
 	});
 
 	const badgeDiagonal = playerRoomDiag(playersCount);
 	const badgeRadius = badgeDiagonal/2;
 	const arrows = useArrows(tradeContext);
+
+	// От сгоревшего не остаётся и кружка: когда костёр догорит, игрок уйдёт из
+	// рассадки, и обычный уход (кружок отъезжает за стол) выглядел бы так, будто
+	// он всё-таки встал и вышел. Поэтому таких помним и не рисуем вовсе.
+	const burnedOut = React.useRef<Set<string>>(new Set());
+	each(burningIds, (playerId) => burnedOut.current.add(playerId));
 
 
 
@@ -338,9 +400,11 @@ const Room = observer(({controller} : IRoomProps) => {
 
 	return (
 		<Container x={tableCenterX()} y={tableCenterY()}>
-			{map(transitions, ({item: playerId, key, props:{x, y} }) => {
+			{map(transitions, ({item: playerId, key, props:{x, y, alpha} }) => {
 				const player = players[playerId];
 				if (!player || !player.id) return null;
+				// Горящего рисует его костёр — он же и покажет, что от кружка осталось.
+				if (burnedOut.current.has(playerId)) return null;
 				const {nickname, color, state} = player;
 				const inTurn = player.turnState !== ETurnState.idle;
 				const canBeSelected = canPlayerBeSelected(player);
@@ -349,6 +413,7 @@ const Room = observer(({controller} : IRoomProps) => {
 						key={key}
 						x={x}
 						y={y}
+						alpha={alpha}
 					>
 						<PlayerBadge
 							style={{width:badgeDiagonal, height:badgeDiagonal}}
@@ -381,7 +446,7 @@ const Room = observer(({controller} : IRoomProps) => {
 			))}
 			<CardFlights
 				controller={controller}
-				getPosition={playerId => getPositionFromPlayerList({players, playerId, playerList: newPlayerList})}
+				getPosition={positionOf}
 				cardWidth={badgeDiagonal * 0.42}
 			/>
 			{/* Взятие карты из колоды: колода лежит в центре стола, то есть в начале
@@ -389,13 +454,19 @@ const Room = observer(({controller} : IRoomProps) => {
 			    badgeDiagonal, что и у Deck. */}
 			<CardDraws
 				controller={controller}
-				getPosition={playerId => getPositionFromPlayerList({players, playerId, playerList: newPlayerList})}
+				getPosition={positionOf}
 				deckCardWidth={badgeDiagonal}
 				badgeRadius={badgeRadius}
 			/>
 			<CardEffects
 				controller={controller}
-				getPosition={playerId => getPositionFromPlayerList({players, playerId, playerList: newPlayerList})}
+				getPosition={positionOf}
+				badgeRadius={badgeRadius}
+			/>
+			{/* Костры — поверх всего: сожжение видно даже сквозь стрелки и летящие карты. */}
+			<BurningPlayers
+				burns={burns}
+				controller={controller}
 				badgeRadius={badgeRadius}
 			/>
 		</Container>

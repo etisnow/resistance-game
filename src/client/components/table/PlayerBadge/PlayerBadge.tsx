@@ -38,7 +38,7 @@ const playerStatusThing = getPixiTexture(resources.playerStatusThing);
 const playerStatusInfected = getPixiTexture(resources.playerStatusInfected);
 const playerStatusClear = getPixiTexture(resources.playerStatusClear);
 
-const formatNickname = (nickname: string | null): string | null => {
+export const formatNickname = (nickname: string | null): string | null => {
 	if (!nickname) return null;
 	return nickname.substring(0,4).toUpperCase()
 };
@@ -83,7 +83,7 @@ interface IBadgeResourceArgs {
 	isInfected: boolean;
 }
 
-const getBadgeResource = ({isDoor, isConnected, color, isThing, isInfected}: IBadgeResourceArgs): string | undefined => {
+export const getBadgeResource = ({isDoor, isConnected, color, isThing, isInfected}: IBadgeResourceArgs): string | undefined => {
 	if (isDoor) return playerBadgesByKey['door'];
 	if (!isConnected) return playerBadgesByKey['disconnected'];
 	// Роль вместо цветного кружка — но только для того, кто её знает: сервер
