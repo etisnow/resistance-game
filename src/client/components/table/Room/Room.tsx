@@ -1,9 +1,9 @@
 import React from 'react';
-import {clamp, clone, filter, map} from 'lodash';
+import {clamp, filter, map} from 'lodash';
 import './styles.scss';
 import {observer} from "mobx-react-lite";
 import {config, useSpring, useTransition} from 'react-spring/universal';
-import {degToRag, playerRoomDiag, roomRadii} from 'client/helpers/roomHelpers';
+import {degToRag, playerRoomDiag, roomPlayerOrder, roomPlayerPoint} from 'client/helpers/roomHelpers';
 import GameController from 'client/controllers/gameController';
 import PlayerBadge from 'client/components/table/PlayerBadge/PlayerBadge';
 import CardFlights from 'client/components/table/Room/CardFlight';
@@ -67,13 +67,6 @@ interface IArrowShape {
 	arrowColor: number;
 }
 
-const getPlayerDeg = (playerId: string, playerList: string[]): number => {
-	const playersCount = playerList.length;
-	const degDelta = 360 / playersCount;
-	const currentDeg = (degDelta * playerList.indexOf(playerId))  + 90;
-	return currentDeg;
-}
-
 const getCirclePoint = (radius: number, deg: number, centerX: number, centerY: number): IPoint => {
 	const currentRad = degToRag(deg);
 	const x = radius*Math.cos(currentRad) + centerX;
@@ -81,16 +74,13 @@ const getCirclePoint = (radius: number, deg: number, centerX: number, centerY: n
 	return {x,y};
 }
 
+// Место игрока за столом (координаты относительно центра — его подставляет
+// контейнер). Сама геометрия круга живёт в roomHelpers: по ней же рука считает,
+// откуда прилетает и куда улетает карта обмена.
 const getPositionFromPlayerList = ({players, playerId, playerList}: {players: IPlayersMap, playerId: string, playerList: string[]}): IPoint => {
 	const player = players[playerId];
 	if (!player) return {x: 0, y:0};
-	const playersCount = playerList.length;
-	const currentRad = degToRag(getPlayerDeg(playerId, playerList));
-	// Стол — эллипс: угол задаёт место игрока за столом, а полуоси подогнаны
-	// под форму свободной области (см. roomRadii). Координаты относительно
-	// центра стола, его подставляет контейнер.
-	const {rx, ry} = roomRadii(playersCount);
-	return {x: rx * Math.cos(currentRad), y: ry * Math.sin(currentRad)};
+	return roomPlayerPoint(playerId, playerList);
 }
 
 
@@ -293,13 +283,11 @@ const Room = observer(({controller} : IRoomProps) => {
 	if (!currentPlayer || !currentPlayerId || !playersList) return null;
 	const {marks} = currentPlayer;
 	const tradeContext: IFormatTradeContext[] = controller.tradeContext || [];
-	let newPlayerList = clone(playersList);
-	if (controller.isLayoutSequential && currentPlayer.turnState !== ETurnState.dead) {
-		const indexOfCurrentPlayer = playersList.indexOf(currentPlayerId);
-		let beforeCurrentPlayer = newPlayerList.slice(0, indexOfCurrentPlayer);
-		newPlayerList.splice(0, indexOfCurrentPlayer);
-		newPlayerList = newPlayerList.concat(beforeCurrentPlayer);
-	}
+	const newPlayerList = roomPlayerOrder(
+		playersList,
+		currentPlayerId,
+		controller.isLayoutSequential && currentPlayer.turnState !== ETurnState.dead,
+	);
 
 
 	const playersCount = newPlayerList.length;

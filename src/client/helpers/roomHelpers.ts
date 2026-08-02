@@ -62,3 +62,30 @@ export const roomRadii = (count: number) => {
 		ry: Math.min(ry, rx * maxRoomEccentricity),
 	};
 };
+
+/**
+ * Порядок игроков за столом. При «виде от игрока» список прокручен так, чтобы ты
+ * сидел первым — то есть внизу, под своей рукой. Мертвец смотрит на стол сверху,
+ * как он есть.
+ *
+ * Живёт здесь, а не в Room: по этому же кругу рука считает, откуда прилетает и
+ * куда улетает карта обмена (см. Hand), а посчитанный второй раз он однажды со
+ * столом разъедется.
+ */
+export const roomPlayerOrder = (playersList: string[], currentPlayerId: string, isSequential: boolean): string[] => {
+	const index = playersList.indexOf(currentPlayerId);
+	if (!isSequential || index < 0) return [...playersList];
+	return [...playersList.slice(index), ...playersList.slice(0, index)];
+};
+
+/**
+ * Место игрока за столом относительно его центра. Стол — эллипс: угол задаёт
+ * место, а полуоси подогнаны под форму свободной области (см. roomRadii).
+ * Отсчёт от +90°, поэтому первый в порядке сидит внизу.
+ */
+export const roomPlayerPoint = (playerId: string, playerOrder: string[]): {x: number, y: number} => {
+	const deg = (360 / playerOrder.length) * playerOrder.indexOf(playerId) + 90;
+	const rad = degToRag(deg);
+	const {rx, ry} = roomRadii(playerOrder.length);
+	return {x: rx * Math.cos(rad), y: ry * Math.sin(rad)};
+};

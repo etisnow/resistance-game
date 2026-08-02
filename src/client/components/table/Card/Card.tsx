@@ -101,15 +101,19 @@ const Card = observer(({id, menu, onCardClick, onCardOver, onCardOut, hoverPad =
 
 	return (
 		<Container  >
-			{canBeUsed && (
-				<AnimatedPixi.Sprite
-					texture={glowTexture}
-					anchor={0.5}
-					{...style}
-					width={cardGlowWidth}
-					height={cardGlowHeight}
-				/>
-			)}
+			{/* Подсветка играбельной карты не снимается с дерева, а прячется: карта
+			    перестаёт быть играбельной ровно в тот момент, когда ею ходят, то
+			    есть посреди движения веера. Снятый в этот момент спрайт react-spring
+			    всё равно трогает своим уже назначенным кадром — и React ругается на
+			    обновление размонтированного компонента. */}
+			<AnimatedPixi.Sprite
+				texture={glowTexture}
+				visible={!!canBeUsed}
+				anchor={0.5}
+				{...style}
+				width={cardGlowWidth}
+				height={cardGlowHeight}
+			/>
 			<AnimatedPixi.Sprite
 				buttonMode={true}
 				interactive={true}

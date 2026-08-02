@@ -5,8 +5,14 @@ import {Container, Sprite} from 'react-pixi-fiber';
 import GameController from 'client/controllers/gameController';
 import HandComponent from 'client/components/table/Hand/HandComponent';
 import {getWindowHeight, getWindowWidth, playerHandHeight, tableCenterX, tableCenterY} from 'client/helpers/window';
-import {playerRoomDiag} from 'client/helpers/roomHelpers';
+import {playerRoomDiag, roomPlayerOrder, roomPlayerPoint} from 'client/helpers/roomHelpers';
 import {EPlayerActionType} from 'shared/enum/playerActions';
+import {ETurnState} from 'shared/enum/player';
+
+// Каким размером карта отрывается от чужого кружка, в долях его диаметра: не
+// точкой (её не разглядеть), но и не картой во всю руку — на столе она лежит
+// далеко.
+const badgeCardShare = 0.28;
 interface IHandProps {
 	controller: GameController
 }
@@ -30,15 +36,36 @@ const Hand = observer(({controller} : IHandProps) => {
 		controller.cardAction(cardAction, cardUniqueId)
 	};
 
-	// Откуда прилетает взятая карта: колода лежит в центре стола и рисуется
-	// картой шириной с бейдж игрока (см. Deck). Контейнер руки опущен к низу
-	// экрана и сдвинут пивотом на полширины — на это и поправка.
-	const drawnFrom = {
-		x: tableCenterX() - getWindowWidth() / 2,
-		y: tableCenterY() - (getWindowHeight() - playerHandHeight()),
-		angle: 0,
-		width: playerRoomDiag(controller.playersList.length),
+	// Точки стола в координатах контейнера руки: он опущен к низу экрана и сдвинут
+	// пивотом на полширины — на это и поправка.
+	const badgeDiagonal = playerRoomDiag(controller.playersList.length);
+	const toHandCoords = ({x, y}: {x: number, y: number}) => ({
+		x: tableCenterX() + x - getWindowWidth() / 2,
+		y: tableCenterY() + y - (getWindowHeight() - playerHandHeight()),
+	});
+	// Круг игроков — тот же, что рисует стол (см. Room): при «виде от игрока» он
+	// прокручен так, что ты сидишь внизу.
+	const playerOrder = roomPlayerOrder(
+		controller.playersList,
+		controller.currentPlayerId ?? '',
+		controller.isLayoutSequential && player.turnState !== ETurnState.dead,
+	);
+	// Колода лежит в центре стола и рисуется картой шириной с бейдж (см. Deck).
+	const deckStyle = {...toHandCoords({x: 0, y: 0}), angle: 0, width: badgeDiagonal};
+	// Карта у чужого кружка: маленькая и без наклона. Приходящая вырастает из
+	// него, будто её оттуда достали, уходящая — сжимается в него до нуля, будто
+	// он её вобрал.
+	const badgeStyle = (playerId: string, width: number) =>
+		({...toHandCoords(roomPlayerPoint(playerId, playerOrder)), angle: 0, width});
+
+	const {arriving, leaving} = controller;
+	const enterFrom = arriving && {
+		cardIds: arriving.cardIds,
+		style: arriving.playerId ? badgeStyle(arriving.playerId, badgeDiagonal * badgeCardShare) : deckStyle,
 	};
+	const exitTo = leaving && leaving.playerId
+		? {cardIds: leaving.cardIds, style: badgeStyle(leaving.playerId, 0)}
+		: null;
 
 
 	return (
@@ -66,8 +93,8 @@ const Hand = observer(({controller} : IHandProps) => {
 				onSelectCard={cardSelection}
 				cardActions={controller.handActions}
 				onCardAction={handleCardAction}
-				drawnCardIds={controller.drawnCardIds}
-				drawnFrom={drawnFrom}
+				enterFrom={enterFrom}
+				exitTo={exitTo}
 			/>
 		</Container>
 	)

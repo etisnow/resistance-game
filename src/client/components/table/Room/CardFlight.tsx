@@ -157,6 +157,14 @@ const CardFlights = observer(({controller, getPosition, cardWidth}: ICardFlights
 
 		const started: IFlight[] = [];
 		const addFlight = (giverId: string, receiverId: string, bend: number, cardId?: string) => {
+			// Свой конец пути рисует не стол, а рука: карта, которая достаётся мне,
+			// въезжает прямо в веер, а отданная вылетает из своего гнезда — одним
+			// движением, без дубля от кружка (см. GameController.markCardMoves).
+			// Сверяем и второй конец пути: так отметка обмена, за который рука уже
+			// взялась, не погасит чужой полёт. Если рука за движение не взялась
+			// (непонятно, какая карта чья), стол рисует полёт как раньше.
+			if (receiverId === currentPlayerId && controller.arriving?.playerId === giverId) return;
+			if (giverId === currentPlayerId && controller.leaving?.playerId === receiverId) return;
 			started.push({
 				id: nextFlightId.current++,
 				from: getPosition(giverId),

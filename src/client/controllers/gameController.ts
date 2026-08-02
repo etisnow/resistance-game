@@ -9,7 +9,7 @@ import {EClientEventType} from 'shared/enum/enumClientEvents';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import type {IFormatCardDraw, IFormatCardEffect, IFormatPanicCard, IFormatTradeContext} from 'shared/interfaces/common';
 import fscreen from 'fscreen';
-import {difference, each, filter, keys, merge, reduce} from "lodash";
+import {difference, each, every, filter, find, includes, keys, merge, reduce} from "lodash";
 import {EAsyncState} from 'shared/enum/async';
 import type {
 	IDeckPayload,
@@ -19,12 +19,34 @@ import type {
 	IPlayersMap,
 } from 'client/controllers/socketTypes';
 import {ENotificationAction} from 'shared/enum/notifications';
+import {ETurnContextType} from 'shared/enum/turnContextType';
 import type {IGameLogEntry} from 'shared/interfaces/gameLog';
 
 // Сколько карта паники минимум лежит на столе, даже если само её событие
 // отыгралось мгновенно: столько нужно, чтобы стол успел прочитать, что вообще
 // произошло. Пока карта там, новую из колоды не тянут.
 const panicCardHoldMs = 5000;
+
+// Карты, которые сейчас входят в мою руку или выходят из неё, и другой конец их
+// пути: id игрока или null — колода.
+export interface ICardMove {
+	cardIds: string[];
+	playerId: string | null;
+}
+
+// Передача карты бывает только в этих контекстах хода. Огнемёт и смена мест тоже
+// связывают двух игроков, но карты между ними не ходят, и принимать их за обмен
+// нельзя: иначе сброшенный «никакой шашлык» улетал бы поджигателю в кружок.
+const isTradeish = ({type}: IFormatTradeContext): boolean =>
+	type === ETurnContextType.trade || type === ETurnContextType.chainReaction;
+
+// Тот, чьей целью в обмене являюсь я, — то есть тот, кто отдаёт карту мне.
+const giverTo = (context: IFormatTradeContext[] | null, viewerId: string): string | null =>
+	find(filter(context ?? [], isTradeish), ({defensePlayerId}) => defensePlayerId === viewerId)?.offensePlayerId ?? null;
+
+// Тот, кого целью выбрал я, — то есть тот, кому карту отдаю я.
+const receiverFrom = (context: IFormatTradeContext[] | null, viewerId: string): string | null =>
+	find(filter(context ?? [], isTradeish), ({offensePlayerId}) => offensePlayerId === viewerId)?.defensePlayerId ?? null;
 
 export default class GameController {
 	root: RootController;
@@ -51,9 +73,15 @@ export default class GameController {
 	// Взятия карт из колоды: стол пускает по ним карту от колоды к игроку.
 	// Смотри IFormatCardDraw и CardDraw.
 	@observable cardDraws: IFormatCardDraw[] = [];
-	// Мои карты, только что взятые из колоды: рука вводит их полётом от колоды, а
-	// не обычным появлением. Смотри markDrawnCards и HandComponent.
-	@observable drawnCardIds: string[] = [];
+	// Карты, которые прямо сейчас приходят ко мне в руку и уходят из неё, вместе с
+	// тем концом стола, откуда и куда они идут. Рука вводит и выводит их не «из
+	// ниоткуда в никуда», а этим самым движением — одна карта, одна анимация.
+	// Смотри markCardMoves и HandComponent.
+	@observable arriving: ICardMove | null = null;
+	@observable leaving: ICardMove | null = null;
+	// Карта, которую я только что отдал в обмен, и кому: запомнена в момент
+	// действия и ждёт того обновления, в котором она действительно уйдёт из руки.
+	giving: ICardMove | null = null;
 	// Номер последнего учтённого взятия. null — обновлений ещё не было.
 	lastDrawSeq: number | null = null;
 	// Сработавшая паника: лежит крупно в центре стола, пока идёт её событие (это
@@ -114,7 +142,23 @@ export default class GameController {
 	};
 
 	cardAction = (actionType: EPlayerActionType, cardUniqueId: string) => {
+		// Кому я отдаю карту, знаю только я сам — и знаю прямо сейчас, до всякого
+		// ответа сервера. По его обновлениям это не восстановить: карта уходит из
+		// руки раньше, чем в лог ложится строка о состоявшемся обмене (сервер
+		// успевает разослать промежуточное обновление), а отказ «нет уж спасибо»
+		// снаружи выглядит ровно так же, как отданная карта.
+		this.giving = actionType === EPlayerActionType.cardTrade
+			? {cardIds: [cardUniqueId], playerId: this.tradePartnerId()}
+			: null;
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType, cardUniqueId})
+	};
+
+	// Второй участник обмена, который идёт прямо сейчас: если целью выбрали меня —
+	// тот, кто выбрал, иначе тот, кого выбрал я.
+	tradePartnerId = (): string | null => {
+		const me = this.currentPlayerId;
+		if (!me) return null;
+		return giverTo(this.tradeContext, me) ?? receiverFrom(this.tradeContext, me);
 	};
 
 	activatePlayerSelectMode = (notification: INotificationAction) => {
@@ -251,26 +295,66 @@ export default class GameController {
 		}
 	};
 
-	// Какие из моих карт прямо сейчас пришли из колоды: рука вводит их не как
-	// обычные новые карты, а полётом от колоды (см. HandComponent). Считаем это
-	// здесь, потому что только здесь ещё видна рука ДО обновления: дальше она уже
-	// перезаписана. Сверяем два источника — событие взятия с сервера и саму руку;
-	// если пришло не столько карт, сколько взято (скажем, обмен случился в том же
-	// обновлении), какая из них какая — непонятно, и полёт не назначаем никому.
-	markDrawnCards = (cardDraws: IFormatCardDraw[], viewerId: string, newHand: IHandMap) => {
+	// Откуда и куда в этом обновлении ходят МОИ карты. Считаем это здесь, потому
+	// что только здесь ещё видны рука, контекст хода и лог ДО обновления: дальше
+	// они уже перезаписаны, а рука должна знать ответ уже на первом кадре — её
+	// переходы читают его в тот же миг, когда карта появляется и исчезает.
+	//
+	// Пришедшая карта: либо взята из колоды (сверяем событие взятия с сервера и
+	// саму руку — если пришло не столько карт, сколько взято, какая из них какая
+	// непонятно, и движение не назначаем), либо получена от другого игрока.
+	// Ушедшая: отдана другому игроку. Сброс и разыгранная карта сюда не попадают —
+	// им лететь некуда, они просто уходят из руки.
+	markCardMoves = (
+		{cardDraws, viewerId, newHand}:
+		{cardDraws: IFormatCardDraw[], viewerId: string, newHand: IHandMap},
+	) => {
 		const latestSeq = reduce(cardDraws, (acc: number, {seq}) => Math.max(acc, seq), 0);
 		const seenSeq = this.lastDrawSeq;
-		const fresh = seenSeq === null ? [] : filter(cardDraws, ({seq}) => seq > seenSeq);
+		const freshDraws = seenSeq === null ? [] : filter(cardDraws, ({seq}) => seq > seenSeq);
 		this.lastDrawSeq = latestSeq;
 		// Первое обновление — это вход в игру: вся рука «новая», но прилетать ей
-		// неоткуда. Так же и переподключившийся не догоняет чужие взятия разом.
+		// неоткуда. Так же и переподключившийся не догоняет чужие ходы разом.
 		if (seenSeq === null) {
-			this.drawnCardIds = [];
+			this.arriving = null;
+			this.leaving = null;
 			return;
 		}
-		const drawnCount = reduce(fresh, (acc: number, {playerId, count}) => acc + (playerId === viewerId ? count : 0), 0);
-		const arrived = difference(keys(newHand), keys(this.hand));
-		this.drawnCardIds = drawnCount > 0 && arrived.length === drawnCount ? arrived : [];
+
+		const prevContext = this.tradeContext;
+		const prevHand = keys(this.hand);
+		const arrived = difference(keys(newHand), prevHand);
+		const left = difference(prevHand, keys(newHand));
+
+		// Отметки переписываем ТОЛЬКО когда карта и правда сдвинулась. Один ход
+		// сервер нередко рассылает двумя обновлениями подряд (карта уходит из руки в
+		// первом, ответная приходит во втором), и обнуление на каждом обновлении
+		// стирало бы отметку раньше, чем её прочитает стол: тот сверяется с ней,
+		// чтобы не нарисовать второй, свой полёт поверх того, что делает рука.
+		if (arrived.length) {
+			const drawnCount = reduce(freshDraws, (acc: number, {playerId, count}) => acc + (playerId === viewerId ? count : 0), 0);
+			if (drawnCount > 0) {
+				this.arriving = arrived.length === drawnCount ? {cardIds: arrived, playerId: null} : null;
+			} else if (arrived.length === 1) {
+				// Кто мне отдал: тот, чьей целью я был, а если целью был не я, то тот,
+				// кого целью выбрал я — так возвращается своя карта после отказа и так
+				// приходит ответная карта состоявшегося обмена.
+				const from = giverTo(prevContext, viewerId) ?? receiverFrom(prevContext, viewerId);
+				this.arriving = from ? {cardIds: arrived, playerId: from} : null;
+			} else {
+				this.arriving = null;
+			}
+		}
+
+		if (left.length) {
+			// Отданная карта — та самая, которую я отдал сам (см. cardAction), и ровно
+			// в том обновлении, в котором она наконец ушла из руки. Всё остальное
+			// (сброс, разыгранная карта) просто уходит из руки: лететь ему некуда.
+			const giving = this.giving;
+			const isGiven = !!giving && !!giving.playerId && every(giving.cardIds, id => includes(left, id));
+			this.leaving = isGiven ? giving : null;
+			if (isGiven) this.giving = null;
+		}
 	};
 
 	updateHand = (newHand: IHandMap) => {
@@ -298,7 +382,7 @@ export default class GameController {
 	// ещё старой рукой и логом — а анимация обмена сверяет ровно их между собой.
 	@action updateGame = ({tradeContext, cardEffects, cardDraws, panicCard, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions, hostPlayerId, isPlayerCanCancel}: IGameUpdatePayload) => {
 		this.updatePlayers(players);
-		this.markDrawnCards(cardDraws, currentPlayer.id, hand);
+		this.markCardMoves({cardDraws, viewerId: currentPlayer.id, newHand: hand});
 		this.updateHand(hand);
 		this.updateHandActions(handActions);
 		this.hostPlayerId = hostPlayerId;
@@ -336,7 +420,9 @@ export default class GameController {
 		this.isCardPickDeferred = false;
 		// Следующая игра начинается со своего счёта взятий, и рука в ней раздаётся,
 		// а не прилетает из колоды.
-		this.drawnCardIds = [];
+		this.arriving = null;
+		this.leaving = null;
+		this.giving = null;
 		this.lastDrawSeq = null;
 		this.state = EGameState.lobby;
 		this.root.launcherController.state = EAsyncState.idle;

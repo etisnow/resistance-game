@@ -45,11 +45,16 @@ interface IHandProps {
 	onCardAction: null | OnCardAction;
 	y: number;
 	autoWidth?: boolean;
-	// uniqueId карт, которые прямо сейчас взяты из колоды: они не появляются в
-	// руке, а прилетают от колоды. Смотри drawnFrom и GameController.drawnCardIds.
-	drawnCardIds?: string[];
-	// Место и размер карты в колоде, в координатах контейнера руки.
-	drawnFrom?: ICardStyleProps;
+	// Карты, которые въезжают в руку не «ниоткуда», а с конкретного места стола —
+	// из колоды или из кружка отдавшего, — и то самое место.
+	enterFrom?: ICardMoveStyle | null;
+	// Карты, которые уходят из руки не в никуда, а в кружок получателя.
+	exitTo?: ICardMoveStyle | null;
+}
+
+interface ICardMoveStyle {
+	cardIds: string[];
+	style: ICardStyleProps;
 }
 
 
@@ -258,12 +263,12 @@ const applyHoverStyle = (style: ICardStyleProps, scale: number, extraLift = 0): 
 }
 
 
-// Полёт карты из колоды в руку — та же пружина, что двигает карты в веере, но
-// помягче: путь через полстола длиннее любого движения внутри руки, и на общей
-// жёсткости карта долетала бы рывком.
-const drawFlightConfig = {tension: 120, friction: 26};
+// Путь карты между рукой и столом — та же пружина, что двигает карты в веере, но
+// помягче: он длиннее любого движения внутри руки, и на общей жёсткости карта
+// пролетала бы его рывком.
+const tableFlightConfig = {tension: 120, friction: 26};
 
-const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelectCard, onCardAction, y, autoWidth = false, drawnCardIds, drawnFrom} : IHandProps) => {
+const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelectCard, onCardAction, y, autoWidth = false, enterFrom, exitTo} : IHandProps) => {
 
 	const [hoveredCardId, setHoveredCardId] = React.useState<string | null>(null);
 
@@ -302,13 +307,16 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 	}
 	const defaultCardStyle: ICardStyleProps = { x:0,y:-getCenterOffset(),angle:-90, width: 0 };
 
-	// Взятая карта не появляется в руке из ниоткуда — она и есть та самая карта,
-	// что лежала в колоде, и въезжает в свой гнездо оттуда, одним движением: это
-	// одна карта и одна анимация, а не «вылет из колоды» плюс «появление в руке».
-	// Остальные карты веера при этом расступаются ей навстречу — их обычным
-	// update-переходом, гнездо для неё готово с первого кадра.
-	const isDrawn = (card: ICardAny): boolean =>
-		!autoWidth && !!drawnFrom && !!card.uniqueId && !!drawnCardIds && drawnCardIds.includes(card.uniqueId);
+	// Карта, приходящая в руку со стола, не появляется из ниоткуда, а уходящая не
+	// тает на месте: это одна и та же карта, что лежала в колоде или в чужой руке,
+	// и весь её путь — одно движение, а не «полёт по столу» плюс «появление в
+	// руке». Соседи по вееру расступаются ей навстречу (и смыкаются вслед) своим
+	// обычным update-переходом, так что гнездо готово с первого кадра.
+	// В ряду выбора (упорство и прочие окна) стола нет — там лететь неоткуда.
+	const moveStyle = (card: ICardAny, move: ICardMoveStyle | null | undefined): ICardStyleProps | null => {
+		if (autoWidth || !move || !card.uniqueId) return null;
+		return move.cardIds.includes(card.uniqueId) ? move.style : null;
+	};
 
 
 	// react-spring v8's useTransition typings demand the spring's target keys (x/y/angle/width)
@@ -317,11 +325,11 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 	// We type the options object with the real UseTransitionProps and bridge that single
 	// upstream typings flaw with a cast to the precise expected parameter shape.
 	const transitionOptions: UseTransitionProps<ICardAny, ICardStyleProps> = {
-		from: (card) => isDrawn(card) && drawnFrom ? drawnFrom : defaultCardStyle,
+		from: (card) => moveStyle(card, enterFrom) ?? defaultCardStyle,
 		enter: styleUpdater,
 		update: styleUpdater,
-		leave: () => defaultCardStyle,
-		config: (card) => isDrawn(card) ? drawFlightConfig : config.default,
+		leave: (card) => moveStyle(card, exitTo) ?? defaultCardStyle,
+		config: (card) => moveStyle(card, enterFrom) || moveStyle(card, exitTo) ? tableFlightConfig : config.default,
 	};
 	const transitions = useTransition<ICardAny, ICardStyleProps>(
 		Object.values(cards),
