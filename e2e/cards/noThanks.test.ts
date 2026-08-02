@@ -2,8 +2,7 @@ import {test, expect, Browser} from '@playwright/test';
 import {GameSession, startGame, fill} from '../helpers/nechto';
 
 // Нет уж спасибо: защитная anti-trade карта. Жертва обмена просто отказывается
-// от него и тянет карту события; обмен offense-игрока прерывается, остальные
-// игроки получают okayCard о том, что игрок отказался.
+// от него и тянет карту события; обмен offense-игрока прерывается.
 // Mirrors src/_integration/__tests__/cardLogic/defenseCards/noThanksTest.ts +
 // src/server/helpers/cardActions/defense/noThanks.ts.
 
@@ -20,7 +19,7 @@ test.describe.serial('Нет уж спасибо (noThanks)', () => {
 		await session.close();
 	});
 
-	test('отказывается от обмена, обмен прерывается, остальные получают okayCard', async () => {
+	test('отказывается от обмена, обмен прерывается', async () => {
 		await session.arrange({
 			players: NICKS,
 			turn: 'Alice',
@@ -42,15 +41,6 @@ test.describe.serial('Нет уж спасибо (noThanks)', () => {
 
 		// Bob играет "Нет уж спасибо".
 		await session.play('Bob', 'noThanks');
-
-		// Остальные игроки (Carol) получают okayCard с картой noThanks.
-		await session.waitFor('Carol', (s) =>
-			s.notifications.some(
-				(n) =>
-					n.type === 'okayCard' &&
-					Object.values(n.cards ?? {}).some((c) => c.id === 'noThanks'),
-			),
-		);
 
 		// noThanks ушёл из руки Bob; обмен Alice прерван (она сохранила analysis).
 		await session.waitFor('Bob', (s) => Object.values(s.hand).every((c) => c.id !== 'noThanks'));

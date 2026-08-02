@@ -46,5 +46,13 @@ export const autoWidthCard = (cardsCount: number) => {
 	const byHeight = (getWindowHeight() * 0.5) / (cardAspectRatio * selectedNotificationCardScale);
 	return clamp(Math.min(byWidth, byHeight), 80, 260);
 }
+// Сработавшая паника лежит в центре стола: заметно крупнее колоды, но не
+// настолько, чтобы закрыть собой стол — по нему в это время продолжают играть
+// (цепная реакция), а прочитать карту получше можно нажатием на неё.
+export const panicCardWidth = () => {
+	const field = tableField();
+	return clamp(Math.min(getWindowWidth() * 0.22, (field.height * 0.42) / cardAspectRatio), 80, 190);
+};
+
 export const playerCardWidthPix = () => playerHandHeight() / cardAspectRatio;
 export const playerHandHeight = () => clamp((getWindowWidth() / (100/cardWidthPercent)) * cardAspectRatio, 50, getWindowHeight() / 5);

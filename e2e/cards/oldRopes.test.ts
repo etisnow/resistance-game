@@ -45,9 +45,9 @@ test.describe.serial('Старые верёвки (oldRopes)', () => {
 		// Alice тянет карту — срабатывает паника.
 		await session.cardPick('Alice');
 
-		// Всем пришёл okayCard "Alice достает карту паники".
+		// В лог всем уходит строка "Alice достает карту паники ...".
 		await session.waitFor('Alice', (s) =>
-			s.notifications.some((n) => n.type === 'okayCard' && (n.text ?? '').includes('достает карту паники')),
+			s.gameLog.some((l) => l.includes('достает карту паники')),
 		);
 
 		// Эффект мгновенный: все карантины обнулены, Alice уходит в offense trade.

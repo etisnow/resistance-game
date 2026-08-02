@@ -46,6 +46,11 @@ export interface GcNotification {
 	cards?: Record<string, GcCard>;
 }
 
+export interface GcPanicCard {
+	id: string;
+	uniqueId: string | null;
+}
+
 export interface GcSnapshot {
 	currentPlayerId: string | null;
 	hand: Record<string, GcCard>;
@@ -56,6 +61,8 @@ export interface GcSnapshot {
 	notifications: GcNotification[];
 	gameLog: string[];
 	deck: {count: number; topCardType: string | null};
+	// Сработавшая паника, лежащая сейчас на столе (пока она там, колода закрыта).
+	panicCard: GcPanicCard | null;
 	isPlayerCanCancel: boolean;
 }
 
@@ -119,6 +126,8 @@ interface GcController {
 	notifications: GcNotification[];
 	gameLog: {text: string; type: string}[];
 	deck: {count: number; topCardType: string | null};
+	panicCard: GcPanicCard | null;
+	panicCardMinMs: number;
 	isPlayerCanCancel: boolean;
 	socket: {socket: {emit(event: string, payload?: unknown): void; once(event: string, cb: (d: unknown) => void): void}};
 	cardAction(actionType: string, cardUniqueId: string): void;
@@ -168,6 +177,9 @@ export class GameSession {
 	private readonly browser: Browser;
 	// Nicks currently disconnected (no live page) — skipped on close().
 	private readonly offline = new Set<string>();
+	// Выдержка карты паники, действующая в этой сессии (см. setPanicHold): её же
+	// получает страница, поднятая заново после переподключения.
+	private panicHoldMs = 0;
 	constructor(browser: Browser, pages: Record<string, Page>, nicks: string[]) {
 		this.browser = browser;
 		this.pages = pages;
@@ -229,6 +241,7 @@ export class GameSession {
 		});
 		this.pages[nick] = page;
 		this.offline.delete(nick);
+		await this.setPanicHold(this.panicHoldMs);
 	}
 
 	// Read the live controller state for one player's browser.
@@ -247,6 +260,7 @@ export class GameSession {
 				// Спекам нужен только текст строки — тип лога нужен UI, а не проверкам.
 				gameLog: plain(gc.gameLog).map((entry) => entry.text),
 				deck: plain(gc.deck),
+				panicCard: plain(gc.panicCard),
 				isPlayerCanCancel: gc.isPlayerCanCancel,
 			};
 		});
@@ -354,8 +368,27 @@ export class GameSession {
 		await this.page(nick).evaluate((a) => (window as unknown as GcWindow).__nechto!.actionDecision(a), action);
 	}
 
+	// Взять карту из колоды. Пока на столе лежит сработавшая паника, колода
+	// закрыта (GameController.cardPick молча игнорирует нажатие) — ждём, как ждал
+	// бы живой игрок, иначе ход просто не состоится.
 	async cardPick(nick: string): Promise<void> {
+		await this.waitFor(nick, (s) => !s.panicCard);
 		await this.page(nick).evaluate(() => (window as unknown as GcWindow).__nechto!.cardPick());
+	}
+
+	// Сколько карта паники минимум лежит на столе в этой сессии. В прод-клиенте
+	// это 5 секунд; спекам столько ждать на каждой панике незачем, поэтому
+	// startGame сразу опускает выдержку, а спек про саму карту паники возвращает
+	// настоящую.
+	async setPanicHold(ms: number): Promise<void> {
+		this.panicHoldMs = ms;
+		for (const nick of this.nicks) {
+			if (this.offline.has(nick)) continue;
+			await this.page(nick).evaluate((value) => {
+				const gc = (window as unknown as GcWindow).__nechto;
+				if (gc) gc.panicCardMinMs = value;
+			}, ms);
+		}
 	}
 
 	async cancel(nick: string): Promise<void> {
@@ -631,5 +664,10 @@ export async function startGame(browser: Browser, nicks: string[], seed?: number
 		await pages[nick]!.waitForFunction(() => !!(window as unknown as GcWindow).__nechto);
 	}
 
-	return new GameSession(browser, pages, nicks);
+	const session = new GameSession(browser, pages, nicks);
+	// Живой клиент держит карту паники на столе пять секунд на КАЖДУЮ панику —
+	// для спеков это чистое ожидание (в fullSession паник больше десятка), поэтому
+	// по умолчанию выдержку опускаем. Настоящую проверяет e2e/cards/panicCard.test.ts.
+	await session.setPanicHold(150);
+	return session;
 }

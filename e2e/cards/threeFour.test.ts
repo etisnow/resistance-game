@@ -46,11 +46,9 @@ test.describe.serial('Паника 3, 4! (threeFour)', () => {
 		// Alice тянет панику threeFour.
 		await session.cardPick('Alice');
 
-		// Всем приходит okayCard про вытягивание карты паники.
+		// В лог всем уходит строка про вытягивание карты паники.
 		await session.waitFor('Bob', (s) =>
-			s.notifications.some(
-				(n) => n.type === 'okayCard' && !!n.text && n.text.includes('достает карту паники'),
-			),
+			s.gameLog.some((l) => l.includes('достает карту паники')),
 		);
 
 		// Ходящий переходит в наступательный обмен (turnContext.type === trade).

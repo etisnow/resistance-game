@@ -19,7 +19,10 @@ const Deck = observer(({controller}: IDeckProps) => {
 	const {playersList, deck} = controller;
 	const width = playerRoomDiag(playersList.length);
 	const topCardType = deck.topCardType;
-	const inCardPick = get(controller, ['currentAction', 'type']) === ENotificationAction.cardPick;
+	// Пока на столе лежит сработавшая паника, колода закрыта — сначала все читают,
+	// что случилось (см. PanicCard и gameController.cardPick).
+	const inCardPick = get(controller, ['currentAction', 'type']) === ENotificationAction.cardPick
+		&& !controller.panicCard;
 	const fontSize = width/6
 	return (
 		<Container x={tableCenterX()} y={tableCenterY()}>

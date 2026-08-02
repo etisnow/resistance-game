@@ -60,15 +60,6 @@ test.describe.serial('Мимо (miss)', () => {
 		expect(Object.values(alice.hand)).toHaveLength(3);
 		expect(Object.values(alice.hand).some((c) => c.id === 'analysis')).toBe(false);
 
-		// Остальные игроки получили okayCard о перенаправлении на Carol.
-		expect(
-			alice.notifications.some(
-				(n) =>
-					n.type === 'okayCard' &&
-					Object.values(n.cards ?? {}).some((c) => c.id === 'miss'),
-			),
-		).toBe(true);
-
 		// Carol завершает обмен, отдавая одну карту -> ход переходит к следующему
 		// после offense игроку (Bob), который попадает в inCardPick.
 		const carolCard = Object.values((await session.snapshot('Carol')).hand)[0]!;

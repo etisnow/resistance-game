@@ -37,6 +37,17 @@ import type {IFormatCardEffect} from 'shared/interfaces/common';
 // увидеть хвост, а не пустоту.
 const cardEffectsKept = 8;
 
+// Контексты хода, которые бывают только внутри события паники: пока стол ждёт
+// ответа по такому контексту, паника считается идущей и её карта лежит на столе.
+const panicTurnContexts: ETurnContextType[] = [
+  ETurnContextType.chainReaction,
+  ETurnContextType.blindDateCardSelect,
+  ETurnContextType.forgetfullnessSelect,
+  ETurnContextType.oneTwoPersonSelect,
+  ETurnContextType.onlyBetweenUsPersonSelect,
+  ETurnContextType.friendshipSeduction,
+];
+
 export class Game {
   id: string = '';
   state: EGameState = EGameState.lobby;
@@ -51,6 +62,14 @@ export class Game {
   turnContext: ITurnContext | null = null;
   cardEffects: IFormatCardEffect[] = [];
   cardEffectSeq: number = 0;
+  // Сработавшая паника: карта лежит на столе всё время своего события, клиент
+  // показывает её крупно в центре и не даёт тянуть новую карту, пока она там.
+  panicCard: ICardPanic | null = null;
+  panicPlayerId: string | null = null;
+  // Мгновенные паники (три-четыре, старые верёвки) заканчиваются раньше, чем
+  // игра успевает разослать хоть одно обновление, поэтому карту снимаем не
+  // раньше, чем она уехала клиентам хотя бы раз.
+  isPanicCardSent: boolean = false;
   gameInProcess:boolean = true;
   // Every game runs on its own seeded RNG so the whole game is reproducible from
   // this one number (logged as the first game-log line). A bug report's log is
@@ -151,10 +170,34 @@ export class Game {
 
   updateGame = () => {
     if (!this.gameInProcess) return;
+    this.syncPanicCard();
     const players = this.players;
     each(players, (player: Player) => {
       player.notify(formatUpdateGameEvent({game: this, viewer: player}))
     })
+  };
+
+  // Событие паники ещё идёт: либо стол ждёт ответа по «паническому» контексту
+  // хода, либо вытянувший панику игрок всё ещё разбирается с её последствиями.
+  isPanicInProgress = () => {
+    const contextType = this.turnContext ? this.turnContext.type : null;
+    if (contextType && panicTurnContexts.includes(contextType)) return true;
+    const panicPlayer = this.panicPlayerId ? this.players[this.panicPlayerId] : null;
+    return !!panicPlayer && panicPlayer.turnState === ETurnState.inCardActionProgress;
+  };
+
+  // Карта паники уходит со стола, как только её событие отыграно — но не раньше,
+  // чем клиенты увидели её хотя бы в одном обновлении. Дальше её судьбу решает
+  // уже клиент: он держит карту ещё какое-то время, чтобы её успели прочитать.
+  syncPanicCard = () => {
+    if (!this.panicCard) return;
+    if (!this.isPanicCardSent) {
+      this.isPanicCardSent = true;
+      return;
+    }
+    if (this.isPanicInProgress()) return;
+    this.panicCard = null;
+    this.panicPlayerId = null;
   };
 
   addLog(log: string, type: EGameLogType = EGameLogType.info, force = false) {
@@ -237,6 +280,9 @@ export class Game {
 
   makePanic = (player: Player, panicCard: ICardPanic) => {
     this.discardedDeckPush(panicCard);
+    this.panicCard = panicCard;
+    this.panicPlayerId = player.id;
+    this.isPanicCardSent = false;
     panicAction({player, game: this, panicCard});
     if (player.quarantine > 0) {
       player.quarantine = player.quarantine - 1;

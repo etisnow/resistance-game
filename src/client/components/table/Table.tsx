@@ -7,6 +7,7 @@ import GameLog from 'client/components/gameLog/GameLog';
 import Room from 'client/components/table/Room/Room';
 import Hand from 'client/components/table/Hand/Hand';
 import Notifier from 'client/components/table/notifier/notifier';
+import PanicCard from 'client/components/table/PanicCard/PanicCard';
 import {Helmet} from "react-helmet";
 import ActionInteracter from 'client/components/table/ActionInteracter/ActionInteracter';
 import ActionTimer from 'client/components/table/ActionTimer/ActionTimer';
@@ -35,6 +36,10 @@ const Table = observer(({controller} : ITableProps) => {
 				<StageBoundary>
 					<TableStage>
 						<Deck controller={controller} />
+						{/* Сразу над колодой, но ПОД всем остальным: паника лежит на
+						    столе, а не поверх интерфейса — бейджи, рука и её меню
+						    остаются доступными (в цепной реакции ими и ходят). */}
+						<PanicCard controller={controller} />
 						<Room controller={controller} />
 						<Hand controller={controller} />
 						<ActionCanceler controller={controller} />

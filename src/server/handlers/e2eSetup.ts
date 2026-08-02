@@ -140,6 +140,9 @@ export const applyE2ESetup = (gameServer: GameServer, game: Game, raw: IE2ESetup
 	game.discardedDeck = makeDeck(asStringArray(raw.discarded));
 	game.deck = makeDeck(asStringArray(raw.deck));
 	game.isClockwise = raw.clockwise === undefined ? true : raw.clockwise === true;
+	// Прошлый сценарий мог оставить панику на столе — новый начинается с чистого.
+	game.panicCard = null;
+	game.panicPlayerId = null;
 
 	const orderedIds: string[] = [];
 	each(baseNicks, (nick, idx) => {

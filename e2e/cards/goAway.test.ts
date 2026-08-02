@@ -4,8 +4,8 @@ import {GameSession, startGame, fill} from '../helpers/nechto';
 // Паника "Убирайся прочь" (goAway): игрок меняется местами с любым игроком не на
 // карантине по своему выбору (не только с соседом). Паника не лежит в руке — её
 // ТЯНУТ: ход в фазе inCardPick, в колоде сверху лежит паника, игрок берёт карту
-// (cardPick) и паника срабатывает. makePanic сперва шлёт всем okayCard
-// "<ник> достает карту паники", затем запускается эффект — playerSelect.
+// (cardPick) и паника срабатывает. makePanic сперва пишет в лог
+// "<ник> достает карту паники ...", затем запускается эффект — playerSelect.
 // Зеркалит goAwayTest.ts и серверный экшен goAway.ts.
 
 const NICKS = ['Alice', 'Bob', 'Carol', 'Dave', 'Erin'];
@@ -47,9 +47,9 @@ test.describe.serial('Убирайся прочь (goAway)', () => {
 		// Alice тянет карту — срабатывает паника.
 		await session.cardPick('Alice');
 
-		// Всем (включая Alice) пришёл okayCard "Alice достает карту паники".
+		// В лог всем (включая Alice) уходит "Alice достает карту паники ...".
 		await session.waitFor('Alice', (s) =>
-			s.notifications.some((n) => n.type === 'okayCard' && (n.text ?? '').includes('достает карту паники')),
+			s.gameLog.some((l) => l.includes('достает карту паники')),
 		);
 
 		// Alice получает playerSelect: предлагают всех кроме неё и кроме Carol (карантин).

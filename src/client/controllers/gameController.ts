@@ -7,7 +7,7 @@ import {ECardType} from 'shared/enum/cards';
 import {EAppState, EGameState} from 'shared/enum/common';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import type {IFormatCardEffect, IFormatTradeContext} from 'shared/interfaces/common';
+import type {IFormatCardEffect, IFormatPanicCard, IFormatTradeContext} from 'shared/interfaces/common';
 import fscreen from 'fscreen';
 import {each, merge} from "lodash";
 import {EAsyncState} from 'shared/enum/async';
@@ -20,6 +20,11 @@ import type {
 } from 'client/controllers/socketTypes';
 import {ENotificationAction} from 'shared/enum/notifications';
 import type {IGameLogEntry} from 'shared/interfaces/gameLog';
+
+// Сколько карта паники минимум лежит на столе, даже если само её событие
+// отыгралось мгновенно: столько нужно, чтобы стол успел прочитать, что вообще
+// произошло. Пока карта там, новую из колоды не тянут.
+const panicCardHoldMs = 5000;
 
 export default class GameController {
 	root: RootController;
@@ -43,6 +48,19 @@ export default class GameController {
 	// Разовые применения карт (подсмотр, отказ от обмена и т.п.): стол рисует их
 	// поверх бейджа игрока. Смотри IFormatCardEffect.
 	@observable cardEffects: IFormatCardEffect[] = [];
+	// Сработавшая паника: лежит крупно в центре стола, пока идёт её событие (это
+	// решает сервер) и пока не вышел panicCardMinMs. Смотри syncPanicCard.
+	@observable panicCard: IFormatPanicCard | null = null;
+	// Паника всё ещё идёт по мнению сервера.
+	isPanicOnServer: boolean = false;
+	// Минимум показа уже отсчитан.
+	isPanicHoldOver: boolean = true;
+	panicHoldTimer: ReturnType<typeof setTimeout> | null = null;
+	// Нажатие по колоде, сделанное пока на столе лежала паника (см. cardPick).
+	isCardPickDeferred: boolean = false;
+	// Поле, а не константа: e2e опускает минимум, чтобы не ждать по пять секунд
+	// на каждой панике (специальный спек проверяет настоящую выдержку).
+	panicCardMinMs: number = panicCardHoldMs;
 	@observable currentAction: INotificationAction | null = null;
 	@observable hand: IHandMap = {};
 	@observable handActions: IHandActionsMap = {};
@@ -110,7 +128,13 @@ export default class GameController {
 	// Under react-pixi-fiber, the Notifier observer only reliably re-renders on a
 	// prop reassignment, not on in-place array mutation — see notifier.tsx.
 	addNotification = (notification: INotificationAction) => {
-		if (notification.type === ENotificationAction.gameEnd) this.isGameOver = true;
+		if (notification.type === ENotificationAction.gameEnd) {
+			this.isGameOver = true;
+			// Обновлений стола после конца игры не будет, поэтому снять карту паники
+			// сервер уже не попросит — снимаем сами, как только выйдет её выдержка.
+			this.isPanicOnServer = false;
+			this.hidePanicCardIfDone();
+		}
 		this.notifications = [...this.notifications, notification];
 	};
 
@@ -137,8 +161,49 @@ export default class GameController {
 	};
 
 	cardPick = () => {
+		// Пока на столе лежит карта паники, колода закрыта: сперва все читают, что
+		// случилось (колода в это время и не подсвечена — см. Deck). Нажатие при
+		// этом не теряем, а исполняем, как только карта уйдёт: иначе клик уходит в
+		// пустоту и игрок (или бот) жмёт по мёртвой колоде.
+		if (this.panicCard) {
+			this.isCardPickDeferred = true;
+			return;
+		}
+		this.isCardPickDeferred = false;
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.cardPick});
 	}
+
+	// Карта паники живёт на столе, пока идёт само событие — это решает сервер, —
+	// но не меньше panicCardMinMs: мгновенные паники (вроде «старых верёвок»)
+	// иначе мелькнули бы, и никто не понял бы, что произошло.
+	@action syncPanicCard = (panicCard: IFormatPanicCard | null) => {
+		const isNewPanic = !!panicCard && (!this.panicCard || panicCard.uniqueId !== this.panicCard.uniqueId);
+		this.isPanicOnServer = !!panicCard;
+		if (panicCard && isNewPanic) {
+			this.panicCard = panicCard;
+			this.isPanicHoldOver = false;
+			if (this.panicHoldTimer) clearTimeout(this.panicHoldTimer);
+			this.panicHoldTimer = setTimeout(this.releasePanicCard, this.panicCardMinMs);
+			return;
+		}
+		this.hidePanicCardIfDone();
+	};
+
+	@action releasePanicCard = () => {
+		this.panicHoldTimer = null;
+		this.isPanicHoldOver = true;
+		this.hidePanicCardIfDone();
+	};
+
+	@action hidePanicCardIfDone = () => {
+		if (this.isPanicOnServer || !this.isPanicHoldOver) return;
+		this.panicCard = null;
+		// Нажатие по закрытой колоде исполняем теперь — если брать карту всё ещё
+		// нам (за время паники ход мог и уйти).
+		if (!this.isCardPickDeferred) return;
+		this.isCardPickDeferred = false;
+		if (this.currentAction && this.currentAction.type === ENotificationAction.cardPick) this.cardPick();
+	};
 
 	actionDecision = (action: string ) => {
 		this.hidENotificationAction();
@@ -201,7 +266,7 @@ export default class GameController {
 	// Одним действием: без него mobx отдаёт реакциям каждое присваивание по
 	// отдельности, и компонент успевает отрисоваться с новым контекстом хода, но
 	// ещё старой рукой и логом — а анимация обмена сверяет ровно их между собой.
-	@action updateGame = ({tradeContext, cardEffects, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions, hostPlayerId, isPlayerCanCancel}: IGameUpdatePayload) => {
+	@action updateGame = ({tradeContext, cardEffects, panicCard, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions, hostPlayerId, isPlayerCanCancel}: IGameUpdatePayload) => {
 		this.updatePlayers(players);
 		this.updateHand(hand);
 		this.updateHandActions(handActions);
@@ -212,6 +277,7 @@ export default class GameController {
 		this.currentPlayerId = currentPlayer.id;
 		this.tradeContext = tradeContext;
 		this.cardEffects = cardEffects;
+		this.syncPanicCard(panicCard);
 		this.currentAction = currentAction;
 		this.state = state;
 		this.gameLog = gameLog;
@@ -230,6 +296,12 @@ export default class GameController {
 		this.notifications = [];
 		this.currentAction = null;
 		this.playersToSelect = [];
+		if (this.panicHoldTimer) clearTimeout(this.panicHoldTimer);
+		this.panicHoldTimer = null;
+		this.isPanicOnServer = false;
+		this.isPanicHoldOver = true;
+		this.panicCard = null;
+		this.isCardPickDeferred = false;
 		this.state = EGameState.lobby;
 		this.root.launcherController.state = EAsyncState.idle;
 		this.root.state = EAppState.launcher;

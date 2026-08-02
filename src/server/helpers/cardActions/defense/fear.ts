@@ -4,7 +4,6 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
 import {ETurnState} from 'shared/enum/player';
 import {formatCards} from 'server/helpers/cardHelpers';
@@ -36,14 +35,5 @@ export const fearAct = ({card, game, player} : {card:ICardEvent, game: Game, pla
 		text: `${offensePlayer.nickname}: я хотел тебе эту дать`,
       },
     }));
-
-    game.notifyAllPlayersExeptPlayer(formatPlayerNotification({
-      player: player,
-      notification: {
-		type: ENotificationAction.okayCard,
-        cards: formatCards([getCard(EEventID.fear)]),
-		text: `${player.nickname}: отказывается от обмена`,
-      },
-    }), player);
 
 };

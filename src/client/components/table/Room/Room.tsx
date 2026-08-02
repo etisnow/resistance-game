@@ -314,8 +314,12 @@ const Room = observer(({controller} : IRoomProps) => {
 				if (!props.bx || !props.by) return null
 				const {midX, midY, iconSize, color, ...arrowProps} = props;
 				const actionImage = cardImage(item.cardId);
+				// Вся стрелка проявляется и гаснет по размеру своего значка. Это не
+				// только красиво: отживший элемент перехода react-spring со стола не
+				// убирает, и без затухания от него остаётся видимый огрызок.
+				const fade = iconSize.interpolate(size => clamp(size / (badgeRadius * arrowIconShare), 0, 1));
 				return (
-					<Container key={key}>
+					<AnimatedPixi.Container key={key} alpha={fade}>
 						<AnimatedPixi.Arrow
 							{...arrowProps}
 							color={color}
@@ -346,7 +350,7 @@ const Room = observer(({controller} : IRoomProps) => {
 								/>
 							</AnimatedPixi.Container>
 						)}
-					</Container>
+					</AnimatedPixi.Container>
 				)
 			})}
 			<CardFlights

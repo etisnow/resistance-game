@@ -5,9 +5,10 @@ import {GameSession, startGame, fill} from '../helpers/nechto';
 // Карты паники не лежат в руке — их вытягивают из колоды. Мы кладём панику
 // наверх колоды, ставим ходящего игрока в фазу взятия карты (inCardPick) и
 // вызываем cardPick — движок берёт панику и запускает makePanic. makePanic
-// сперва шлёт всем okayCard «<ник> достает карту паники», затем oopsAct
-// показывает всем ПРОЧИМ игрокам руку ходящего (ещё один okayCard «<ник>:
-// УУУПС!» с картами руки) и переводит ходящего в inOffenseTrade.
+// пишет в лог «<ник> достает карту паники ...» (саму карту стол показывает в
+// центре — см. panicCard.test.ts), затем oopsAct показывает всем ПРОЧИМ игрокам
+// руку ходящего (okayCard «<ник>: УУУПС!» с картами руки) и переводит ходящего
+// в inOffenseTrade.
 //
 // Зеркало oopsTest.ts:
 //   expectOkayCard(APlayer, arrayContaining(offensePlayer.hand))
@@ -52,8 +53,7 @@ test.describe.serial('Паника УУУПС! (oops)', () => {
 		await session.cardPick('Alice');
 
 		// Каждый прочий игрок (например Bob) получает okayCard «УУУПС!» с полной
-		// рукой Alice. Дожидаемся именно этого уведомления (помимо okayCard про
-		// «достает карту паники»).
+		// рукой Alice — единственное уведомление этой паники.
 		await session.waitFor('Bob', (s) =>
 			s.notifications.some(
 				(n) => n.type === 'okayCard' && !!n.text && n.text.includes('УУУПС'),
@@ -71,12 +71,8 @@ test.describe.serial('Паника УУУПС! (oops)', () => {
 		// Вся рука Alice раскрыта Bob'у (arrayContaining(offensePlayer.hand)).
 		expect(revealed).toEqual(['barricade', 'seduction', 'suspicion', 'whiskey']);
 
-		// Bob также увидел okayCard про вытягивание карты паники.
-		expect(
-			bob.notifications.some(
-				(n) => n.type === 'okayCard' && !!n.text && n.text.includes('достает карту паники'),
-			),
-		).toBe(true);
+		// Само вытягивание паники Bob видит строкой лога, а не отдельным окном.
+		expect(bob.gameLog.some((l) => l.includes('достает карту паники'))).toBe(true);
 
 		// Ходящий Alice переходит в наступательный обмен (turnContext.type === trade).
 		await session.waitFor('Alice', (s) => {

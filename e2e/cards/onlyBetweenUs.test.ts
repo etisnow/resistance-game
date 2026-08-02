@@ -45,7 +45,7 @@ test.describe.serial('Только между нами (onlyBetweenUs)', () => {
 		// Alice тянет карту — срабатывает паника.
 		await session.cardPick('Alice');
 		await session.waitFor('Alice', (s) =>
-			s.notifications.some((n) => n.type === 'okayCard' && (n.text ?? '').includes('достает карту паники')),
+			s.gameLog.some((l) => l.includes('достает карту паники')),
 		);
 
 		// Alice получает playerSelect: предлагают только соседей Bob и Erin.

@@ -6,7 +6,7 @@ import {GameServer} from 'server/server/GameServer';
 import INotificationAction from 'shared/interfaces/notification';
 import {formatHand} from 'server/formatters/formatHand';
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import {IFormatTradeContext} from 'shared/interfaces/common';
+import {IFormatPanicCard, IFormatTradeContext} from 'shared/interfaces/common';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {getNextChainReactionPlayer} from 'server/helpers/cardActions/panic/chainReaction';
 import {getCardActions} from 'server/formatters/formatCardActions';
@@ -77,6 +77,17 @@ const formatTradeContext = (game: Game) : IFormatTradeContext[] | undefined => {
 	return undefined;
 }
 
+// Сработавшая паника, пока её событие идёт: стол показывает эту карту крупно в
+// центре и не даёт тянуть новую, пока она там (см. Game.syncPanicCard).
+const formatPanicCard = (game: Game) : IFormatPanicCard | null => {
+	const panicCard = game.panicCard;
+	if (!panicCard) return null;
+	return {
+		id: panicCard.id,
+		uniqueId: panicCard.uniqueId ?? null,
+	};
+};
+
 const getPlayerHand = (game: Game, viewer:Player) => {
 	return formatHand(game, viewer);
 }
@@ -102,6 +113,7 @@ const formatUpdatePlayerPayload = ({ game, viewer }: {game: Game, viewer: Player
 		gameLog: game.gameLog,
 		tradeContext: formatTradeContext(game),
 		cardEffects: game.cardEffects,
+		panicCard: formatPanicCard(game),
 		deck: formatDeck(game),
 		currentAction: viewer.currentAction,
 		isPlayerCanCancel: isPlayerCanCancel(game, viewer),

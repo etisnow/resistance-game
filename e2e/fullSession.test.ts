@@ -59,7 +59,7 @@ test.describe.serial('Полная игровая сессия', () => {
 		// Ход перешёл к Bob — он берёт карту, и это паника (срабатывает сразу).
 		await session.expectTurnState('Bob', 'inCardPick');
 		await session.cardPick('Bob');
-		await session.waitFor('Bob', (s) => s.notifications.some((n) => n.type === 'okayCard' && !!n.text && n.text.includes('паники')));
+		await session.waitFor('Bob', (s) => s.gameLog.some((l) => l.includes('достает карту паники')));
 		// После паники oldRopes ходящий уходит в обмен; меняется с Carol.
 		await session.expectTurnState('Bob', 'inOffenseTrade');
 		await session.offerTrade('Bob', 'tenacity');
@@ -258,9 +258,14 @@ test.describe.serial('Полная игровая сессия', () => {
 				hands: {[turn]: fill([], 4)},
 				deck: [panic, 'analysis', 'analysis', 'analysis', 'suspicion', 'barricade'],
 			});
+			// Каждая паника объявляется всем новой строкой лога «достает карту паники»
+			// (окна с картой больше нет — саму карту стол показывает в центре).
+			const panicsBefore = (await session.snapshot(turn)).gameLog
+				.filter((l) => l.includes('достает карту паники')).length;
 			await session.cardPick(turn);
-			// Каждая паника объявляется всем как okayCard «достает карту паники».
-			await session.waitFor(turn, (s) => s.notifications.some((n) => n.type === 'okayCard' && !!n.text && n.text.includes('паники')));
+			await session.waitFor(turn, (s) =>
+				s.gameLog.filter((l) => l.includes('достает карту паники')).length > panicsBefore,
+			);
 
 			// Разрешаем немедленный шаг выбора, если паника его требует.
 			const after = await session.snapshot(turn);

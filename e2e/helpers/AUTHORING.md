@@ -89,8 +89,16 @@ is `inCardActionProgress` and gets a `playerSelect` currentAction.
   `inCardAction`) for the next player after a completed trade/turn.
 - PANIC cards are never in a hand. Arrange `turnState: 'inCardPick'` with
   `deck: ['<panicId>', ...]`, then `await session.cardPick('Alice')` to draw and
-  trigger the panic. `makePanic` first sends an okayCard "<nick> достает карту
-  паники", then runs the effect.
+  trigger the panic. `makePanic` writes the log line "<nick> достает карту паники
+  «...»" (wait on `snap.gameLog`, there is NO modal for it), then runs the effect.
+- The drawn panic card LIES ON THE TABLE (`snap.panicCard`) for as long as its
+  event runs and at least `panicCardMinMs` — 5 s in the real client, lowered to
+  150 ms by `startGame` so specs don't idle. (It flips from its back to its face
+  when it appears, but that is a pure client animation — nothing in the state.)
+  While it is on the table the deck is closed: `GameController.cardPick` queues
+  the click instead of sending it (it fires by itself once the card leaves), and
+  `session.cardPick(nick)` waits the card out for you.
+  `e2e/cards/panicCard.test.ts` checks the whole thing end to end.
 
 ## Rules
 

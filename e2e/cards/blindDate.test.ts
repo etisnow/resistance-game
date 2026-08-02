@@ -35,9 +35,10 @@ test.describe.serial('Свидание вслепую (blindDate)', () => {
 		// Alice тянет карту -> попадается паника blindDate.
 		await session.cardPick('Alice');
 
-		// makePanic сначала рассылает всем okayCard «Alice достает карту паники».
+		// makePanic пишет в лог «Alice достает карту паники ...» (модалки больше нет —
+		// саму карту стол показывает в центре, см. e2e/cards/panicCard.test.ts).
 		await session.waitFor('Bob', (s) =>
-			s.notifications.some((n) => n.type === 'okayCard' && (n.text ?? '').includes('достает карту паники')),
+			s.gameLog.some((l) => l.includes('достает карту паники')),
 		);
 
 		// Затем Alice получает выбор карты (selectCard) для обмена.

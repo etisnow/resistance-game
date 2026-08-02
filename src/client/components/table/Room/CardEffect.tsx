@@ -5,8 +5,7 @@ import {useSpring} from 'react-spring/universal';
 import {cardAspectRatio} from 'shared/constant/cards';
 import {Sprite} from 'react-pixi-fiber';
 import {AnimatedPixi, getPixiTexture} from 'client/components/table/pixiInjected';
-import Circle from 'client/components/pixiPrimitives/Circle';
-import {cardColor, cardImage} from 'client/helpers/cardVisuals';
+import {cardImage} from 'client/helpers/cardVisuals';
 import GameController from 'client/controllers/gameController';
 
 // Разовые применения карт — подсмотр «Подозрением», отказ «Нет уж спасибо»,
@@ -22,9 +21,6 @@ const maxShown = 4;
 // Доли радиуса бейджа: размер карты и сдвиг в сторону цели.
 const cardShare = 1.05;
 const offsetShare = 0.6;
-// Подложка под картой — кружок её цветом, чтобы действие читалось издалека.
-const haloShare = 0.62;
-const haloAlpha = 0.5;
 
 interface IPoint {
 	x: number;
@@ -64,7 +60,6 @@ const AppliedCard = ({cardId, x, y, badgeRadius}: Omit<IEffect, 'seq'> & {badgeR
 
 	return (
 		<AnimatedPixi.Container x={x} y={riseY} alpha={alpha}>
-			<Circle r={size * haloShare} color={cardColor(cardId)} alpha={haloAlpha}/>
 			<Sprite
 				texture={getPixiTexture(image)}
 				anchor={0.5}
@@ -78,6 +73,11 @@ const AppliedCard = ({cardId, x, y, badgeRadius}: Omit<IEffect, 'seq'> & {badgeR
 const CardEffects = observer(({controller, getPosition, badgeRadius}: ICardEffectsProps) => {
 	const {cardEffects} = controller;
 	const [shown, setShown] = React.useState<IEffect[]>([]);
+	// Таймеры уборки показанных карт — см. тот же приём в CardFlight: чистить их
+	// из cleanup эффекта нельзя, иначе следующее применение отменяет уборку
+	// предыдущего и карта повисает над бейджем навсегда.
+	const cleanupTimers = React.useRef<ReturnType<typeof setTimeout>[]>([]);
+	React.useEffect(() => () => cleanupTimers.current.forEach(clearTimeout), []);
 	// Последнее показанное применение: всё, что новее, — свежее событие.
 	const lastSeq = React.useRef(0);
 	// Первый проход только запоминает номер: пришедшему в середину партии не
@@ -110,10 +110,11 @@ const CardEffects = observer(({controller, getPosition, badgeRadius}: ICardEffec
 
 		setShown(current => [...current, ...started].slice(-maxShown));
 		const startedSeqs = map(started, ({seq}) => seq);
-		const timeout = setTimeout(() => {
+		const timer = setTimeout(() => {
 			setShown(current => filter(current, ({seq}) => !startedSeqs.includes(seq)));
+			cleanupTimers.current = filter(cleanupTimers.current, item => item !== timer);
 		}, effectMs);
-		return () => clearTimeout(timeout);
+		cleanupTimers.current.push(timer);
 	}, [latestSeq]);
 
 	return (

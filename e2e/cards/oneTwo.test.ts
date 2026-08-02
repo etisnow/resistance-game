@@ -42,7 +42,7 @@ test.describe.serial('Раз-два (oneTwo)', () => {
 
 		await session.cardPick('Alice');
 		await session.waitFor('Alice', (s) =>
-			s.notifications.some((n) => n.type === 'okayCard' && (n.text ?? '').includes('достает карту паники')),
+			s.gameLog.some((l) => l.includes('достает карту паники')),
 		);
 
 		// Предлагают РОВНО третьего по часовой (Dave) и третьего против (Carol);
@@ -84,7 +84,7 @@ test.describe.serial('Раз-два (oneTwo)', () => {
 
 		await session.cardPick('Alice');
 		await session.waitFor('Alice', (s) =>
-			s.notifications.some((n) => n.type === 'okayCard' && (n.text ?? '').includes('достает карту паники')),
+			s.gameLog.some((l) => l.includes('достает карту паники')),
 		);
 
 		// Без playerSelect: Alice сразу в offense trade.

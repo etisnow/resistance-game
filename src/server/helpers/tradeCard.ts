@@ -1,13 +1,10 @@
 import {Player} from 'server/models/Player';
 import {ETurnState} from 'shared/enum/player';
-import {ENotificationAction} from 'shared/enum/notifications';
-import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ECardType, EEventID} from 'shared/enum/cards';
 import {Game} from 'server/models/Game';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {filter} from 'lodash';
 import {debugLog} from 'server/helpers/util';
-import {formatCards} from 'server/helpers/cardHelpers';
 import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Player, cardUniqueId: string}) => {
@@ -74,14 +71,6 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
   const defensePlayerCard = tradingCard;
   /* OFFENSE CARD PUSH */
   offensePlayer.getCard(defensePlayerCard);
-  offensePlayer.notify(formatPlayerNotification({
-    player: player,
-    notification: {
-      type: ENotificationAction.okayCard,
-      cards: formatCards([defensePlayerCard]),
-      text: `Игрок ${player.nickname} дал эту карту`,
-    },
-  }));
   if (defensePlayerCard.id=== EEventID.infect) {
     game.infectPlayer(offensePlayer.id);
     if (!game.gameInProcess) return;
@@ -89,14 +78,6 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
 
   /* DEFENSE CARD PUSH */
   player.getCard(offensePlayerCard);
-  player.notify(formatPlayerNotification({
-    player: player,
-    notification: {
-      type: ENotificationAction.okayCard,
-      cards: formatCards([offensePlayerCard]),
-      text: `Игрок ${offensePlayer.nickname} дал эту карту`,
-    },
-  }));
   if (offensePlayerCard.id=== EEventID.infect) {
     game.infectPlayer(player.id);
     if (!game.gameInProcess) return;

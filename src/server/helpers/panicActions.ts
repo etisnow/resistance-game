@@ -1,8 +1,6 @@
 import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
 import {ICardPanic} from 'shared/interfaces/cards';
-import {ENotificationAction} from 'shared/enum/notifications';
-import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {EPanicID} from 'shared/enum/cards';
 import {threeFourAct} from 'server/helpers/cardActions/panic/threeFour';
 import {chainReactionAct} from 'server/helpers/cardActions/panic/chainReaction';
@@ -15,17 +13,17 @@ import {goAwayAct} from 'server/helpers/cardActions/panic/goAway';
 import {oopsAct} from 'server/helpers/cardActions/panic/oops';
 import {friendshipAct} from 'server/helpers/cardActions/panic/friendship';
 import {forgetfullnessAct} from 'server/helpers/cardActions/panic/forgetfulness';
-import {formatCards} from 'server/helpers/cardHelpers';
+import {cardNames} from 'shared/constant/cardNames';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const panicAction = ({game, player, panicCard}: {game:Game, player:Player, panicCard: ICardPanic}) => {
-    game.notifyAllPlayers(formatPlayerNotification({
-      player: player,
-      notification: {
-		type: ENotificationAction.okayCard,
-        cards: formatCards([panicCard]),
-		text: `${player.nickname} достает карту паники`
-      },
-    }));
+    // Модалки здесь больше нет: саму карту стол показывает крупно в центре всё
+    // время события паники (см. Game.panicCard и клиентский PanicCard). В лог
+    // пишем её название — оно же становится подсказкой с картинкой карты.
+    game.addLog(
+      `Игрок ${player.nickname} достает карту паники «${cardNames[panicCard.id] || panicCard.id}»`,
+      EGameLogType.panic,
+    );
 
     switch (panicCard.id) {
 	    case EPanicID.threeFour:

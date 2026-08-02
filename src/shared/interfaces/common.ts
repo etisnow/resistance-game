@@ -1,5 +1,5 @@
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import type {EEventID} from 'shared/enum/cards';
+import type {EEventID, EPanicID} from 'shared/enum/cards';
 
 export interface IFormatTradeContext {
 	offensePlayerId: string | null;
@@ -20,4 +20,13 @@ export interface IFormatCardEffect {
 	cardId: string;
 	playerId: string;
 	targetPlayerId: string | null;
+}
+
+// Карта паники, которая прямо сейчас лежит на столе (Game.panicCard). Клиент
+// показывает её крупно в центре стола и держит колоду закрытой, пока она там.
+// uniqueId свой у каждого экземпляра карты — по нему клиент отличает новую
+// панику от той же самой, что уже лежит на столе.
+export interface IFormatPanicCard {
+	id: EPanicID;
+	uniqueId: string | null;
 }

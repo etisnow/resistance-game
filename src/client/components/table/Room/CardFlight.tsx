@@ -106,6 +106,12 @@ const CardFlights = observer(({controller, getPosition, cardWidth}: ICardFlights
 
 	const [flights, setFlights] = React.useState<IFlight[]>([]);
 	const nextFlightId = React.useRef(0);
+	// Таймеры уборки долетевших карт. Держим их отдельно и снимаем только при
+	// размонтировании: если чистить их из cleanup самого эффекта, то передача,
+	// случившаяся раньше, чем долетела предыдущая, отменяла бы её уборку — и
+	// карта оставалась на столе навсегда.
+	const cleanupTimers = React.useRef<ReturnType<typeof setTimeout>[]>([]);
+	React.useEffect(() => () => cleanupTimers.current.forEach(clearTimeout), []);
 	// Обмены, в которых карта атакующего уже улетела: giverId → receiverId.
 	const cardsInTrade = React.useRef<Map<string, string>>(new Map());
 	// Цепная реакция: кто ещё не выбрал карту (пропал из списка — значит отдал),
@@ -207,10 +213,11 @@ const CardFlights = observer(({controller, getPosition, cardWidth}: ICardFlights
 		if (!started.length) return;
 		setFlights(current => [...current, ...started].slice(-maxFlights));
 		const startedIds = map(started, ({id}) => id);
-		const timeout = setTimeout(() => {
+		const timer = setTimeout(() => {
 			setFlights(current => filter(current, ({id}) => !startedIds.includes(id)));
+			cleanupTimers.current = filter(cleanupTimers.current, item => item !== timer);
 		}, flightMs);
-		return () => clearTimeout(timeout);
+		cleanupTimers.current.push(timer);
 	}, [signature]);
 
 	return (

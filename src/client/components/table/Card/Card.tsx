@@ -26,7 +26,9 @@ type CardStyle = AnimatedCardStyle | ICardStyleProps;
 
 interface ICardProps {
 	id: string;
-	onCardClick?: (() => void) | null;
+	// Событие нажатия нужно тем, кто по клику открывает подсказку: она
+	// прижимается к тому объекту на канвасе, по которому нажали (см. canvasHint).
+	onCardClick?: ((event: PIXI.interaction.InteractionEvent) => void) | null;
 	// Наведение курсора: рукой используется, чтобы «вытащить» карту из веера.
 	// Колода (Deck) обработчики не передаёт.
 	onCardOver?: (() => void) | null;

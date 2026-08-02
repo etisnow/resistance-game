@@ -68,11 +68,9 @@ test.describe.serial('Паника И это вы называете вечер�
 		// Alice тянет панику youCallThisParty.
 		await session.cardPick('Alice');
 
-		// Всем приходит okayCard про вытягивание карты паники.
+		// В лог всем уходит строка про вытягивание карты паники.
 		await session.waitFor('Bob', (s) =>
-			s.notifications.some(
-				(n) => n.type === 'okayCard' && !!n.text && n.text.includes('достает карту паники'),
-			),
+			s.gameLog.some((l) => l.includes('достает карту паники')),
 		);
 
 		// Ходящий уходит в наступательный обмен.

@@ -100,7 +100,7 @@ test.describe('Игра с ботами (?withBots=true)', () => {
 			await expect
 				.poll(async () => {
 					const s = await snap(page);
-					return s.notifications.some((n) => n.type === 'okayCard' && !!n.text && n.text.includes('паники'));
+					return s.gameLog.some((l) => l.includes('достает карту паники'));
 				}, {timeout: 10_000})
 				.toBe(true);
 		} finally {
