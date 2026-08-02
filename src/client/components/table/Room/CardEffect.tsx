@@ -10,6 +10,7 @@ import * as PIXI from 'pixi.js';
 import {cardHintStore} from 'client/components/hint/cardHintStore';
 import {displayObjectAnchor} from 'client/components/hint/canvasHint';
 import GameController from 'client/controllers/gameController';
+import {EEventID} from 'shared/enum/cards';
 
 // Разовые применения карт — подсмотр «Подозрением», отказ «Нет уж спасибо»,
 // «Никакого шашлыка» и прочее — не оставляют на столе стрелки. Их показываем
@@ -138,7 +139,9 @@ const CardEffects = observer(({controller, getPosition, badgeRadius}: ICardEffec
 			return;
 		}
 
-		const fresh = filter(cardEffects, ({seq}) => seq > lastSeq.current);
+		// Огнемёт из общего потока применений забирает себе костёр (см. Burn):
+		// поверх пламени эта карта только загораживала бы само сожжение.
+		const fresh = filter(cardEffects, ({seq, cardId}) => seq > lastSeq.current && cardId !== EEventID.flamethrower);
 		lastSeq.current = latestSeq;
 		if (!fresh.length) return;
 

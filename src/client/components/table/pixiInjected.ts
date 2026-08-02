@@ -3,6 +3,8 @@ import { Globals, animated } from 'react-spring/universal'
 import * as PIXI from 'pixi.js'
 import Circle from 'client/components/pixiPrimitives/Circle';
 import Arrow from 'client/components/pixiPrimitives/Arrow';
+import Fire from 'client/components/pixiPrimitives/Fire';
+import Dissolve from 'client/components/pixiPrimitives/Dissolve';
 
 
 Globals.injectApplyAnimatedValues(
@@ -31,6 +33,11 @@ const AnimatedPixi = {
 	Sprite: animated(Sprite),
 	Circle: animated(Circle),
 	Arrow: animated(Arrow),
+	// Огонь и прогорание живут на анимируемых пропсах: пружина гонит им время и
+	// ход горения теми же кадрами, что и всему остальному на столе, — своего
+	// тикера у шейдеров нет.
+	Fire: animated(Fire),
+	Dissolve: animated(Dissolve),
 };
 
 
