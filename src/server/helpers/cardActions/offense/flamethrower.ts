@@ -83,13 +83,16 @@ export const flamethrowerFinish = ({game, player, action} : {game: Game, player:
 	if (!defensePlayer) return;
 	switch (action) {
 		case "burn": {
-			// Сожжение объявляем до killPlayer: в списке игроков сгоревшего сразу не
-			// станет, а стол по этому событию поджигает его кружок на том месте, где
-			// он сидел (см. Burn).
+			// И событие сожжения, и запись в лог — до killPlayer. Во-первых, в
+			// списке игроков сгоревшего сразу не станет, а стол по этому событию
+			// поджигает его кружок на том месте, где он сидел (см. Burn).
+			// Во-вторых, сожжённый может оказаться Нечто: тогда killPlayer тут же
+			// заканчивает партию, и всё, что не записано до него, не попадёт в
+			// последнее обновление стола.
 			game.addCardEffect({cardId: EEventID.flamethrower, player: offensePlayer, target: defensePlayer});
+			game.addLog(`Игрок ${defensePlayer.nickname} был заживо сожжен игроком ${offensePlayer.nickname} и выбывает из игры`, EGameLogType.death);
 			game.killPlayer(defensePlayer)
 			if (!game.gameInProcess) return;
-			game.addLog(`Игрок ${defensePlayer.nickname} был заживо сожжен игроком ${offensePlayer.nickname} и выбывает из игры`, EGameLogType.death);
 
 			break;
 		}

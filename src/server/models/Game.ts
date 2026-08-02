@@ -267,6 +267,11 @@ export class Game {
       const pl = this.players[pId];
       if (pl) pl.changeTurnState(ETurnState.idle);
     });
+    // Последний кадр стола. Он обязан уйти ДО gameInProcess = false: дальше
+    // updateGame молча выходит, и всё, что случилось этим же ходом, до клиентов
+    // уже не доедет. Именно из-за этого сожжение Нечто огнемётом не
+    // проигрывалось: событие сожжения записано, а обновления с ним не было.
+    this.updateGame();
 	this.gameInProcess = false;
     gameServer.destroyGame(this.id)
   };
