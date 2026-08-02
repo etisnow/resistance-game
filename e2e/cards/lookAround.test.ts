@@ -4,7 +4,7 @@ import {GameSession, startGame, fill} from '../helpers/nechto';
 // Оглянись: "Измените направление хода." A non-targeted offense card. Mirrors
 // lookAroundTest.ts: playing it flips game.isClockwise, the card is consumed,
 // the offense goes straight to the offense trade (no player-select step), and
-// an okayCard ("<nick> изменил направление хода") is broadcast to every player.
+// "<nick> изменил направление хода" lands in the game log for every player.
 //
 // isClockwise is not in the snapshot, so we verify the reversal by its
 // consequence: after reversing, the offense's trade partner becomes the player
@@ -45,7 +45,7 @@ test.describe.serial('Оглянись (lookaround)', () => {
 		expect(snap.gameLog.some((l) => l.includes('изменил направление хода'))).toBe(true);
 	});
 
-	test('уведомление о смене направления приходит всем игрокам', async () => {
+	test('запись о смене направления видна всем игрокам', async () => {
 		await session.arrange({
 			players: NICKS,
 			turn: 'Alice',
@@ -57,9 +57,9 @@ test.describe.serial('Оглянись (lookaround)', () => {
 
 		await session.play('Alice', 'lookaround');
 
-		// Every player (turn player and a non-turn player) receives the okayCard.
-		const matches = (s: {notifications: {type: string; text?: string}[]}): boolean =>
-			s.notifications.some((n) => n.type === 'okayCard' && (n.text ?? '').includes('изменил направление хода'));
+		// Every player (turn player and a non-turn player) sees it in the game log.
+		const matches = (s: {gameLog: string[]}): boolean =>
+			s.gameLog.some((l) => l.includes('изменил направление хода'));
 		await session.waitFor('Alice', matches);
 		await session.waitFor('Bob', matches);
 	});

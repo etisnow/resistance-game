@@ -6,10 +6,8 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
 
-import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
 import {find} from 'lodash';
-import {formatCards} from 'server/helpers/cardHelpers';
 import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const flamethrowerAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
@@ -87,28 +85,13 @@ export const flamethrowerFinish = ({game, player, action} : {game: Game, player:
 		case "burn": {
 			game.killPlayer(defensePlayer)
 			if (!game.gameInProcess) return;
-			game.notifyAllPlayers(formatPlayerNotification({
-			  player: player,
-			  notification: {
-				type: ENotificationAction.okayCard,
-				cards: formatCards([getCard(EEventID.flamethrower)]),
-				text: `Игрок ${defensePlayer.nickname} был заживо сожжен игроком ${offensePlayer.nickname} и выбывает из игры`,
-			  },
-			}));
 			game.addLog(`Игрок ${defensePlayer.nickname} был заживо сожжен игроком ${offensePlayer.nickname} и выбывает из игры`, EGameLogType.death);
 
 			break;
 		}
 		case "noFire": {
 			const noFireCard = find(defensePlayer.hand, {id: EEventID.noFire});
-			game.notifyAllPlayers(formatPlayerNotification({
-				player: player,
-				notification: {
-					type: ENotificationAction.okayCard,
-					cards: formatCards([getCard(EEventID.noFire)]),
-					text: `Игрок ${defensePlayer.nickname} использовал "Никакого шашлыка" и спасся от огнемета!`,
-				},
-		    }));
+			game.addLog(`Игрок ${defensePlayer.nickname} использовал "Никакого шашлыка" и спасся от огнемета`, EGameLogType.defense);
 			//discardCard({player: defensePlayer, cardUniqueId: noFireCard.uniqueId, game});
 			if (noFireCard && noFireCard.uniqueId) {
 				defensePlayer.discardCard(noFireCard.uniqueId)

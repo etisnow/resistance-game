@@ -1,12 +1,8 @@
 import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
-import {ENotificationAction} from 'shared/enum/notifications';
-import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
-import {getCard} from 'shared/constant/cards';
 import {EEventID} from 'shared/enum/cards';
-import {formatCards} from 'server/helpers/cardHelpers';
 import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const lookAroundAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
@@ -15,14 +11,6 @@ export const lookAroundAct = ({card, game, player} : {card:ICardEvent, game: Gam
 	player.discardCard(card.uniqueId);
 	game.isClockwise = !game.isClockwise;
 	player.changeTurnState(ETurnState.inCardActionProgress);
-    game.notifyAllPlayers(formatPlayerNotification({
-      player: player,
-      notification: {
-		type: ENotificationAction.okayCard,
-		cards: formatCards([getCard(EEventID.lookaround)]),
-		text: `${player.nickname} изменил направление хода`
-      },
-    }));
     game.addLog(`${player.nickname} изменил направление хода`, EGameLogType.card);
     game.addCardEffect({cardId: EEventID.lookaround, player});
     player.changeTurnState(ETurnState.inOffenseTrade)
