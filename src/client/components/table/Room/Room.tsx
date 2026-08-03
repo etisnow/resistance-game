@@ -10,6 +10,7 @@ import CardFlights from 'client/components/table/Room/CardFlight';
 import CardDraws from 'client/components/table/Room/CardDraw';
 import CardEffects from 'client/components/table/Room/CardEffect';
 import BurningPlayers, {useBurns} from 'client/components/table/Room/Burn';
+import Deflections, {useDeflects} from 'client/components/table/Room/Deflect';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ENotificationAction} from 'shared/enum/notifications';
@@ -439,6 +440,10 @@ const Room = observer(({controller} : IRoomProps) => {
 	const positionOf = (playerId: string): IPoint =>
 		lastPositions.current[playerId] ?? getPositionFromPlayerList({players, playerId, playerList: newPlayerList});
 
+	// Отбитые «Никаким шашлыком» струи. Здесь, в отличие от костра, рассадка
+	// обычная: никто не выбывает, и места участников никуда не уезжают.
+	const deflects = useDeflects(controller, positionOf);
+
 	// Весь холст в координатах стола: им костёр приглушает сцену вокруг себя.
 	const dimRect = {
 		x: -tableCenterX(),
@@ -571,6 +576,12 @@ const Room = observer(({controller} : IRoomProps) => {
 			<CardEffects
 				controller={controller}
 				getPosition={positionOf}
+				badgeRadius={badgeRadius}
+			/>
+			{/* Рикошет — поверх карты применения: она висит ровно в точке удара и
+			    работает зеркалом, от которого пламя уходит прочь. */}
+			<Deflections
+				deflects={deflects}
 				badgeRadius={badgeRadius}
 			/>
 			{/* Костры — поверх всего: сожжение видно даже сквозь стрелки и летящие карты. */}
