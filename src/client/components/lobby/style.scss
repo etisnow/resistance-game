@@ -1,3 +1,5 @@
+@use '../../styles/buttons';
+
 h1 {
 	margin-top: 5px;
 }
@@ -17,13 +19,10 @@ h1 {
 		box-shadow: 1px 8px 7px -4px #047903;
 	}
 	.kick-button {
-		color: #ffe000;
-		background: none;
-		border: 1px solid #ffe000;
+		@include buttons.button(buttons.$button-warning-top, buttons.$button-warning-bottom);
 		padding: 3px 10px;
-		border-radius: 5px;
-		cursor: pointer;
-		background: #0000001f;
+		// Кнопка сидит внутри строки игрока: большая тень оторвала бы её от строки.
+		box-shadow: 0 2px 4px black;
 	}
 }
 

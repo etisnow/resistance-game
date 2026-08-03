@@ -1,10 +1,12 @@
+@use '../../../styles/buttons';
+
 @keyframes interaction-badge-pulse {
 	0%, 100% {
-		box-shadow: 1px 1px 5px #0000004f;
+		box-shadow: 0 4px 7px black;
 		filter: brightness(1);
 	}
 	50% {
-		box-shadow: 0 0 16px 2px #d7ff5e99;
+		box-shadow: 0 4px 7px black, 0 0 16px 2px #d7ff5e99;
 		filter: brightness(1.25);
 	}
 }
@@ -16,27 +18,24 @@
 	display: flex;
 	justify-content: center;
 	z-index: 20;
+	// Бейдж — не кнопка (его не жмут), но выглядит он так же, как кнопки: то же
+	// скругление, градиент и тень. Цвет свой, ярче зелёного: это не действие, а
+	// требование действия.
 	.interaction-badge {
+		@include buttons.button(buttons.$button-lime-top, buttons.$button-lime-bottom, 8px);
 		position: fixed;
 		z-index: 2;
 		top: 22%;
-		width: 100%;
+		// Не во всю ширину: на узком экране бейдж упирался бы в края, и скруглять
+		// было бы нечего.
+		width: calc(100% - 20px);
 		font-size: 14px;
 		display: flex;
 		justify-content: center;
 		padding: 2px 20px;
 		transition: font-size 0.2s ease, padding 0.2s ease, top 0.2s ease;
-		color: white;
 		max-width: 500px;
-		box-shadow: 1px 1px 5px #0000004f;
-		background: rgba(164,179,87,1);
-		background: -moz-linear-gradient(top, rgba(164,179,87,1) 0%, rgba(117,137,12,1) 100%);
-		background: -webkit-gradient(left top, left bottom, color-stop(0%, rgba(164,179,87,1)), color-stop(100%, rgba(117,137,12,1)));
-		background: -webkit-linear-gradient(top, rgba(164,179,87,1) 0%, rgba(117,137,12,1) 100%);
-		background: -o-linear-gradient(top, rgba(164,179,87,1) 0%, rgba(117,137,12,1) 100%);
-		background: -ms-linear-gradient(top, rgba(164,179,87,1) 0%, rgba(117,137,12,1) 100%);
-		background: linear-gradient(to bottom, #92ad0b 0%, #708600 100%);
-		filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#a4b357', endColorstr='#75890c', GradientType=0 );
+		cursor: default;
 
 		// Свёрнутый лог: бейдж — единственный индикатор действия, поэтому крупнее и пульсирует.
 		&.big {

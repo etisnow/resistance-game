@@ -1,3 +1,5 @@
+@use '../../styles/buttons';
+
 .webgl-message {
 	max-width: 440px;
 	width: 100%;
@@ -52,12 +54,8 @@
 	}
 
 	.webgl-copy {
+		@include buttons.button;
 		padding: 6px 10px;
-		border: 0;
-		border-radius: 5px;
-		background: linear-gradient(180deg, #6c920e 0%, #005213 100%);
-		color: white;
-		cursor: pointer;
 		white-space: nowrap;
 	}
 }
