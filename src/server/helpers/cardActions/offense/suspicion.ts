@@ -5,9 +5,9 @@ import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
-import {formatCards} from 'server/helpers/cardHelpers';
 import {EEventID} from 'shared/enum/cards';
 import {EGameLogType} from 'shared/enum/gameLogType';
+import {startCardsView} from 'server/helpers/cardActions/cardsView';
 
 
 export const suspicionAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
@@ -40,15 +40,16 @@ export const suspicionSelect = ({game, player, selectedPlayerId} : {game: Game, 
 	const cardToView = playerToView.getRandomCard();
 	game.turnContext = null;
 	if (!cardToView) return;
-    player.notify(formatPlayerNotification({
-      player: player,
-      notification: {
-		type: ENotificationAction.okayCard,
-		text: `Ты подсмотрел у игрока ${playerToView.nickname} эту карту`,
-		cards: formatCards([cardToView])
-      },
-    }));
 	game.addLog(`Игрок ${player.nickname} играет карту "Подозрение" на игрока ${playerToView.nickname}`, EGameLogType.card);
 	game.addCardEffect({cardId: EEventID.suspicion, player, target: playerToView});
-	player.changeTurnState(ETurnState.inOffenseTrade)
+	// Ход стоит, пока игрок разглядывает подсмотренную карту: остальные видят на
+	// столе, кто у кого подсматривает (см. startCardsView).
+	startCardsView({
+		game,
+		player,
+		target: playerToView,
+		cardId: EEventID.suspicion,
+		cards: [cardToView],
+		text: `Ты подсмотрел у игрока ${playerToView.nickname} эту карту`,
+	});
 };

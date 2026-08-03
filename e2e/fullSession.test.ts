@@ -51,6 +51,10 @@ test.describe.serial('Полная игровая сессия', () => {
 		await session.play('Alice', 'suspicion');
 		await session.waitFor('Alice', (s) => s.currentAction?.type === 'playerSelect');
 		await session.selectPlayer('Alice', 'Bob');
+		// Подсмотренную карту закрывают руками — это и есть подтверждение осмотра,
+		// после которого ход идёт к обмену.
+		await session.waitFor('Alice', (s) => s.notifications.some((n) => n.type === 'okayCard'));
+		await session.confirmCardsView('Alice');
 		await session.expectTurnState('Alice', 'inOffenseTrade');
 		await session.offerTrade('Alice', 'analysis');
 		await session.expectTurnState('Bob', 'inDefenseTrade');
@@ -73,6 +77,8 @@ test.describe.serial('Полная игровая сессия', () => {
 		await session.play('Carol', 'analysis');
 		await session.waitFor('Carol', (s) => s.currentAction?.type === 'playerSelect');
 		await session.selectPlayer('Carol', 'Dave');
+		await session.waitFor('Carol', (s) => s.notifications.some((n) => n.type === 'okayCard'));
+		await session.confirmCardsView('Carol');
 		await session.expectTurnState('Carol', 'inOffenseTrade');
 		await session.offerTrade('Carol', 'seduction');
 		await session.expectTurnState('Dave', 'inDefenseTrade');
@@ -120,11 +126,16 @@ test.describe.serial('Полная игровая сессия', () => {
 			await session.selectPlayer(turn, target);
 		};
 
-		// suspicion / analysis / barricade — навести на соседа.
+		// suspicion / analysis / barricade — навести на соседа. У подсмотра ход
+		// ждёт, пока смотрящий не закроет окно с картами.
 		await targetNeighbour('Alice', 'suspicion', 'Bob');
+		await session.waitFor('Alice', (s) => s.notifications.some((n) => n.type === 'okayCard'));
+		await session.confirmCardsView('Alice');
 		await session.expectTurnState('Alice', 'inOffenseTrade');
 
 		await targetNeighbour('Bob', 'analysis', 'Carol');
+		await session.waitFor('Bob', (s) => s.notifications.some((n) => n.type === 'okayCard'));
+		await session.confirmCardsView('Bob');
 		await session.expectTurnState('Bob', 'inOffenseTrade');
 
 		await targetNeighbour('Carol', 'barricade', 'Bob'); // дверь к предыдущему — можно меняться дальше
@@ -275,6 +286,12 @@ test.describe.serial('Полная игровая сессия', () => {
 			} else if (after.currentAction?.type === 'selectCard') {
 				const first = Object.values(after.currentAction.cards ?? {})[0];
 				if (first) await session.selectNotificationCard(turn, first.id);
+			} else if (after.currentAction?.type === 'selectCards') {
+				// Забывчивость: одно окно на весь обмен — отмечаем сколько просят и
+				// подтверждаем разом.
+				const count = after.currentAction.count ?? 0;
+				const cardIds = Object.values(after.currentAction.cards ?? {}).slice(0, count).map((c) => c.id);
+				if (cardIds.length === count) await session.selectNotificationCards(turn, cardIds);
 			}
 			// Сервер жив и игра идёт — состояние ходящего читается.
 			const snap = await session.snapshot(turn);

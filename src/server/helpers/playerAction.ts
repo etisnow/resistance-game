@@ -21,6 +21,7 @@ import {blindDateSelect} from 'server/helpers/cardActions/panic/blindDate';
 import {oneTwoPlayerSelect} from 'server/helpers/cardActions/panic/oneTwo';
 import {onlyBetweenUsSelect} from 'server/helpers/cardActions/panic/onlyBetweenUs';
 import {forgetfullnessSelect} from 'server/helpers/cardActions/panic/forgetfulness';
+import {finishCardsView} from 'server/helpers/cardActions/cardsView';
 
 export const actCard = ({game, cardUniqueId, player} : {game: Game, player: Player, cardUniqueId: string}) => {
 	const card = player.getCardByUniqueId(cardUniqueId);
@@ -71,8 +72,26 @@ export const selectCard = ({game, cardUniqueId, player} : {game: Game, player: P
 			return tenacitySelect({game, cardUniqueId, player})
 		case ETurnContextType.blindDateCardSelect:
 			return blindDateSelect({game, cardUniqueId, player})
+	}
+};
+
+// Выбор нескольких карт одним подтверждением (см. ENotificationAction.selectCards).
+export const selectCards = ({game, cardUniqueIds, player} : {game: Game, player: Player, cardUniqueIds: string[]}) => {
+	const {turnContext} = game;
+	if (!turnContext) return;
+	switch (turnContext.type) {
 		case ETurnContextType.forgetfullnessSelect:
-			return forgetfullnessSelect({game, cardUniqueId, player})
+			return forgetfullnessSelect({game, cardUniqueIds, player})
+	}
+};
+
+// Игрок закрыл окно с чужими картами — осмотр подтверждён (см. cardsView).
+export const viewConfirm = ({game, player} : {game: Game, player: Player}) => {
+	const {turnContext} = game;
+	if (!turnContext) return;
+	switch (turnContext.type) {
+		case ETurnContextType.cardsView:
+			return finishCardsView({game, player})
 	}
 };
 

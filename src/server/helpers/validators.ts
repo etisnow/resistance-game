@@ -2,7 +2,7 @@ import {Game} from 'server/models/Game';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {Player} from 'server/models/Player';
 import {ETurnState} from 'shared/enum/player';
-import {find} from 'lodash';
+import {find, uniq} from 'lodash';
 import {getCardActions} from 'server/formatters/formatCardActions';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {debugLog} from 'server/helpers/util';
@@ -135,7 +135,30 @@ export const isPlayerCanSelectCard = (_game: Game, player: Player, cardUniqueId:
 	return !!selectedCard
 };
 
-export const isPlayerCanSelectDesicion = (_game: Game, player: Player, action: string | undefined) => {
+// Пачка карт приходит одним действием, поэтому и проверяем её целиком: ровно
+// столько карт, сколько просили, без повторов и все — из предложенных.
+export const isPlayerCanSelectCards = (_game: Game, player: Player, cardUniqueIds: string[] | undefined) => {
+	if (!player.currentAction || player.currentAction.type !== ENotificationAction.selectCards) {
+		return false;
+	}
+	const event = player.currentAction;
+	if (!cardUniqueIds || cardUniqueIds.length !== event.count) {
+		console.error(`Выбрано не ${event.count} карт`, cardUniqueIds);
+		return false;
+	}
+	if (uniq(cardUniqueIds).length !== cardUniqueIds.length) {
+		console.error(`Одна и та же карта выбрана дважды`, cardUniqueIds);
+		return false;
+	}
+	const unknownCard = find(cardUniqueIds, (uniqueId) => !find(event.cards, {uniqueId}));
+	if (unknownCard) {
+		console.error(`В предложенных картах нету ID выбранной`, event, unknownCard);
+		return false;
+	}
+	return true;
+};
+
+export const isPlayerCanSelectDesicion =(_game: Game, player: Player, action: string | undefined) => {
 	if (!player.currentAction || player.currentAction.type !== ENotificationAction.actionDecision) {
 		return false;
 	}

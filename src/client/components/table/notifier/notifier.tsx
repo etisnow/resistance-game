@@ -132,6 +132,53 @@ const Notification = observer(({notification, controller}: {notification: INotif
 				</React.Fragment>
 			);
 			break;
+		case ENotificationAction.selectCards: {
+			// Весь выбор на одном экране: карты отмечаются галочками, а OKEY меняет
+			// их разом. Пока набрано не всё, кнопка притушена и не жмётся — тогда и
+			// подпись говорит, сколько ещё осталось отметить.
+			cardHeight = rowHeight(Object.keys(notification.cards).length);
+			const {checkedNotificationCards} = controller;
+			const isReady = checkedNotificationCards.length === notification.count;
+			const okayWidth = playerCardWidthPix() * 1.5;
+			notificationContent = (
+				<React.Fragment>
+					<Sprite
+						texture={okayTexture}
+						interactive={isReady}
+						buttonMode={isReady}
+						alpha={isReady ? 1 : 0.35}
+						pointerdown={() => controller.selectCards(notification)}
+						width={okayWidth}
+						height={okayWidth}
+						anchor={0.5}
+						x={getWindowWidth() / 2}
+						y={textY(cardHeight) + notificationFontSize + (okayWidth / 2)}
+					/>
+					{/* Сам текст задания висит бейджем над столом (ActionInteracter) —
+					    здесь только счёт отмеченного, иначе одно и то же читается дважды. */}
+					<Text
+						x={getWindowWidth() / 2}
+						y={textY(cardHeight)}
+						text={isReady
+							? `Отмечено ${notification.count} из ${notification.count} — жми OKAY`
+							: `Отмечено ${checkedNotificationCards.length} из ${notification.count}`}
+						anchor={0.5}
+						style={getFontStyle(18, getWindowWidth() * 0.8)}
+					/>
+					<HandComponent
+						cards={notification.cards}
+						selectedCardIndex={null}
+						autoWidth={true}
+						checkedCardIds={checkedNotificationCards}
+						cardActions={{}}
+						onSelectCard={(cardUniqueId) => controller.toggleNotificationCardCheck(cardUniqueId, notification.count)}
+						onCardAction={() => {}}
+						y={tableCenterY()}
+					/>
+				</React.Fragment>
+			);
+			break;
+		}
 		case ENotificationAction.info:
 			notificationContent = (
 				<Text

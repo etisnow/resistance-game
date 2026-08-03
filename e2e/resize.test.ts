@@ -41,7 +41,9 @@ const startBotGame = async (browser: Browser, viewport: {width: number; height: 
 			return (original as (...a: unknown[]) => unknown).apply(this, args);
 		} as typeof HTMLCanvasElement.prototype.getContext;
 	});
-	await page.goto('/?withBots=true');
+	// botCount фиксируем: тест про раскладку канваса, а не про число ботов, и он
+	// не должен ломаться при смене дефолта дев-режима.
+	await page.goto('/?withBots=true&botCount=4');
 	await page.getByPlaceholder('введи ник').fill('Me');
 	await page.getByRole('button', {name: 'Создай игру'}).click();
 	await expect(page.locator('canvas')).toBeVisible({timeout: 20_000});

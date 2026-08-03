@@ -4,7 +4,7 @@ import {EPlayerActionType} from 'shared/enum/playerActions';
 import {Player} from 'server/models/Player';
 import {
 	isPlayerCanActCard, isPlayerCanDiscardCard,
-	isPlayerCanSelectCard, isPlayerCanSelectDesicion,
+	isPlayerCanSelectCard, isPlayerCanSelectCards, isPlayerCanSelectDesicion,
 	isPlayerCanSelectPlayer,
 	isPlayerCanTradeCard,
 } from 'server/helpers/validators';
@@ -13,6 +13,7 @@ interface IActionPayload  {
 	player:Player,
 	actionType: EPlayerActionType,
 	cardUniqueId?: string,
+	cardUniqueIds?: string[],
 	selectedPlayerId?:string,
 	action?: string
 }
@@ -44,6 +45,10 @@ export const testPlayerAction = (gameServer:GameServer, game: Game, payload: IAc
 		}
 		case EPlayerActionType.cardSelect: {
 			expect(isPlayerCanSelectCard(game, player, payload.cardUniqueId)).toBe(true);
+			break;
+		}
+		case EPlayerActionType.cardsSelect: {
+			expect(isPlayerCanSelectCards(game, player, payload.cardUniqueIds)).toBe(true);
 			break;
 		}
 		case EPlayerActionType.actionDecision: {

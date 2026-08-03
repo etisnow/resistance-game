@@ -62,7 +62,20 @@ const botSelectCardLogic = (gameServer: GameServer, player: Player) => {
 	gameServer.playerAction({player, actionType: EPlayerActionType.cardSelect, cardUniqueId: randomCard.uniqueId});
 };
 
-const botTradeCardLogic = (gameServer: GameServer, player: Player, game: Game) => {
+// Пачку карт бот отмечает и подтверждает разом — ровно как живой игрок в окне
+// выбора (ENotificationAction.selectCards).
+const botSelectCardsLogic = (gameServer: GameServer, player: Player) => {
+	const action = player.currentAction;
+	if (!action || action.type !== ENotificationAction.selectCards) return;
+	const cardUniqueIds = shuffle(Object.values(action.cards))
+		.map(card => card.uniqueId)
+		.filter((uniqueId): uniqueId is string => !!uniqueId)
+		.slice(0, action.count);
+	if (cardUniqueIds.length !== action.count) return;
+	gameServer.playerAction({player, actionType: EPlayerActionType.cardsSelect, cardUniqueIds});
+};
+
+const botTradeCardLogic =(gameServer: GameServer, player: Player, game: Game) => {
 	const preferredCard = getPreferredPlayableCard(game, player, true);
 	if (!preferredCard || !preferredCard.uniqueId) return;
 	const cardActions = getCardActions(game, player, preferredCard);
@@ -111,6 +124,9 @@ const botAct = (gameServer: GameServer, player: Player, game: Game): boolean => 
 		case ENotificationAction.selectCard:
 			botSelectCardLogic(gameServer, player);
 			return true;
+		case ENotificationAction.selectCards:
+			botSelectCardsLogic(gameServer, player);
+			return true;
 		case ENotificationAction.offenseTradeCard:
 		case ENotificationAction.defenseTradeCard:
 			botTradeCardLogic(gameServer, player, game);
@@ -126,6 +142,11 @@ const botAct = (gameServer: GameServer, player: Player, game: Game): boolean => 
 			return true;
 		case ENotificationAction.cardPick:
 			gameServer.playerAction({player, actionType: EPlayerActionType.cardPick});
+			return true;
+		case ENotificationAction.okayCard:
+			// Бот «закрывает» окно с подсмотренными картами: пока оно открыто, ход
+			// стоит на осмотре (см. cardsView).
+			gameServer.playerAction({player, actionType: EPlayerActionType.viewConfirm});
 			return true;
 		default:
 			return false;

@@ -5,9 +5,9 @@ import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
-import {formatCards} from 'server/helpers/cardHelpers';
 import {EEventID} from 'shared/enum/cards';
 import {EGameLogType} from 'shared/enum/gameLogType';
+import {startCardsView} from 'server/helpers/cardActions/cardsView';
 
 
 export const analysisAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
@@ -40,13 +40,14 @@ export const analysisSelect = ({game, player, selectedPlayerId} : {game: Game, p
 
 	game.addLog(`Игрок ${player.nickname} анализирует ${selectedPlayer.nickname}`, EGameLogType.card);
 	game.addCardEffect({cardId: EEventID.analysis, player, target: selectedPlayer});
-    player.notify(formatPlayerNotification({
-      player: player,
-      notification: {
-		type: ENotificationAction.okayCard,
-        cards: formatCards(selectedPlayer.hand),
+	// Ход стоит, пока игрок смотрит руку соседа: остальные видят на столе, кто
+	// кого разглядывает (см. startCardsView).
+	startCardsView({
+		game,
+		player,
+		target: selectedPlayer,
+		cardId: EEventID.analysis,
+		cards: selectedPlayer.hand,
 		text: `${selectedPlayer.nickname}: На, смотри!`,
-      },
-    }));
-	player.changeTurnState(ETurnState.inOffenseTrade)
+	});
 };

@@ -27,6 +27,7 @@ export const registerHandlers = (gameServer: GameServer, socket: IGameSocket) =>
 			seed?: unknown;
 			firstPanic?: unknown;
 			hand?: unknown;
+			botCount?: unknown;
 		};
 		const nickname = asString(data.nickname);
 		if (!nickname) return;
@@ -36,6 +37,7 @@ export const registerHandlers = (gameServer: GameServer, socket: IGameSocket) =>
 				seed: typeof data.seed === 'number' ? data.seed : undefined,
 				firstPanic: asString(data.firstPanic),
 				hand: Array.isArray(data.hand) ? data.hand.filter((c): c is string => typeof c === 'string') : undefined,
+				botCount: typeof data.botCount === 'number' ? data.botCount : undefined,
 			}
 			: undefined;
 		gameServer.createGame({nickname, socket, bots});
@@ -84,6 +86,7 @@ export const registerHandlers = (gameServer: GameServer, socket: IGameSocket) =>
 		const data = (payload ?? {}) as {
 			actionType?: unknown;
 			cardUniqueId?: unknown;
+			cardUniqueIds?: unknown;
 			selectedPlayerId?: unknown;
 			action?: unknown;
 		};
@@ -95,6 +98,9 @@ export const registerHandlers = (gameServer: GameServer, socket: IGameSocket) =>
 			player,
 			actionType,
 			cardUniqueId: asString(data.cardUniqueId),
+			cardUniqueIds: Array.isArray(data.cardUniqueIds)
+				? data.cardUniqueIds.filter((id): id is string => typeof id === 'string')
+				: undefined,
 			selectedPlayerId: asString(data.selectedPlayerId),
 			action: asString(data.action),
 		});

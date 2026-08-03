@@ -9,7 +9,7 @@ import {EClientEventType} from 'shared/enum/enumClientEvents';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import type {IFormatCardDraw, IFormatCardEffect, IFormatPanicCard, IFormatTradeContext} from 'shared/interfaces/common';
 import fscreen from 'fscreen';
-import {difference, each, every, filter, find, includes, keys, merge, reduce} from "lodash";
+import {difference, each, every, filter, find, includes, keys, merge, reduce, without} from "lodash";
 import {EAsyncState} from 'shared/enum/async';
 import type {
 	IDeckPayload,
@@ -102,6 +102,9 @@ export default class GameController {
 	@observable handActions: IHandActionsMap = {};
 	@observable cardInPreview: string | null = null;
 	@observable cardInNotificationPreview: string | null = null;
+	// Карты, отмеченные галочкой в окне выбора нескольких карт (забывчивость):
+	// ход уходит на сервер одним действием, когда отмечено ровно сколько просили.
+	@observable checkedNotificationCards: string[] = [];
 	@observable hostPlayerId: string = '';
 	@observable isPlayerCanCancel: boolean = false;
 	@observable isMenuOpen: boolean = false;
@@ -166,6 +169,15 @@ export default class GameController {
 			? notification.playersToSelect
 			: [];
 		this.notifications = this.notifications.slice(1);
+		// Закрытое окно с чужими картами — это подтверждение осмотра: пока оно
+		// открыто, ход стоит и стол показывает стрелку с лупой (см. cardsView).
+		if (notification.type === ENotificationAction.okayCard) this.confirmCardsView();
+	};
+
+	// Осмотр окончен. Сервер сам разберётся, ждал ли он подтверждения именно от
+	// меня: окошком okayCard показывают и разовые вскрытия, ход не ждущие.
+	confirmCardsView = () => {
+		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.viewConfirm});
 	};
 
 	selectNotificationCardPreview = (index: string) => {
@@ -180,6 +192,9 @@ export default class GameController {
 	// Under react-pixi-fiber, the Notifier observer only reliably re-renders on a
 	// prop reassignment, not on in-place array mutation — see notifier.tsx.
 	addNotification = (notification: INotificationAction) => {
+		// Новое окно множественного выбора начинается с чистого листа: галочки
+		// прошлого выбора (или брошенного окна) к его картам отношения не имеют.
+		if (notification.type === ENotificationAction.selectCards) this.checkedNotificationCards = [];
 		if (notification.type === ENotificationAction.gameEnd) {
 			this.isGameOver = true;
 			// Обновлений стола после конца игры не будет, поэтому снять карту паники
@@ -200,6 +215,30 @@ export default class GameController {
 
 	hidENotificationAction = () => {
 		this.notifications = this.notifications.slice(1);
+	};
+
+	// Галочка на карте в окне множественного выбора. Лишние нажатия игнорируем:
+	// пока не снимешь одну отметку, новая не встанет — так видно, что набрано
+	// ровно столько карт, сколько просили.
+	@action toggleNotificationCardCheck = (cardUniqueId: string, limit: number) => {
+		if (includes(this.checkedNotificationCards, cardUniqueId)) {
+			this.checkedNotificationCards = without(this.checkedNotificationCards, cardUniqueId);
+			return;
+		}
+		if (this.checkedNotificationCards.length >= limit) return;
+		this.checkedNotificationCards = [...this.checkedNotificationCards, cardUniqueId];
+	};
+
+	// Подтверждение всего выбора разом (кнопка OKEY).
+	@action selectCards = (notification: INotificationAction) => {
+		if (notification.type !== ENotificationAction.selectCards) return;
+		if (this.checkedNotificationCards.length !== notification.count) return;
+		this.socket.sendToServer(EClientEventType.playerAction, {
+			actionType: EPlayerActionType.cardsSelect,
+			cardUniqueIds: [...this.checkedNotificationCards],
+		});
+		this.checkedNotificationCards = [];
+		this.hidENotificationAction();
 	};
 
 	selectCard = (notification: INotificationAction, cardUniqueId: string) => {
@@ -412,6 +451,7 @@ export default class GameController {
 		this.notifications = [];
 		this.currentAction = null;
 		this.playersToSelect = [];
+		this.checkedNotificationCards = [];
 		if (this.panicHoldTimer) clearTimeout(this.panicHoldTimer);
 		this.panicHoldTimer = null;
 		this.isPanicOnServer = false;

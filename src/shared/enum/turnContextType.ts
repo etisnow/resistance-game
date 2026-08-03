@@ -9,6 +9,9 @@ export enum ETurnContextType {
 	quarantinePersonSelect = 'quarantinePersonSelect',
 	axePersonSelect = 'axePersonSelect',
 	analysisPersonSelect = 'analysisPersonSelect',
+	// Игрок смотрит чужие карты («Анализ», «Подозрение»): стол показывает от него
+	// к цели стрелку с лупой, пока он не закроет окно с картами.
+	cardsView = 'cardsView',
 
 	/*PANICS */
 	friendshipSeduction = 'friendshipSeduction',

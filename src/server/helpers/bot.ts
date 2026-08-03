@@ -6,6 +6,7 @@ import {EPlayerActionType} from 'shared/enum/playerActions';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {EEventID} from 'shared/enum/cards';
 import {getCardActions} from 'server/formatters/formatCardActions';
+import {shuffle} from 'server/helpers/util';
 import {ICardEvent} from 'shared/interfaces/cards';
 
 // Server-side bot opponents for the ?withBots=true dev mode. A real human plays
@@ -71,9 +72,25 @@ const performBotAction = (gameServer: GameServer, game: Game, player: Player): v
 			if (selectedPlayerId) gameServer.playerAction({player, actionType: EPlayerActionType.playerSelect, selectedPlayerId});
 			return;
 		}
+		case ENotificationAction.okayCard:
+			// Бот «закрывает» окно с подсмотренными картами — иначе ход стоял бы на
+			// осмотре вечно (см. cardsView).
+			gameServer.playerAction({player, actionType: EPlayerActionType.viewConfirm});
+			return;
 		case ENotificationAction.selectCard: {
 			const card = pick(Object.values(action.cards), game.rng);
 			if (card?.uniqueId) gameServer.playerAction({player, actionType: EPlayerActionType.cardSelect, cardUniqueId: card.uniqueId});
+			return;
+		}
+		case ENotificationAction.selectCards: {
+			// Отмечаем нужное количество карт разом — тем же одним действием, каким
+			// их подтверждает живой игрок.
+			const cardUniqueIds = shuffle(Object.values(action.cards), game.rng)
+				.map((card) => card.uniqueId)
+				.filter((uniqueId): uniqueId is string => !!uniqueId)
+				.slice(0, action.count);
+			if (cardUniqueIds.length !== action.count) return;
+			gameServer.playerAction({player, actionType: EPlayerActionType.cardsSelect, cardUniqueIds});
 			return;
 		}
 		default:

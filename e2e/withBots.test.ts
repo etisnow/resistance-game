@@ -1,9 +1,9 @@
 import {test, expect, Browser, Page} from '@playwright/test';
 
 // Dev mode `?withBots=true`: a human creates a game and immediately plays against
-// four server-driven bots (1s pacing). Optional `&seed=`, `&firstPanic=`,
-// `&hand=` rig the game for convenient manual testing. All over the real
-// client/socket/engine in the browser.
+// server-driven bots (five by default, 1s pacing). Optional `&seed=`,
+// `&firstPanic=`, `&hand=`, `&botCount=` rig the game for convenient manual
+// testing. All over the real client/socket/engine in the browser.
 
 interface GcWindow {
 	__nechto?: {
@@ -23,6 +23,14 @@ interface GcWindow {
 	};
 }
 
+// Ждём ровно тех игроков, которых заказали в query: человек + botCount ботов
+// (по умолчанию пять).
+const expectedPlayers = (query: string): number => {
+	const requested = new URLSearchParams(query.replace(/^\?/, '')).get('botCount');
+	const botCount = requested === null || Number.isNaN(Number(requested)) ? 5 : Number(requested);
+	return Math.min(11, Math.max(3, Math.floor(botCount))) + 1;
+};
+
 async function createBotGame(browser: Browser, query: string, nick = 'Me'): Promise<Page> {
 	const context = await browser.newContext();
 	const page = await context.newPage();
@@ -31,10 +39,14 @@ async function createBotGame(browser: Browser, query: string, nick = 'Me'): Prom
 	await page.getByPlaceholder('введи ник').fill(nick);
 	await page.getByRole('button', {name: 'Создай игру'}).click();
 	await expect(page.locator('canvas')).toBeVisible({timeout: 20_000});
-	await page.waitForFunction(() => {
-		const gc = (window as unknown as GcWindow).__nechto;
-		return !!gc && gc.playersList.length === 5;
-	});
+	const total = expectedPlayers(query);
+	await page.waitForFunction(
+		(count) => {
+			const gc = (window as unknown as GcWindow).__nechto;
+			return !!gc && gc.playersList.length === count;
+		},
+		total,
+	);
 	return page;
 }
 
@@ -63,18 +75,44 @@ const snap = (page: Page): Promise<BotSnap> =>
 	}) as Promise<BotSnap>;
 
 test.describe('Игра с ботами (?withBots=true)', () => {
-	test('создаёт игру с 4 ботами, сид в логе, ход у человека', async ({browser}: {browser: Browser}) => {
+	test('создаёт игру с 5 ботами, сид в логе, ход у человека', async ({browser}: {browser: Browser}) => {
 		const page = await createBotGame(browser, '?withBots=true&seed=777');
 		try {
 			const s = await snap(page);
 			const nicks = Object.values(s.players).map((p) => p.nickname).sort();
-			expect(nicks).toEqual(['Me', 'Бот 1', 'Бот 2', 'Бот 3', 'Бот 4'].sort());
+			expect(nicks).toEqual(['Me', 'Бот 1', 'Бот 2', 'Бот 3', 'Бот 4', 'Бот 5'].sort());
 			// Сид записан первой строкой игрового лога.
 			expect(s.gameLog[0]).toBe('Сид игры: 777');
 			// Человек ходит первым.
 			const me = Object.values(s.players).find((p) => p.nickname === 'Me')!;
 			expect(s.currentPlayerId).toBe(me.id);
 			expect(me.turnState).toBe('inCardPick');
+		} finally {
+			await page.context().close();
+		}
+	});
+
+	test('&botCount=... задаёт число ботов за столом', async ({browser}: {browser: Browser}) => {
+		const page = await createBotGame(browser, '?withBots=true&seed=777&botCount=8');
+		try {
+			const s = await snap(page);
+			const nicks = Object.values(s.players).map((p) => p.nickname).sort();
+			expect(nicks.length).toBe(9);
+			expect(nicks).toContain('Бот 8');
+			expect(nicks).toContain('Me');
+		} finally {
+			await page.context().close();
+		}
+	});
+
+	test('&botCount= вне диапазона зажимается: 99 → 11 ботов', async ({browser}: {browser: Browser}) => {
+		// createBotGame сам ждёт зажатое число игроков — если бы сервер посадил 99
+		// ботов, ожидание бы не сошлось.
+		const page = await createBotGame(browser, '?withBots=true&seed=777&botCount=99');
+		try {
+			const s = await snap(page);
+			expect(s.playersList.length).toBe(12);
+			expect(Object.values(s.players).map((p) => p.nickname)).toContain('Бот 11');
 		} finally {
 			await page.context().close();
 		}
@@ -109,7 +147,9 @@ test.describe('Игра с ботами (?withBots=true)', () => {
 	});
 
 	test('боты ходят сами после хода человека (с задержкой ~1с)', async ({browser}: {browser: Browser}) => {
-		const page = await createBotGame(browser, '?withBots=true&seed=42');
+		// botCount фиксируем вместе с сидом: раздача зависит от числа игроков, а
+		// сценарию нужен именно «взял обычную карту, сбросил, обменялся».
+		const page = await createBotGame(browser, '?withBots=true&seed=42&botCount=4');
 		try {
 			// Человек проходит свой ход: берёт карту, сбрасывает одну, и ход уходит
 			// боту.

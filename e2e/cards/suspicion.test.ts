@@ -58,11 +58,32 @@ test.describe.serial('Подозрение (suspicion)', () => {
 		const bobHand = ['fear', 'miss', 'noThanks', 'seduction'];
 		expect(bobHand).toContain(revealed[0]!.id);
 
-		// suspicion was discarded (hand back to 4) and the offense proceeds to the
-		// end-of-turn trade.
+		// suspicion was discarded (hand back to 4).
 		expect(Object.values(alice.hand).some((c) => c.id === 'suspicion')).toBe(false);
 		expect(Object.keys(alice.hand).length).toBe(4);
-		expect(alice.players[alice.currentPlayerId!]?.turnState).toBe('inOffenseTrade');
+
+		// Пока Алиса разглядывает карту, ход стоит на осмотре, и остальные видят на
+		// столе стрелку от неё к Бобу (клиент рисует на ней лупу).
+		expect(alice.players[alice.currentPlayerId!]?.turnState).toBe('inCardActionProgress');
+		await session.waitFor('Carol', (s) =>
+			(s.tradeContext ?? []).some((c) => c.type === 'cardsView'),
+		);
+		const [viewArrow] = (await session.snapshot('Carol')).tradeContext ?? [];
+		expect(viewArrow).toMatchObject({
+			type: 'cardsView',
+			offensePlayerId: await session.idOf('Alice'),
+			defensePlayerId: bobId,
+			cardId: 'suspicion',
+		});
+
+		// Алиса закрывает окно — осмотр подтверждён: стрелка уходит со стола, и
+		// начинается обмен.
+		await session.confirmCardsView('Alice');
+		await session.expectTurnState('Alice', 'inOffenseTrade');
+		await session.waitFor('Carol', (s) =>
+			!(s.tradeContext ?? []).some((c) => c.type === 'cardsView'),
+		);
+		expect((await session.snapshot('Carol')).tradeContext?.[0]?.type).toBe('trade');
 	});
 
 	test('сосед на карантине не предлагается в качестве цели', async () => {

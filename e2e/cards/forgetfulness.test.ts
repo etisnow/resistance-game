@@ -4,8 +4,8 @@ import {GameSession, startGame, fill} from '../helpers/nechto';
 // Паника «Забывчивость» (forgetfulness): игрок сбрасывает три карты с руки и
 // берёт три новых карты событий из колоды (паники по пути сбрасываются), после
 // чего ход переходит в обычный обмен с соседом. Паника достаётся из колоды через
-// cardPick и в руку не попадает. Зеркалит forgetfulnessTest.ts: три
-// последовательных шага selectCard (контекст forgetfullnessSelect).
+// cardPick и в руку не попадает. Зеркалит forgetfulness.test.ts: одно окно
+// множественного выбора (selectCards) — три галочки и одно подтверждение.
 
 const NICKS = ['Alice', 'Bob', 'Carol', 'Dave', 'Erin'];
 
@@ -41,15 +41,25 @@ test.describe.serial('Забывчивость (forgetfulness)', () => {
 			s.gameLog.some((l) => l.includes('достает карту паники')),
 		);
 
-		// Сбрасываем три карты по очереди — каждый раз новый selectCard.
+		// Все три карты — в одном окне: ждём его и отмечаем их галочками. Окно
+		// должно доехать и до очереди notifications — именно её рисует Notifier.
 		const toDiscard = ['whiskey', 'suspicion', 'barricade'];
-		for (const cardId of toDiscard) {
-			await session.waitFor('Alice', (s) => {
-				const cards = s.currentAction?.type === 'selectCard' ? s.currentAction.cards ?? {} : {};
-				return Object.values(cards).some((c) => c.id === cardId);
-			});
-			await session.selectNotificationCard('Alice', cardId);
+		await session.waitFor('Alice', (s) => {
+			if (s.currentAction?.type !== 'selectCards') return false;
+			if (!s.notifications.some((n) => n.type === 'selectCards')) return false;
+			const cards = Object.values(s.currentAction.cards ?? {});
+			return s.currentAction.count === 3 && toDiscard.every((id) => cards.some((c) => c.id === id));
+		});
+		for (const [index, cardId] of toDiscard.entries()) {
+			await session.checkNotificationCard('Alice', cardId);
+			if (index === toDiscard.length - 1) break;
+			// Пока набраны не все три, OKEY ничего не меняет — окно на месте.
+			await session.confirmSelectedCards('Alice');
+			const midSnap = await session.snapshot('Alice');
+			expect(midSnap.currentAction?.type).toBe('selectCards');
+			expect(midSnap.checkedNotificationCards.length).toBe(index + 1);
 		}
+		await session.confirmSelectedCards('Alice');
 
 		// После третьего выбора игрок берёт три карты и переходит в обмен.
 		await session.waitFor('Alice', (s) => {

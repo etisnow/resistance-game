@@ -38,6 +38,9 @@ import glowEffect from "client/resources/images/gloweffect.png";
 import playerbadgeGlow from "client/resources/images/playerbadgeGlow.png";
 import noise from "client/resources/images/noise.jpg";
 import deckCounterBg from "client/resources/images/deckCounterBg.png";
+// Кровавый отпечаток пальца: им «подписывают» выбранные карты в окне
+// множественного выбора (см. BloodStamp в HandComponent).
+import bloodPrint from "client/resources/images/bloodPrint.png";
 
 import playerBadge1 from "client/resources/images/playerBadges/1.png";
 import playerBadge2 from "client/resources/images/playerBadges/2.png";
@@ -105,6 +108,7 @@ const resources = {
 	glowEffect,
 	playerbadgeGlow,
 	deckCounterBg,
+	bloodPrint,
 	noise,
 
 	cardAct,

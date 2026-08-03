@@ -55,18 +55,22 @@ export default class LauncherController {
 
 	// Dev mode: `?withBots=true` creates a game pre-filled with bot opponents.
 	// Optional `&seed=777` pins the seed; `&firstPanic=PANIC_ID` puts a panic on
-	// top of the deck; `&hand=CARD1-CARD2-CARD3-CARD4` rigs your own hand.
-	private botGameParams = (): {withBots?: boolean; seed?: number; firstPanic?: string; hand?: string[]} => {
+	// top of the deck; `&hand=CARD1-CARD2-CARD3-CARD4` rigs your own hand;
+	// `&botCount=5` задаёт число ботов (по умолчанию 5, сервер зажимает 3..11 —
+	// вместе с человеком это допустимые 4..12 игроков).
+	private botGameParams = (): {withBots?: boolean; seed?: number; firstPanic?: string; hand?: string[]; botCount?: number} => {
 		if (typeof window === 'undefined') return {};
 		const params = new URLSearchParams(window.location.search);
 		if (params.get('withBots') !== 'true') return {};
-		const out: {withBots: boolean; seed?: number; firstPanic?: string; hand?: string[]} = {withBots: true};
+		const out: {withBots: boolean; seed?: number; firstPanic?: string; hand?: string[]; botCount?: number} = {withBots: true};
 		const seed = params.get('seed');
 		if (seed !== null && seed.trim() !== '' && !Number.isNaN(Number(seed))) out.seed = Number(seed);
 		const firstPanic = params.get('firstPanic');
 		if (firstPanic) out.firstPanic = firstPanic;
 		const hand = params.get('hand');
 		if (hand) out.hand = hand.split('-').filter((c) => c.trim() !== '');
+		const botCount = params.get('botCount');
+		if (botCount !== null && botCount.trim() !== '' && !Number.isNaN(Number(botCount))) out.botCount = Number(botCount);
 		return out;
 	}
 

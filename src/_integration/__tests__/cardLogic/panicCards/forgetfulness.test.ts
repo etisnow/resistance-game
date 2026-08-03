@@ -11,22 +11,24 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 import {Player} from 'server/models/Player';
 import INotificationAction from 'shared/interfaces/notification';
-import {ICardEvent, ICardPanic} from 'shared/interfaces/cards';
 
 
-const getLastForgetfullnessNotificaitonCards = (offensePlayer: Player): INotificationAction | null => {
+const getForgetfullnessNotification = (offensePlayer: Player): INotificationAction | null => {
 	return offensePlayer.currentAction;
 }
 
-const getFirstNotificationCard = (notification: INotificationAction | null): ICardEvent | ICardPanic => {
-	if (!notification || notification.type !== ENotificationAction.selectCard) {
-		throw new Error('Ожидалось уведомление selectCard с картами');
+const getNotificationCardIds = (notification: INotificationAction | null, count: number): string[] => {
+	if (!notification || notification.type !== ENotificationAction.selectCards) {
+		throw new Error('Ожидалось уведомление selectCards с картами');
 	}
-	const [firstCard] = Object.values(notification.cards);
-	if (!firstCard) {
-		throw new Error('Ожидалась хотя бы одна карта в уведомлении');
+	const cardIds = Object.values(notification.cards)
+		.map(card => card.uniqueId)
+		.filter((uniqueId): uniqueId is string => !!uniqueId)
+		.slice(0, count);
+	if (cardIds.length !== count) {
+		throw new Error(`Ожидалось хотя бы ${count} карты в уведомлении`);
 	}
-	return firstCard;
+	return cardIds;
 }
 
 
@@ -42,64 +44,63 @@ describe('forgetfulness test',  () => {
 		game.deck.splice(0,1, getPanic(EPanicID.forgetfulness));
 		game.changeTurn(offensePlayer.id);
 
-
-		let playerNotificationCards = notifyPlayerDiscardCards({game, player: offensePlayer});
-		let forgetfulnessNotification = getLastForgetfullnessNotificaitonCards(offensePlayer)
+		// Уведомление одно на весь обмен: игрок отмечает в нём три карты и
+		// подтверждает их разом.
+		const playerNotificationCards = notifyPlayerDiscardCards({game, player: offensePlayer});
+		const forgetfulnessNotification = getForgetfullnessNotification(offensePlayer);
 		expect(isEqual(playerNotificationCards, forgetfulnessNotification)).toBe(true);
+		expect(forgetfulnessNotification?.type).toBe(ENotificationAction.selectCards);
 
-		const firstCard = getFirstNotificationCard(forgetfulnessNotification);
+		const handSizeBefore = offensePlayer.hand.length;
+		const discardedCardIds = getNotificationCardIds(forgetfulnessNotification, 3);
 
 		testPlayerAction(gameServer, game, {
-			player:offensePlayer,
-			cardUniqueId: firstCard.uniqueId ?? undefined,
-			actionType: EPlayerActionType.cardSelect
+			player: offensePlayer,
+			cardUniqueIds: discardedCardIds,
+			actionType: EPlayerActionType.cardsSelect
 		});
 
-		const contextAfterFirst = game.turnContext;
-		if (!contextAfterFirst || contextAfterFirst.type !== ETurnContextType.forgetfullnessSelect) {
-			throw new Error('Ожидался контекст forgetfullnessSelect');
-		}
-		expect(firstCard.uniqueId != null && contextAfterFirst.cards.includes(firstCard.uniqueId)).toBe(true)
-
-		playerNotificationCards = notifyPlayerDiscardCards({game, player: offensePlayer});
-		forgetfulnessNotification = getLastForgetfullnessNotificaitonCards(offensePlayer)
-		expect(isEqual(playerNotificationCards, forgetfulnessNotification)).toBe(true);
-
-		const secondCard = getFirstNotificationCard(forgetfulnessNotification);
-
-		testPlayerAction(gameServer, game, {
-			player:offensePlayer,
-			cardUniqueId: secondCard.uniqueId ?? undefined,
-			actionType: EPlayerActionType.cardSelect
-		});
-
-		const contextAfterSecond = game.turnContext;
-		if (!contextAfterSecond || contextAfterSecond.type !== ETurnContextType.forgetfullnessSelect) {
-			throw new Error('Ожидался контекст forgetfullnessSelect');
-		}
-		expect(secondCard.uniqueId != null && contextAfterSecond.cards.includes(secondCard.uniqueId)).toBe(true)
-		playerNotificationCards = notifyPlayerDiscardCards({game, player: offensePlayer});
-		forgetfulnessNotification = getLastForgetfullnessNotificaitonCards(offensePlayer)
-		expect(isEqual(playerNotificationCards, forgetfulnessNotification)).toBe(true);
-
-		const thirdCard = getFirstNotificationCard(forgetfulnessNotification);
-
-		testPlayerAction(gameServer, game, {
-			player:offensePlayer,
-			cardUniqueId: thirdCard.uniqueId ?? undefined,
-			actionType: EPlayerActionType.cardSelect
-		});
-
-		const discardedCardIds = [firstCard, secondCard, thirdCard].map(c => c.uniqueId);
 		each(offensePlayer.hand, (handCard) => {
 			expect(discardedCardIds).not.toContain(handCard.uniqueId)
 		})
+		// Сколько отдал, столько и взял.
+		expect(offensePlayer.hand.length).toBe(handSizeBefore);
 
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
 		expect(game.turnContext?.type).toBe(ETurnContextType.trade)
 
 		//expect(checkAllDeckCardsTestEdition(game, false)).toBe(true);
 
+	});
+
+	it('не принимает выбор не из тех карт и не в том количестве', () => {
+		const [gameServer, game, offensePlayerMaybe] = createMockGameServer();
+		const offensePlayer = requirePlayer(game, offensePlayerMaybe?.id);
+		offensePlayer.hand.splice(0,1);
+
+		game.deck.splice(0,1, getPanic(EPanicID.forgetfulness));
+		game.changeTurn(offensePlayer.id);
+
+		const notification = getForgetfullnessNotification(offensePlayer);
+		const cardIds = getNotificationCardIds(notification, 3);
+		const handBefore = offensePlayer.hand.map(card => card.uniqueId);
+
+		// Двух карт мало, одна и та же дважды — тоже не выбор, а чужого id в
+		// уведомлении нет: ход должен остаться на месте.
+		const badSelections = [
+			cardIds.slice(0, 2),
+			[cardIds[0] ?? '', cardIds[0] ?? '', cardIds[1] ?? ''],
+			[cardIds[0] ?? '', cardIds[1] ?? '', 'card_unknown'],
+		];
+		each(badSelections, (cardUniqueIds) => {
+			gameServer.playerAction({
+				player: offensePlayer,
+				actionType: EPlayerActionType.cardsSelect,
+				cardUniqueIds,
+			});
+			expect(offensePlayer.hand.map(card => card.uniqueId)).toEqual(handBefore);
+			expect(game.turnContext?.type).toBe(ETurnContextType.forgetfullnessSelect);
+		});
 	});
 
 

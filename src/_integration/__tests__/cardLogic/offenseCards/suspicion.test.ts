@@ -67,6 +67,23 @@ describe('suspicion test',  () => {
 			})
 		);
 
+		//Пока игрок разглядывает подсмотренную карту, ход стоит на осмотре: стол
+		//показывает стрелку от него к тому, у кого он подсмотрел
+		expect(offensePlayer.turnState).toBe(ETurnState.inCardActionProgress);
+		const viewContext = game.turnContext;
+		if (!viewContext || viewContext.type !== ETurnContextType.cardsView) {
+			throw new Error('Ожидался контекст осмотра карт');
+		}
+		expect(viewContext.offensePlayer).toBe(offensePlayer);
+		expect(viewContext.defensePlayer).toBe(nextPlayer);
+		expect(viewContext.cardId).toBe(EEventID.suspicion);
+
+		//Игрок закрывает окно с картой — осмотр подтвержден, дальше обмен
+		testPlayerAction(gameServer, game, {
+			player: offensePlayer,
+			actionType: EPlayerActionType.viewConfirm,
+		});
+
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
 		expect(game.turnContext?.type).toBe(ETurnContextType.trade)
 		expect(offensePlayer.hand.length).toBe(4);

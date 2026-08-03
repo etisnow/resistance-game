@@ -56,6 +56,9 @@ const tradeIconBackground = 0x14110c;
 const handshakeEmoji = '\u{1F91D}';
 const swapEmoji = '\u{1F504}';
 const fireEmoji = '\u{1F525}';
+// Подсмотр чужих карт: пока смотрящий не закроет окно с ними, на столе висит
+// стрелка с лупой — от него к тому, кого он разглядывает.
+const magnifierEmoji = '\u{1F50D}';
 
 interface IArrowShape {
 	ax: number;
@@ -116,6 +119,8 @@ const getArrowEmoji = ({type}: IFormatTradeContext): string | undefined => {
 			return swapEmoji;
 		case ETurnContextType.burn:
 			return fireEmoji;
+		case ETurnContextType.cardsView:
+			return magnifierEmoji;
 		default:
 			return undefined;
 	}

@@ -44,6 +44,8 @@ export interface GcNotification {
 	menu?: {action: string; text: string}[];
 	playersToSelect?: string[];
 	cards?: Record<string, GcCard>;
+	// Сколько карт просят отметить в окне множественного выбора (selectCards).
+	count?: number;
 }
 
 export interface GcPanicCard {
@@ -64,6 +66,19 @@ export interface GcSnapshot {
 	// Сработавшая паника, лежащая сейчас на столе (пока она там, колода закрыта).
 	panicCard: GcPanicCard | null;
 	isPlayerCanCancel: boolean;
+	// Карты, отмеченные галочкой в окне множественного выбора.
+	checkedNotificationCards: string[];
+	// Действия, которые стол рисует стрелками между игроками (обмен, поджог,
+	// осмотр чужих карт и прочее).
+	tradeContext: GcTradeContext[] | null;
+}
+
+// Стрелка на столе: от кого, к кому и по какому поводу (ETurnContextType).
+export interface GcTradeContext {
+	offensePlayerId: string | null;
+	defensePlayerId: string | null;
+	cardId?: string;
+	type: string;
 }
 
 // Ground truth from the read-only e2eState server probe.
@@ -129,6 +144,11 @@ interface GcController {
 	panicCard: GcPanicCard | null;
 	panicCardMinMs: number;
 	isPlayerCanCancel: boolean;
+	checkedNotificationCards: string[];
+	tradeContext: GcTradeContext[] | null;
+	activatePlayerSelectMode(notification: GcNotification): void;
+	toggleNotificationCardCheck(cardUniqueId: string, limit: number): void;
+	selectCards(notification: GcNotification | null): void;
 	socket: {socket: {emit(event: string, payload?: unknown): void; once(event: string, cb: (d: unknown) => void): void}};
 	cardAction(actionType: string, cardUniqueId: string): void;
 	selectPlayer(playerId: string): void;
@@ -262,6 +282,9 @@ export class GameSession {
 				deck: plain(gc.deck),
 				panicCard: plain(gc.panicCard),
 				isPlayerCanCancel: gc.isPlayerCanCancel,
+				checkedNotificationCards: plain(gc.checkedNotificationCards),
+				// Вне действия сервер контекст не шлёт вовсе — на клиенте это undefined.
+				tradeContext: plain(gc.tradeContext ?? null),
 			};
 		});
 	}
@@ -361,6 +384,55 @@ export class GameSession {
 			const gc = (window as unknown as GcWindow).__nechto!;
 			gc.selectCard(gc.currentAction, u);
 		}, uid);
+	}
+
+	// Окно множественного выбора (selectCards): отмечаем галочками названные карты
+	// и жмём OKEY — ровно то же, что делает живой игрок по канвасу.
+	async checkNotificationCard(nick: string, cardId: string): Promise<void> {
+		const uid = await this.page(nick).evaluate((wantId) => {
+			const gc = (window as unknown as GcWindow).__nechto!;
+			const cards = gc.currentAction?.cards ?? {};
+			// Одинаковых карт в руке бывает несколько — берём первую ещё не
+			// отмеченную, иначе повторный вызов снимал бы свою же галочку.
+			const match = Object.values(cards).find(
+				(c) => c.id === wantId && !gc.checkedNotificationCards.includes(c.uniqueId),
+			);
+			return match ? match.uniqueId : null;
+		}, cardId);
+		if (!uid) throw new Error(`В уведомлении игрока ${nick} нет карты ${cardId}`);
+		await this.page(nick).evaluate((u) => {
+			const gc = (window as unknown as GcWindow).__nechto!;
+			gc.toggleNotificationCardCheck(u, gc.currentAction?.count ?? 0);
+		}, uid);
+	}
+
+	async confirmSelectedCards(nick: string): Promise<void> {
+		await this.page(nick).evaluate(() => {
+			const gc = (window as unknown as GcWindow).__nechto!;
+			gc.selectCards(gc.currentAction);
+		});
+	}
+
+	async selectNotificationCards(nick: string, cardIds: string[]): Promise<void> {
+		for (const cardId of cardIds) {
+			await this.checkNotificationCard(nick, cardId);
+		}
+		await this.confirmSelectedCards(nick);
+	}
+
+	// Нажать OKEY в окне с показанными картами. Для осмотра чужих карт («Анализ»,
+	// «Подозрение») это ещё и подтверждение осмотра: пока окно открыто, ход стоит
+	// и на столе висит стрелка с лупой.
+	async confirmCardsView(nick: string): Promise<void> {
+		await this.page(nick).evaluate(() => {
+			const gc = (window as unknown as GcWindow).__nechto!;
+			// Обычно закрывают само окно; если его на странице уже нет (очередь
+			// уведомлений чисто клиентская и спеки её чистят), подтверждаем ход по
+			// текущему действию — сервер ждёт именно его.
+			const notification = gc.notifications[0] ?? gc.currentAction;
+			if (!notification) throw new Error('Нечего подтверждать: окна с картами нет');
+			gc.activatePlayerSelectMode(notification);
+		});
 	}
 
 	// Decisions render as real DOM buttons (ActionInteracter) — click the button.
@@ -482,6 +554,11 @@ export class GameSession {
 				await this.selectId(nick, pick(ids));
 				return;
 			}
+			case 'okayCard':
+				// Закрыть окно с подсмотренными картами: пока оно открыто, ход стоит на
+				// осмотре (см. cardsView).
+				await this.confirmCardsView(nick);
+				return;
 			case 'selectCard': {
 				const cards = Object.values(ca.cards ?? {});
 				if (!cards.length) return;
@@ -490,6 +567,20 @@ export class GameSession {
 					const gc = (window as unknown as GcWindow).__nechto!;
 					gc.selectCard(gc.currentAction, u);
 				}, uid);
+				return;
+			}
+			case 'selectCards': {
+				// Отмечаем count карт подряд и подтверждаем разом — тем же путём, что
+				// и живой игрок.
+				const cards = Object.values(ca.cards ?? {});
+				const count = ca.count ?? 0;
+				if (cards.length < count) return;
+				const uids = cards.map((c) => c.uniqueId).slice(0, count);
+				await this.page(nick).evaluate(({u, c}) => {
+					const gc = (window as unknown as GcWindow).__nechto!;
+					u.forEach((uid) => gc.toggleNotificationCardCheck(uid, c));
+					gc.selectCards(gc.currentAction);
+				}, {u: uids, c: count});
 				return;
 			}
 			case 'actionDecision': {

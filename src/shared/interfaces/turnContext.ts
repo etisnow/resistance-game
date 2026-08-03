@@ -73,6 +73,16 @@ export interface ITurnContextAnalysisSelect {
 	cardUniqueId: string,
 }
 
+// Подсмотр чужих карт («Анализ» и «Подозрение»): пока смотрящий не закроет окно
+// с картами, ход стоит, а стол показывает от него к цели стрелку с лупой.
+// cardId — карта, которой смотрят: с неё стрелка берёт цвет.
+export interface ITurnContextCardsView {
+	type: ETurnContextType.cardsView,
+	offensePlayer: Player,
+	defensePlayer: Player,
+	cardId: EEventID,
+}
+
 
 
 /* PANICS */
@@ -120,6 +130,7 @@ export type ITurnContext =
 	| ITurnContextQuarantineSelect
 	| ITurnContextAxeSelect
 	| ITurnContextAnalysisSelect
+	| ITurnContextCardsView
 	/*PANICS*/
 	| ITurnContextFriendshipSeduction
 	| ITurnContextBlindDateCardSelect

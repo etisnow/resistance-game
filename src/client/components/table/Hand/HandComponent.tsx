@@ -1,9 +1,10 @@
 import {AnimatedPixi, getPixiTexture} from 'client/components/table/pixiInjected';
 import React from 'react';
+import * as PIXI from 'pixi.js';
 import { Container } from 'react-pixi-fiber';
-import {clamp, map} from 'lodash';
+import {clamp, includes, map} from 'lodash';
 import {observer} from "mobx-react-lite";
-import {config, useTransition, interpolate} from 'react-spring/universal';
+import {config, useSpring, useTransition, interpolate} from 'react-spring/universal';
 import type {AnimatedValue, UseTransitionProps} from 'react-spring/universal';
 import {
 	autoWidthCard,
@@ -45,6 +46,9 @@ interface IHandProps {
 	onCardAction: null | OnCardAction;
 	y: number;
 	autoWidth?: boolean;
+	// Карты, отмеченные галочкой в окне множественного выбора: они помечены и
+	// приподняты над остальными (см. notifier, ENotificationAction.selectCards).
+	checkedCardIds?: string[];
 	// Карты, которые въезжают в руку не «ниоткуда», а с конкретного места стола —
 	// из колоды или из кружка отдавшего, — и то самое место.
 	enterFrom?: ICardMoveStyle | null;
@@ -149,6 +153,124 @@ const generateCardMenu = (card: ICardAny, cardActions: IHandActionsMap, onCardAc
 	)
 };
 
+// Отметка выбранной карты — кровавый отпечаток пальца: карту «подписывают
+// кровью». Палец приходит на карту мазком (смазанный след позади) и
+// останавливается, оставив отпечаток под своим углом.
+const bloodPrintAspect = 742 / 512;
+// Ширина отпечатка в долях ширины карты: подпись, а не клякса во всю карту.
+const stampWidth = 0.26;
+// Сколько смазанных копий тянется за пальцем в движении и сколько их остаётся
+// потом: мазок с карты никуда не девается, но живой хвост из пяти копий нужен
+// только пока палец едет — засохший след короче.
+const smearTrail = 5;
+const smearTrailRest = 2;
+// Куда яркость хвоста падает к концу движения: не в ноль — это размазанная по
+// карте кровь, она остаётся, пока стоит сама отметка.
+const smearResidual = 0.34;
+// На столько (в долях мазка) копии остаются позади отпечатка, когда палец уже
+// встал: схлопнись они в одну точку, от следа не осталось бы и намёка.
+const smearTailKeep = 0.09;
+// Мазок на такую долю ширины карты, прежде чем палец встанет на место: весь
+// след должен уложиться на саму карту, иначе он читается как клякса на столе.
+const smearDistance = 0.55;
+// Хвост размыт — это след движения, а не второй отпечаток.
+const smearBlur = new PIXI.filters.BlurFilter(2.5);
+// Столько живёт след: заметно дольше самого мазка, чтобы кровь успела «подсохнуть»
+// на глазах, а не исчезнуть в тот же кадр, в котором палец встал.
+const smearMs = 1200;
+
+// Один и тот же отпечаток у одной и той же карты: угол и направление мазка
+// считаем из её uniqueId, иначе штамп прыгал бы на каждой перерисовке. Хеш —
+// FNV-1a с финальным перемешиванием: у карт подряд идущие id (card_112,
+// card_113), и простая сумма давала им углы, отличающиеся на градус.
+const seedOf = (value: string): number => {
+	let hash = 2166136261;
+	for (let i = 0; i < value.length; i++) {
+		hash = Math.imul(hash ^ value.charCodeAt(i), 16777619);
+	}
+	hash ^= hash >>> 15;
+	hash = Math.imul(hash, 2246822507);
+	hash ^= hash >>> 13;
+	return Math.abs(hash | 0);
+};
+
+const BloodStamp = ({style, cardWidth, cardUniqueId}: {style: AnimatedCardStyle, cardWidth: number, cardUniqueId: string}) => {
+	// Палец ведут по карте и прижимают: мазок идёт полсекунды — быстрее глаз
+	// просто не успевает увидеть след, а отметка выглядит возникшей из ниоткуда.
+	const {t} = useSpring<{t: number}>({t: 1, from: {t: 0}, config: {tension: 95, friction: 22}});
+	// Пока палец едет, за ним тянется полный хвост; когда доехал — от него
+	// остаётся короткий засохший след (размытие считается каждый кадр, пока
+	// отметка стоит, и держать пять таких копий незачем).
+	const [isSmearing, setSmearing] = React.useState(true);
+	React.useEffect(() => {
+		const timer = setTimeout(() => setSmearing(false), smearMs);
+		return () => clearTimeout(timer);
+	}, []);
+
+	// Угол и направление мазка берём из разных концов хеша, иначе они ходили бы
+	// парой и все отпечатки ложились бы одинаково. Ведут палец всегда сверху вниз
+	// (с разным уклоном): так весь след проходит по самой карте, а не приезжает
+	// на неё откуда-то со стола.
+	const seed = seedOf(cardUniqueId);
+	const stampAngle = (seed % 91) - 45;
+	const swipeRad = degToRag(240 + (seed >>> 11) % 61);
+	const swipe = cardWidth * smearDistance;
+	const swipeX = Math.cos(swipeRad) * swipe;
+	const swipeY = Math.sin(swipeRad) * swipe;
+
+	const width = cardWidth * stampWidth;
+	const height = width * bloodPrintAspect;
+	// Отпечаток лежит на нижней трети карты и целиком помещается на ней.
+	const targetY = (y: number, w: number) => y + w * cardAspectRatio * 0.22;
+
+	// Копия следа на расстоянии back мазков позади конечного места: пока палец
+	// едет (t < 1), они тянутся за ним и на месте гаснут.
+	const smear = (back: number) => {
+		// Ближние копии почти такие же яркие, как сам отпечаток, дальние бледнеют:
+		// так след читается сплошной полосой крови, а не пунктиром из штампов.
+		const fade = 0.75 / Math.pow(back, 0.6);
+		// Яркая в движении и приглушённая после — но не в ноль: кровь размазана по
+		// карте и там и остаётся.
+		const trailAlpha = (p: number) => fade * (smearResidual + (1 - smearResidual) * Math.max(0, 1 - p * 1.1));
+		// Копия отстаёт от пальца, пока он едет, и не догоняет его до конца: даже на
+		// месте она остаётся чуть позади — оттуда, откуда палец пришёл.
+		const trailOffset = (p: number) => (1 - p) * (1 + back * 0.12) + back * smearTailKeep;
+		return (
+			<AnimatedPixi.Sprite
+				key={back}
+				texture={getPixiTexture(resources.bloodPrint)}
+				anchor={0.5}
+				filters={[smearBlur]}
+				alpha={t.interpolate(trailAlpha)}
+				angle={stampAngle + back * 4}
+				width={width}
+				height={height}
+				x={interpolate([style.x, t], (x, p) => x + swipeX * trailOffset(p))}
+				y={interpolate([style.y, style.width, t], (y, w, p) => targetY(y, w) + swipeY * trailOffset(p))}
+			/>
+		);
+	};
+
+	return (
+		<AnimatedPixi.Container interactiveChildren={false}>
+			{Array.from({length: isSmearing ? smearTrail : smearTrailRest}, (_, i) => smear(i + 1))}
+			<AnimatedPixi.Sprite
+				texture={getPixiTexture(resources.bloodPrint)}
+				anchor={0.5}
+				alpha={t.interpolate(p => Math.min(1, p * 1.6))}
+				angle={stampAngle}
+				width={width}
+				height={height}
+				x={interpolate([style.x, t], (x, p) => x + swipeX * (1 - p))}
+				y={interpolate([style.y, style.width, t], (y, w, p) => targetY(y, w) + swipeY * (1 - p))}
+			/>
+		</AnimatedPixi.Container>
+	);
+};
+
+const generateCheckBadge = (cardWidth: number, cardUniqueId: string) => (style: AnimatedCardStyle): React.ReactNode =>
+	<BloodStamp style={style} cardWidth={cardWidth} cardUniqueId={cardUniqueId}/>;
+
 // Веер руки лежит на дуге большого круга: чем больше радиус, тем более плоским
 // получается веер. Это функции, а не константы модуля: посчитанные один раз при
 // импорте, они держали веер в координатах самого первого кадра и после ресайза
@@ -245,6 +367,8 @@ const calculateCardSelectedStypeProps = (): ICardStyleProps => {
 // перестала мешать, — значит оторвать её от руки и закрыть ею колоду.
 const hoverScale = 1.8;
 const notificationHoverScale = 1.15;
+// На сколько (в долях своей высоты) отмеченная галочкой карта встаёт над рядом.
+const checkedCardLift = 0.1;
 const hoverExtraLiftFactor = 0.3;
 const hoverSpread = 0.75;
 
@@ -268,7 +392,7 @@ const applyHoverStyle = (style: ICardStyleProps, scale: number, extraLift = 0): 
 // пролетала бы его рывком.
 const tableFlightConfig = {tension: 120, friction: 26};
 
-const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelectCard, onCardAction, y, autoWidth = false, enterFrom, exitTo} : IHandProps) => {
+const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelectCard, onCardAction, y, autoWidth = false, checkedCardIds, enterFrom, exitTo} : IHandProps) => {
 
 	const [hoveredCardId, setHoveredCardId] = React.useState<string | null>(null);
 
@@ -285,6 +409,10 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 		? Object.values(cards).findIndex(card => card.uniqueId === hoveredCardId)
 		: -1;
 
+	const isCardChecked = (card: ICardAny): boolean => !!card.uniqueId && includes(checkedCardIds, card.uniqueId);
+	// Отметки живут только в ряду окна выбора — там ширина карты одна на всех.
+	const checkedCardWidth = autoWidthCard(cardsCount);
+
 	const styleUpdater = (card: ICardAny): ICardStyleProps => {
 		const isSelected = card.uniqueId === selectedCardIndex;
 		const isHovered = card.uniqueId === hoveredCardId;
@@ -296,7 +424,12 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 		}
 		if (autoWidth) {
 			const style = calculateNotificationCardStypeProps(cardNumber, cardsCount);
-			return isHovered ? applyHoverStyle(style, notificationHoverScale) : style;
+			// Отмеченная карта приподнята над рядом: галочка на углу говорит, что
+			// выбрано, а подъём — сколько именно, одним взглядом на весь ряд.
+			const checkedStyle = isCardChecked(card)
+				? {...style, y: style.y - style.width * cardAspectRatio * checkedCardLift}
+				: style;
+			return isHovered ? applyHoverStyle(checkedStyle, notificationHoverScale) : checkedStyle;
 		}
 		// Карты левее наведённой отъезжают влево, правее — вправо.
 		const spread = (isHovered || hoveredCardNumber < 0)
@@ -376,6 +509,7 @@ const HandComponent = observer(({cards, cardActions, selectedCardIndex, onSelect
 							onCardClick={() => { if (onSelectCard && uniqueId) onSelectCard(uniqueId) }}
 							style={props}
 							menu={isSelected ? cardMenu : undefined}
+							badge={isCardChecked(card) && uniqueId ? generateCheckBadge(checkedCardWidth, uniqueId) : undefined}
 							{...hoverHandlers(uniqueId)}
 						/>
 					</Container>

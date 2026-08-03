@@ -24,6 +24,13 @@ export interface INotificationActionSelectCard {
 	type: ENotificationAction.selectCard,
 	cards: {[key:string]: ICardEvent | ICardPanic};
 }
+// Одно окно на весь выбор: игрок отмечает галочками ровно count карт из cards и
+// подтверждает их разом (см. клиентский Notifier и EPlayerActionType.cardsSelect).
+export interface INotificationActionSelectCards {
+	type: ENotificationAction.selectCards,
+	cards: {[key:string]: ICardEvent | ICardPanic};
+	count: number;
+}
 export interface INotificationActionPlayerSelect {
 	type: ENotificationAction.playerSelect,
 	playersToSelect: string[],
@@ -50,6 +57,7 @@ type INotificationAction = INotificationActionCommon &
 		| INotificationActionInfo
 		| INotificationActionOkayCard
 		| INotificationActionSelectCard
+		| INotificationActionSelectCards
 		| INotificationActionPlayerSelect
 		| INotificationActionDefenseTradeCard
 		| INotificationActionOffenseTradeCard

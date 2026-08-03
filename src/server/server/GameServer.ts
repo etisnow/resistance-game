@@ -7,6 +7,7 @@ import {
   isPlayerCanActCard, isPlayerCanCancel,
   isPlayerCanDiscardCard,
   isPlayerCanSelectCard,
+  isPlayerCanSelectCards,
   isPlayerCanSelectDesicion,
   isPlayerCanSelectPlayer,
   isPlayerCanTradeCard,
@@ -24,7 +25,23 @@ export interface IBotGameOptions {
   seed?: number;
   firstPanic?: string;
   hand?: string[];
+  botCount?: number;
 }
+
+// Сколько ботов сажать за стол в дев-режиме, если ?botCount= не задан.
+const DEFAULT_BOT_COUNT = 5;
+// Колода собирается под 4..12 игроков (карты фильтруются по playersCount, а
+// бейджей на столе 11 + человек), поэтому число ботов зажимаем в эти рамки:
+// меньше трёх — колода почти пустая, больше одиннадцати — за столом некому сесть.
+const MIN_BOT_COUNT = 3;
+const MAX_BOT_COUNT = 11;
+
+// Значение приходит из URL, поэтому нормализуем: мусор и дроби превращаем в
+// дефолт/целое, а всё остальное зажимаем в поддерживаемый диапазон.
+export const botGameBotCount = (requested?: number): number => {
+  if (typeof requested !== 'number' || !Number.isFinite(requested)) return DEFAULT_BOT_COUNT;
+  return Math.min(MAX_BOT_COUNT, Math.max(MIN_BOT_COUNT, Math.floor(requested)));
+};
 
 // Ник — единственный идентификатор человека между подключениями: клиент хранит
 // его локально и присылает при каждом входе. Сравниваем без учёта регистра и
@@ -136,11 +153,13 @@ class GameServer {
 
   // Dev mode (?withBots=true): fill the game with emulated opponents, start
   // immediately, optionally pin the seed and rig the human's hand / top panic,
-  // then let the bot scheduler take over.
+  // then let the bot scheduler take over. Число ботов — ?botCount= (по умолчанию
+  // DEFAULT_BOT_COUNT).
   private setupBotGame({ game, host, options }: { game: Game; host: Player; options: IBotGameOptions }) {
     if (typeof options.seed === 'number') game.reseed(options.seed);
 
-    for (let i = 1; i <= 4; i++) {
+    const botCount = botGameBotCount(options.botCount);
+    for (let i = 1; i <= botCount; i++) {
       const bot = new Player({ socket: null });
       bot.isBot = true;
       bot.isReady = true;
@@ -332,11 +351,13 @@ class GameServer {
     actionType,
     selectedPlayerId,
     cardUniqueId,
+    cardUniqueIds,
     action
   }: {
     player:Player,
     actionType: EPlayerActionType,
     cardUniqueId?: string,
+    cardUniqueIds?: string[],
     selectedPlayerId?:string,
     action?: string
   }) {
@@ -379,6 +400,12 @@ class GameServer {
             return;
           }
           break;
+        case EPlayerActionType.cardsSelect:
+          if (!isPlayerCanSelectCards(game, player, cardUniqueIds)) {
+            debugLog(`Игрок ${player.nickname} не может выбрать карты ${cardUniqueIds}`);
+            return;
+          }
+          break;
         case EPlayerActionType.actionDecision:
           if (!isPlayerCanSelectDesicion(game, player, action)) {
             debugLog(`Игрок ${player.nickname} не решить ${action}`);
@@ -387,7 +414,7 @@ class GameServer {
           break;
       }
     }
-    player.game.cardAction({player, actionType, cardUniqueId, selectedPlayerId, action})
+    player.game.cardAction({player, actionType, cardUniqueId, cardUniqueIds, selectedPlayerId, action})
     // After a human move, resume the bots (no-op if it is still the human's turn
     // or there are no bots).
     if (game && !player.isBot && gameHasBots(game)) {

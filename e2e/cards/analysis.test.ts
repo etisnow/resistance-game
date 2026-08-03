@@ -48,13 +48,30 @@ test.describe.serial('Анализ (analysis)', () => {
 		const revealedIds = Object.values(reveal?.cards ?? {}).map((c) => c.id).sort();
 		expect(revealedIds).toEqual([...neighbourHand].sort());
 
-		// The analysis card is consumed and Alice moves into the offense trade.
+		// The analysis card is consumed.
 		const snap = await session.snapshot('Alice');
 		expect(Object.values(snap.hand).some((c) => c.id === 'analysis')).toBe(false);
 		expect(Object.values(snap.hand).length).toBe(4);
-		expect(snap.players[snap.currentPlayerId!]?.turnState).toBe('inOffenseTrade');
+
+		// Пока Алиса смотрит руку Боба, ход стоит на осмотре, а остальные видят на
+		// столе стрелку от неё к Бобу (клиент рисует на ней лупу).
+		expect(snap.players[snap.currentPlayerId!]?.turnState).toBe('inCardActionProgress');
+		await session.waitFor('Carol', (s) => (s.tradeContext ?? []).some((c) => c.type === 'cardsView'));
+		const [viewArrow] = (await session.snapshot('Carol')).tradeContext ?? [];
+		expect(viewArrow).toMatchObject({
+			type: 'cardsView',
+			offensePlayerId: snap.currentPlayerId,
+			defensePlayerId: bobId,
+			cardId: 'analysis',
+		});
+
+		// Окно закрыто — осмотр подтверждён: стрелка уходит, начинается обмен.
+		await session.confirmCardsView('Alice');
+		await session.expectTurnState('Alice', 'inOffenseTrade');
+		await session.waitFor('Carol', (s) => !(s.tradeContext ?? []).some((c) => c.type === 'cardsView'));
+
 		// Bob is untouched: still a normal idle player who keeps his hand.
-		expect(snap.players[bobId]?.turnState).toBe('idle');
+		expect((await session.snapshot('Alice')).players[bobId]?.turnState).toBe('idle');
 		const bob = await session.snapshot('Bob');
 		expect(Object.values(bob.hand).map((c) => c.id).sort()).toEqual([...neighbourHand].sort());
 	});
@@ -77,6 +94,7 @@ test.describe.serial('Анализ (analysis)', () => {
 		await session.waitFor('Alice', (s) => s.notifications.some((n) => n.type === 'okayCard' && !!n.cards));
 		const reveal = (await session.snapshot('Alice')).notifications.find((n) => n.type === 'okayCard' && !!n.cards);
 		expect(Object.values(reveal?.cards ?? {}).map((c) => c.id).sort()).toEqual([...erinHand].sort());
+		await session.confirmCardsView('Alice');
 		await session.expectTurnState('Alice', 'inOffenseTrade');
 	});
 

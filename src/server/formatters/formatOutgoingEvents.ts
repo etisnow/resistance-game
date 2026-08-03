@@ -67,6 +67,7 @@ const formatTradeContext = (game: Game) : IFormatTradeContext[] | undefined => {
 			}];
 		case ETurnContextType.burn:
 		case ETurnContextType.positionswap:
+		case ETurnContextType.cardsView:
 			return [{
 				offensePlayerId: turnContext.offensePlayer ? turnContext.offensePlayer.id : null,
 				defensePlayerId: turnContext.defensePlayer ? turnContext.defensePlayer.id : null,

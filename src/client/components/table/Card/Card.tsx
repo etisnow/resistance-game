@@ -41,6 +41,10 @@ interface ICardProps {
 	// The `menu` renderer is only supplied by HandComponent, which always pairs it with
 	// an animated style; the static-style caller (Deck) never passes a menu.
 	menu?: (style: AnimatedCardStyle) => React.ReactNode;
+	// Отметка поверх карты (галочка выбранной карты в окне множественного выбора):
+	// рисуется всегда, когда передана, и кликов не перехватывает — по самой карте
+	// её же и снимают.
+	badge?: (style: AnimatedCardStyle) => React.ReactNode;
 }
 
 // react-pixi-fiber присваивает обработчик прямо в свойство DisplayObject и снять
@@ -61,7 +65,7 @@ const isAnimatedStyle = (style: CardStyle): style is AnimatedCardStyle =>
 const {playerBadges: _playerBadges, ...cardImages} = resources;
 const cardResources: Record<string, string | undefined> = cardImages;
 
-const Card = observer(({id, menu, onCardClick, onCardOver, onCardOut, hoverPad = 0, canBeUsed, style}: ICardProps) => {
+const Card = observer(({id, menu, badge, onCardClick, onCardOver, onCardOut, hoverPad = 0, canBeUsed, style}: ICardProps) => {
 	const card = fulldeck[id] || (id === EEventID.thing ? thingCard : null);
 	const cardTexture = getPixiTexture(cardResources[id]);
 	const glowTexture = getPixiTexture(cardResources['glowEffect']);
@@ -127,6 +131,11 @@ const Card = observer(({id, menu, onCardClick, onCardOver, onCardOut, hoverPad =
 				height={cardHeight}
 			/>
 			{hoverTrap}
+			{badge && isAnimatedStyle(style) && (
+				<React.Fragment>
+					{badge(style)}
+				</React.Fragment>
+			)}
 			{menu && isAnimatedStyle(style) && (
 				<React.Fragment>
 					{menu(style)}

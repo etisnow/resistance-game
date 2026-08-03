@@ -88,23 +88,62 @@ describe('game scenarios', () => {
 		expect(target.currentAction?.text).toBe('Сбрось или сыграй карту');
 	});
 
-	it('reconnect re-sends the pending interactive prompt (select-card)', () => {
+	it('reconnect re-sends the pending interactive prompt (select-cards)', () => {
 		const [gameServer, game, targetMaybe] = createMockGameServer();
 		const target = requirePlayer(game, targetMaybe?.id);
-		// Give the player a pending select-card prompt via a forgetfulness panic.
+		// Give the player a pending select-cards prompt via a forgetfulness panic.
 		game.deck.splice(0, 1, getPanic(EPanicID.forgetfulness));
 		game.changeTurn(target.id);
-		expect(target.currentAction?.type).toBe(ENotificationAction.selectCard);
+		expect(target.currentAction?.type).toBe(ENotificationAction.selectCards);
 
 		// Simulate a reconnect with a fresh socket (the one-shot prompt was lost).
 		const newSocket = createMockSocket(true);
 		gameServer.reconnectPlayer(target, newSocket);
 
-		const gotSelectCard = getSpyCalls(target).some(
+		const gotSelectCards = getSpyCalls(target).some(
 			([type, event]) => type === 'notification'
-				&& (event as INotificationAction | null)?.type === ENotificationAction.selectCard,
+				&& (event as INotificationAction | null)?.type === ENotificationAction.selectCards,
 		);
-		expect(gotSelectCard).toBe(true);
+		expect(gotSelectCards).toBe(true);
+	});
+
+	it('reconnect re-sends the reveal window — the peek is confirmable again', () => {
+		const [gameServer, game, targetMaybe] = createMockGameServer();
+		const target = requirePlayer(game, targetMaybe?.id);
+		const offensePlayer = game.getPlayerByPosition({isNext: false, playerId: target.id});
+		offensePlayer.hand.splice(0, 1, getCard(EEventID.analysis));
+		game.changeTurn(offensePlayer.id);
+		const analysis = find(offensePlayer.hand, {id: EEventID.analysis});
+		if (!analysis) throw new Error('analysis card not found');
+
+		testPlayerAction(gameServer, game, {
+			player: offensePlayer,
+			cardUniqueId: analysis.uniqueId ?? undefined,
+			actionType: EPlayerActionType.cardAct,
+		});
+		testPlayerAction(gameServer, game, {
+			player: offensePlayer,
+			selectedPlayerId: target.id,
+			actionType: EPlayerActionType.playerSelect,
+		});
+		// Ход стоит на осмотре: закрыть окно с картами больше некому, если
+		// уведомление потеряется вместе с подключением.
+		expect(offensePlayer.currentAction?.type).toBe(ENotificationAction.okayCard);
+
+		const newSocket = createMockSocket(true);
+		gameServer.reconnectPlayer(offensePlayer, newSocket);
+		const gotReveal = getSpyCalls(offensePlayer).some(
+			([type, event]) => type === 'notification'
+				&& (event as INotificationAction | null)?.type === ENotificationAction.okayCard,
+		);
+		expect(gotReveal).toBe(true);
+
+		// Вернувшийся игрок закрывает окно — ход идёт дальше, к обмену.
+		testPlayerAction(gameServer, game, {
+			player: offensePlayer,
+			actionType: EPlayerActionType.viewConfirm,
+		});
+		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
 	});
 
 	it('a burned non-Thing neighbour is removed from the game', () => {

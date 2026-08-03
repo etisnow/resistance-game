@@ -3,30 +3,27 @@ import {Player} from 'server/models/Player';
 import {ETurnState} from 'shared/enum/player';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
 import {ENotificationAction} from 'shared/enum/notifications';
-import {clone, find} from 'lodash';
-import {getCardActions} from 'server/formatters/formatCardActions';
-import {EPlayerActionType} from 'shared/enum/playerActions';
 
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import INotificationAction from 'shared/interfaces/notification';
-import {formatCards} from 'server/helpers/cardHelpers';
+import {formatCards, getDiscardableCards} from 'server/helpers/cardHelpers';
 import {debugLog} from 'server/helpers/util';
 import {EGameLogType} from 'shared/enum/gameLogType';
 
-export const notifyPlayerDiscardCards = ({game, player}: {game:Game, player:Player}) : INotificationAction => {
-	const clonedPlayer = clone(player);
-	clonedPlayer.turnState = ETurnState.inCardAction;
-	const filteredCards = clonedPlayer.hand.filter(card => {
-		const cardActions = getCardActions(game, clonedPlayer, card);
-		const cardTrade = find(cardActions, { menuType: EPlayerActionType.cardDiscard});
-		return !!cardTrade;
-	});
+// Сколько карт меняет забывчивость. Меньше просим только у того, кому нечем
+// платить: карту «Нечто» и единственное заражение сбросить нельзя, а требовать
+// третью карту у того, у кого её нет, — значит повесить ход навсегда.
+export const forgetfulnessCardsCount = 3;
 
+export const notifyPlayerDiscardCards = ({game, player}: {game:Game, player:Player}) : INotificationAction => {
+	const filteredCards = getDiscardableCards({game, player});
+	const count = Math.min(forgetfulnessCardsCount, filteredCards.length);
 
 	return {
-		type: ENotificationAction.selectCard,
+		type: ENotificationAction.selectCards,
 		cards: formatCards(filteredCards),
-		text:'Выбери одну из своих карт, чтобы поменять её на карту из колоды'
+		count,
+		text: `Отметь ${count} карты — они разом поменяются на карты из колоды`,
 	}
 };
 
@@ -49,30 +46,20 @@ export const forgetfullnessAct = ({game, player}: {game:Game, player:Player}) =>
 };
 
 
-export const forgetfullnessSelect = ({game, cardUniqueId, player}: {game:Game, player: Player, cardUniqueId: string}) => {
+// Весь обмен разом: игрок отмечает карты галочками в одном окне и подтверждает
+// их вместе, поэтому и меняем всё одним шагом — сколько отдал, столько и взял.
+export const forgetfullnessSelect = ({game, cardUniqueIds, player}: {game:Game, player: Player, cardUniqueIds: string[]}) => {
 	if (!game.turnContext || game.turnContext.type !== ETurnContextType.forgetfullnessSelect) {
 		throw new Error('Забывчивость зафакапилась')
 	}
 	debugLog('FORGORFULLNESS SELECT')
-	//discardCard({game, player, cardUniqueId: cardUniqueId});
-	player.discardCard(cardUniqueId)
-	game.turnContext.cards.push(cardUniqueId);
+	game.turnContext.cards = [...cardUniqueIds];
+	cardUniqueIds.forEach(cardUniqueId => player.discardCard(cardUniqueId));
 
-	if (game.turnContext.cards.length < 3) {
-		player.notify(formatPlayerNotification({
-			player,
-			notification: notifyPlayerDiscardCards({game, player})
-		}));
-		return;
-	}
+	const newCards = cardUniqueIds.map(() => game.pickFirstEventCard());
+	game.addCardDraw({player, count: newCards.length});
+	newCards.forEach(card => player.getCard(card));
 
-	const first = game.pickFirstEventCard();
-	const second = game.pickFirstEventCard();
-	const third = game.pickFirstEventCard();
-	game.addCardDraw({player, count: 3});
-	player.getCard(first);
-	player.getCard(second);
-	player.getCard(third);
 	game.turnContext = null;
 	player.changeTurnState(ETurnState.inOffenseTrade)
 }

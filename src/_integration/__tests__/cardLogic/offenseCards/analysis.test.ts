@@ -54,6 +54,23 @@ describe('analysis test',  () => {
 		//Не должно быть старой картой анализа, но должна быть новая
 		expect(offensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: analysis?.uniqueId}));
 
+		//Пока игрок смотрит карты, ход стоит на осмотре: стол показывает стрелку
+		//от смотрящего к тому, кого он анализирует
+		expect(offensePlayer.turnState).toBe(ETurnState.inCardActionProgress);
+		const viewContext = game.turnContext;
+		if (!viewContext || viewContext.type !== ETurnContextType.cardsView) {
+			throw new Error('Ожидался контекст осмотра карт');
+		}
+		expect(viewContext.offensePlayer).toBe(offensePlayer);
+		expect(viewContext.defensePlayer).toBe(defensePlayer);
+		expect(viewContext.cardId).toBe(EEventID.analysis);
+
+		//Игрок закрывает окно с картами — осмотр подтвержден, дальше обмен
+		testPlayerAction(gameServer, game, {
+			player: offensePlayer,
+			actionType: EPlayerActionType.viewConfirm,
+		});
+
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
 		expect(game.turnContext?.type).toBe(ETurnContextType.trade)
 

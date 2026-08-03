@@ -14,7 +14,7 @@ import {thingCard} from 'shared/constant/cards';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import INotificationAction from 'shared/interfaces/notification';
 import {ICardAny, ICardEvent, ICardPanic} from 'shared/interfaces/cards';
-import {actCard, playerActionDecision, selectCard, selectPlayer} from 'server/helpers/playerAction';
+import {actCard, playerActionDecision, selectCard, selectCards, selectPlayer, viewConfirm} from 'server/helpers/playerAction';
 import {ITurnContext} from 'shared/interfaces/turnContext';
 import {tradeCard} from 'server/helpers/tradeCard';
 import {discardCardAction} from 'server/helpers/discardCard';
@@ -496,12 +496,14 @@ export class Game {
     player,
     actionType,
     cardUniqueId,
+    cardUniqueIds,
     selectedPlayerId,
     action,
   }: {
     player:Player,
     actionType: EPlayerActionType,
     cardUniqueId?: string,
+    cardUniqueIds?: string[],
     selectedPlayerId?: string,
     action? : string;
   }) {
@@ -558,9 +560,18 @@ export class Game {
         selectCard({game: this, player, cardUniqueId});
         this.updateGame();
         return;
+      case EPlayerActionType.cardsSelect:
+        if (!cardUniqueIds || !cardUniqueIds.length) return;
+        selectCards({game: this, player, cardUniqueIds});
+        this.updateGame();
+        return;
       case EPlayerActionType.playerSelect:
         if (!selectedPlayerId) return;
         selectPlayer({game: this, player, selectedPlayerId});
+        this.updateGame();
+        return;
+      case EPlayerActionType.viewConfirm:
+        viewConfirm({game: this, player});
         this.updateGame();
         return;
       case EPlayerActionType.actionDecision:
