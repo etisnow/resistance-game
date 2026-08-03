@@ -22,6 +22,30 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import type {IGameLogEntry} from 'shared/interfaces/gameLog';
 
+// Вид стола — настройка игрока, а не игры: её спрашивают один раз и помнят.
+// Локальное хранилище, а не localforage (им хранится ник): читать надо
+// синхронно, в первом же кадре стола, иначе он успевает нарисоваться в одном
+// виде и перескочить в другой.
+const firstPersonTableKey = 'isFirstPersonTable';
+
+const loadFirstPersonTable = (): boolean => {
+	try {
+		return window.localStorage.getItem(firstPersonTableKey) === 'true';
+	} catch {
+		// Приватный режим и запрет на хранилище: играть это не мешает, стол
+		// просто останется в виде по умолчанию.
+		return false;
+	}
+};
+
+const saveFirstPersonTable = (value: boolean): void => {
+	try {
+		window.localStorage.setItem(firstPersonTableKey, String(value));
+	} catch {
+		// см. loadFirstPersonTable
+	}
+};
+
 // Сколько карта паники минимум лежит на столе, даже если само её событие
 // отыгралось мгновенно: столько нужно, чтобы стол успел прочитать, что вообще
 // произошло. Пока карта там, новую из колоды не тянут.
@@ -57,6 +81,9 @@ export default class GameController {
 	@observable players: IPlayersMap = {};
 	@observable currentPlayerId : string | null = null;
 	@observable playersList: string[] = [];
+	// Чей сейчас ход. Стол наводит на него прицел (см. TurnReticle); по одному
+	// turnState этого не понять — в обмене не в idle оба его участника.
+	@observable turnPlayerId: string | null = null;
 	@observable gameLog: IGameLogEntry[] = [];
 	// Лог свёрнут по умолчанию: он перекрывает стол, а самое важное (текущее
 	// действие) дублируется крупным индикатором.
@@ -64,7 +91,9 @@ export default class GameController {
 	@observable deck: IDeckPayload = {count: 0, topCardType: ECardType.event};
 	@observable notifications: INotificationAction[] = [];
 	@observable playersToSelect: string[] = [];
-	@observable isLayoutSequential: boolean = true;
+	// Стол развёрнут так, что ты сидишь внизу. По умолчанию выключено: стол
+	// абсолютный, у всех одинаковый (см. roomPlayerOrder).
+	@observable isFirstPersonTable: boolean = loadFirstPersonTable();
 	@observable isFullScreen: boolean = false;
 	@observable tradeContext: IFormatTradeContext[] | null = null;
 	// Разовые применения карт (подсмотр, отказ от обмена и т.п.): стол рисует их
@@ -217,16 +246,17 @@ export default class GameController {
 		this.notifications = this.notifications.slice(1);
 	};
 
-	// Галочка на карте в окне множественного выбора. Лишние нажатия игнорируем:
-	// пока не снимешь одну отметку, новая не встанет — так видно, что набрано
-	// ровно столько карт, сколько просили.
+	// Отметка на карте в окне выбора. Повторное нажатие её снимает, а когда
+	// набрано уже сколько просили, новая отметка вытесняет самую старую: иначе
+	// передумавшему пришлось бы сперва искать и снимать лишнюю — а при выборе
+	// одной карты отметку было бы вообще не переставить.
 	@action toggleNotificationCardCheck = (cardUniqueId: string, limit: number) => {
 		if (includes(this.checkedNotificationCards, cardUniqueId)) {
 			this.checkedNotificationCards = without(this.checkedNotificationCards, cardUniqueId);
 			return;
 		}
-		if (this.checkedNotificationCards.length >= limit) return;
-		this.checkedNotificationCards = [...this.checkedNotificationCards, cardUniqueId];
+		const checked = [...this.checkedNotificationCards, cardUniqueId];
+		this.checkedNotificationCards = checked.slice(Math.max(0, checked.length - limit));
 	};
 
 	// Подтверждение всего выбора разом (кнопка OKEY).
@@ -316,8 +346,9 @@ export default class GameController {
 		this.hidENotificationAction();
 	};
 
-	toggleRoomLayout = () => {
-		this.isLayoutSequential = !this.isLayoutSequential;
+	toggleFirstPersonTable = () => {
+		this.isFirstPersonTable = !this.isFirstPersonTable;
+		saveFirstPersonTable(this.isFirstPersonTable);
 	}
 
 	toggleFullScreen = () => {
@@ -414,13 +445,14 @@ export default class GameController {
 	// Одним действием: без него mobx отдаёт реакциям каждое присваивание по
 	// отдельности, и компонент успевает отрисоваться с новым контекстом хода, но
 	// ещё старой рукой и логом — а анимация обмена сверяет ровно их между собой.
-	@action updateGame = ({tradeContext, cardEffects, cardDraws, panicCard, players, playersList, deck, gameLog, currentAction, state, currentPlayer, hand, handActions, hostPlayerId, isPlayerCanCancel}: IGameUpdatePayload) => {
+	@action updateGame = ({tradeContext, cardEffects, cardDraws, panicCard, players, playersList, turnPlayerId, deck, gameLog, currentAction, state, currentPlayer, hand, handActions, hostPlayerId, isPlayerCanCancel}: IGameUpdatePayload) => {
 		this.updatePlayers(players);
 		this.markCardMoves({cardDraws, viewerId: currentPlayer.id, newHand: hand});
 		this.updateHand(hand);
 		this.updateHandActions(handActions);
 		this.hostPlayerId = hostPlayerId;
 		this.playersList = playersList;
+		this.turnPlayerId = turnPlayerId;
 		this.deck = deck;
 		this.isPlayerCanCancel = isPlayerCanCancel;
 		this.currentPlayerId = currentPlayer.id;

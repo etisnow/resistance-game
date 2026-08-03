@@ -3,6 +3,7 @@ import {map, range} from 'lodash';
 import * as PIXI from 'pixi.js';
 import {Container, Sprite, Text} from 'react-pixi-fiber';
 import Circle from 'client/components/pixiPrimitives/Circle';
+import Plate from 'client/components/pixiPrimitives/Plate';
 import {resources} from 'client/resources/resources';
 import {getPixiTexture} from 'client/components/table/pixiInjected';
 import {toggleCardHintFor} from 'client/components/hint/canvasHint';
@@ -13,7 +14,6 @@ interface IPlayerBadgeProps {
 	id: string;
 	nickname: string | null;
 	color: string;
-	inTurn: boolean;
 	canBeSelected: boolean;
 	isDoor: boolean;
 	onSelect: ((playerId: string) => void) | null;
@@ -72,6 +72,38 @@ const Quarantine = ({quarantine, badgeRadius, isInteractive}: {quarantine: numbe
 	);
 }
 
+// Подпись на кружке. У всех она белая прямо по кружку, а свой ник — белым по
+// тёмной подложке: за абсолютным столом (см. roomPlayerOrder) сидишь ты где
+// угодно, а не всегда внизу, и себя надо находить взглядом. Одним только ником
+// себя не найти — он такой же, как у соседей.
+const nicknameStyle = new PIXI.TextStyle({fontFamily: 'Arial', fontSize: 14, fill: 0xFFFFFF, align: 'center'});
+const youNicknameStyle = new PIXI.TextStyle({fontFamily: 'Arial', fontSize: 14, fontWeight: 'bold', fill: 0xFFFFFF, align: 'center'});
+const youPlateColor = 0x14110C;
+// Поля подложки вокруг букв и её скругление в долях высоты: половина — и края
+// выходят полукруглыми.
+const youPlatePadX = 7;
+const youPlatePadY = 3;
+const youPlateRadiusShare = 0.5;
+
+// Ник на подложке. Подложку меряем по самим буквам, а не по кружку: ники бывают
+// от одной буквы до четырёх (см. formatNickname), и подложка на глаз то жала бы
+// длинный, то болталась вокруг короткого.
+const YouNickname = ({text}: {text: string}) => {
+	const {width, height} = PIXI.TextMetrics.measureText(text, youNicknameStyle);
+	const plateHeight = height + youPlatePadY * 2;
+	return (
+		<Container>
+			<Plate
+				plateWidth={width + youPlatePadX * 2}
+				plateHeight={plateHeight}
+				borderRadius={plateHeight * youPlateRadiusShare}
+				color={youPlateColor}
+			/>
+			<Text text={text} anchor={0.5} style={youNicknameStyle}/>
+		</Container>
+	);
+};
+
 const playerBadgesByKey: Record<string, string | undefined> = resources.playerBadges;
 const colorBadgesCount = 11;
 
@@ -113,7 +145,6 @@ const getMarkTexture = (mark: EPlayerMark | undefined): PIXI.Texture | undefined
 const PlayerBadge = ({
 		nickname,
 		color,
-		inTurn = false,
 		canBeSelected = false,
 		onSelect = null,
 		id,
@@ -154,9 +185,13 @@ const PlayerBadge = ({
 	const badgeResource = getBadgeResource({isDoor, isConnected, color, isThing, isInfected});
 	if (!badgeResource) return null;
 	const playerBadgeTexture = getPixiTexture(badgeResource);
+	// На кружке у всех ник, включая свой: что кружок твой, говорит этикетка над
+	// ним (см. YouTag), а раньше вместо ника там стояло «ТЫ» — и собственное имя
+	// за столом было не найти.
+	//
 	// Пустая строка, а не undefined: prop со значением undefined react-pixi-fiber
 	// не применяет, а печатает «ignoring prop» на каждый рендер бейджа.
-	const nick = isYou ? 'ТЫ' : (formatNickname(nickname) ?? '')
+	const nick = formatNickname(nickname) ?? ''
 	return (
 		<Container pointerdown={markPlayer} buttonMode={true} interactive={true}>
 			{canBeSelected && (
@@ -180,11 +215,10 @@ const PlayerBadge = ({
 			/>
 			{!isDoor && (
 				<React.Fragment>
-					<Text text={nick} anchor={0.5} style={{fontFamily : 'Arial', fontSize: 14, fill : 0xFFFFFF, align : 'center'}}/>
+					{isYou
+						? <YouNickname text={nick}/>
+						: <Text text={nick} anchor={0.5} style={nicknameStyle}/>}
 					<Quarantine quarantine={quarantine} badgeRadius={style.height/2} isInteractive={!canBeSelected} />
-					{inTurn && (
-						<Circle xCoord={0} yCoord={-style.height/2} color={0x00FF00} r={style.height * 0.07}/>
-					)}
 					{/* Роль игрока — это сам бейдж: отдельных значков нечто/заражения нет. */}
 					{(mark && mark !==EPlayerMark.none && !isRoleKnown) && (
 						<Sprite

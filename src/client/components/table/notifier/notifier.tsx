@@ -114,13 +114,17 @@ const Notification = observer(({notification, controller}: {notification: INotif
 						y={textY(cardHeight) + notificationFontSize * 2 + (okayWidth / 2)}
 					/>
 					{/* Под картами — что вообще требуется сделать, и уже под этим счёт
-					    отмеченного: со счётом в одиночку окно не объясняет само себя. */}
+					    отмеченного: со счётом в одиночку окно не объясняет само себя.
+					    Когда карта нужна одна, считать нечего — «отмечено 1 из 1» не
+					    говорит ничего сверх того, что и так видно по самой карте. */}
 					<Text
 						x={getWindowWidth() / 2}
 						y={textY(cardHeight)}
-						text={isReady
-							? `${notification.text}\nОтмечено ${notification.count} из ${notification.count} — жми OKAY`
-							: `${notification.text}\nОтмечено ${checkedNotificationCards.length} из ${notification.count}`}
+						text={notification.count === 1
+							? `${notification.text}${isReady ? '\nЖми OKAY' : ''}`
+							: isReady
+								? `${notification.text}\nОтмечено ${notification.count} из ${notification.count} — жми OKAY`
+								: `${notification.text}\nОтмечено ${checkedNotificationCards.length} из ${notification.count}`}
 						anchor={0.5}
 						style={getFontStyle(18, getWindowWidth() * 0.8)}
 					/>

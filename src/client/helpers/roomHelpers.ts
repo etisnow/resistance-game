@@ -64,24 +64,31 @@ export const roomRadii = (count: number) => {
 };
 
 /**
- * Порядок игроков за столом. При «виде от игрока» список прокручен так, чтобы ты
- * сидел первым — то есть внизу, под своей рукой. Мертвец смотрит на стол сверху,
- * как он есть.
+ * Рассадка за столом.
+ *
+ * По умолчанию она абсолютная — это сам playersList, один и тот же у всех: стол
+ * один на всех, и переезжают по нему только те, кого действительно пересадили
+ * (смена мест, дверь, топор).
+ *
+ * «Стол от первого лица» (настройка в меню, см. isFirstPersonTable) прокручивает
+ * список так, чтобы смотрящий сидел первым — то есть внизу, под своей рукой.
+ * Тогда каждый видит свой стол, зато свои соседи всегда на одних и тех же
+ * местах. Мертвеца в списке нет, ему в любом случае показывают стол как есть.
  *
  * Живёт здесь, а не в Room: по этому же кругу рука считает, откуда прилетает и
  * куда улетает карта обмена (см. Hand), а посчитанный второй раз он однажды со
  * столом разъедется.
  */
-export const roomPlayerOrder = (playersList: string[], currentPlayerId: string, isSequential: boolean): string[] => {
-	const index = playersList.indexOf(currentPlayerId);
-	if (!isSequential || index < 0) return [...playersList];
+export const roomPlayerOrder = (playersList: string[], viewerId: string, isFirstPerson: boolean): string[] => {
+	const index = playersList.indexOf(viewerId);
+	if (!isFirstPerson || index < 0) return [...playersList];
 	return [...playersList.slice(index), ...playersList.slice(0, index)];
 };
 
 /**
  * Место игрока за столом относительно его центра. Стол — эллипс: угол задаёт
  * место, а полуоси подогнаны под форму свободной области (см. roomRadii).
- * Отсчёт от +90°, поэтому первый в порядке сидит внизу.
+ * Отсчёт от +90°, поэтому первый в рассадке сидит внизу.
  */
 export const roomPlayerPoint = (playerId: string, playerOrder: string[]): {x: number, y: number} => {
 	const deg = (360 / playerOrder.length) * playerOrder.indexOf(playerId) + 90;

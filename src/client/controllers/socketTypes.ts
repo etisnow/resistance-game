@@ -32,6 +32,7 @@ export interface IGameUpdatePayload {
 	panicCard: IFormatPanicCard | null;
 	players: IPlayersMap;
 	playersList: string[];
+	turnPlayerId: string | null;
 	deck: IDeckPayload;
 	gameLog: IGameLogEntry[];
 	currentAction: INotificationAction | null;

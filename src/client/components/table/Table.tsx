@@ -50,10 +50,6 @@ const Table = observer(({controller} : ITableProps) => {
 				<CardHintOverlay/>
 
 				{/*<div className={"debug-div"}><div></div></div>*/}
-{/*
-				<button className={'layoutChangeButton'} onClick={() => {controller.toggleRoomLayout()}}>
-					Вид: {controller.isLayoutSequential ? 'От игрока' : 'Сверху'}
-				</button>*/}
 	            <Helmet>
 	                <title>{player.nickname}</title>
 	            </Helmet>

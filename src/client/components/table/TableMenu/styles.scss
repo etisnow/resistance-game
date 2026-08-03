@@ -1,19 +1,17 @@
 @use '../../../styles/scrollbar';
+@use '../../../styles/buttons';
 
 // Вровень с шапкой лога (та тоже начинается с top: 2%), справа — под неё в
-// .gameLogHeader зарезервирован padding-right.
+// .gameLogHeader зарезервирован padding-right. Правым боком кнопка уходит за
+// край экрана, поэтому скруглены только левые углы — там край и виден.
 .tableMenuButton {
+	@include buttons.button($radius: 8px 0 0 8px);
 	position: fixed;
 	top: 2%;
 	right: 0;
 	z-index: 150;
 	padding: 6px 12px;
-	border: 0;
-	background: #000000bf;
-	color: white;
 	font-size: 14px;
-	border-radius: 0 0 0 8px;
-	cursor: pointer;
 }
 
 .tableMenuOverlay {
@@ -46,19 +44,60 @@
 
 // Кнопка меню — не только в самом меню: тем же выглядит «Назад» в справочнике.
 .tableMenuItem {
+	@include buttons.button;
 	width: 100%;
 	padding: 9px;
 	margin-bottom: 10px;
-	border: 0;
-	border-radius: 5px;
-	color: white;
 	font-size: 14px;
-	cursor: pointer;
-	box-shadow: 0 4px 7px black;
-	background: linear-gradient(180deg, #6c920e 0%, #005213 100%);
 
 	&.danger {
-		background: linear-gradient(180deg, #922e0e 0%, #520500 100%);
+		@include buttons.button(buttons.$button-danger-top, buttons.$button-danger-bottom);
+	}
+
+	// Пункт-переключатель: подпись слева, сам тумблер прижат к правому краю.
+	// Он ничего не открывает и меню не закрывает, поэтому и выглядит иначе —
+	// приглушённее соседних кнопок-действий.
+	&.toggle {
+		@include buttons.button(buttons.$button-muted-top, buttons.$button-muted-bottom);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		text-align: left;
+	}
+}
+
+.tableMenuToggle {
+	position: relative;
+	flex-shrink: 0;
+	width: 34px;
+	height: 18px;
+	border-radius: 9px;
+	background: #00000080;
+	box-shadow: inset 0 1px 3px black;
+	transition: background 0.15s ease-out;
+
+	// Кружок тумблера: выключенный сидит слева и тускл, включённый переезжает
+	// вправо и загорается.
+	&:after {
+		content: '';
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		width: 14px;
+		height: 14px;
+		border-radius: 50%;
+		background: #8a8a8a;
+		transition: transform 0.15s ease-out, background 0.15s ease-out;
+	}
+
+	&.on {
+		background: #6c920e;
+
+		&:after {
+			transform: translateX(16px);
+			background: white;
+		}
 	}
 }
 

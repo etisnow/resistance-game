@@ -16,12 +16,13 @@ const fakeWindow = {
 let viewport: typeof import('client/helpers/viewport').viewport;
 let roomRadii: typeof import('client/helpers/roomHelpers').roomRadii;
 let playerRoomDiag: typeof import('client/helpers/roomHelpers').playerRoomDiag;
+let roomPlayerOrder: typeof import('client/helpers/roomHelpers').roomPlayerOrder;
 let tableField: typeof import('client/helpers/window').tableField;
 let tableCenterY: typeof import('client/helpers/window').tableCenterY;
 
 beforeAll(async () => {
 	({viewport} = await import('client/helpers/viewport'));
-	({roomRadii, playerRoomDiag} = await import('client/helpers/roomHelpers'));
+	({roomRadii, playerRoomDiag, roomPlayerOrder} = await import('client/helpers/roomHelpers'));
 	({tableField, tableCenterY} = await import('client/helpers/window'));
 });
 
@@ -95,5 +96,24 @@ describe('геометрия стола', () => {
 	test('чем больше игроков, тем мельче бейдж', () => {
 		resize(1492, 1046);
 		expect(playerRoomDiag(12)).toBeLessThan(playerRoomDiag(5));
+	});
+});
+
+describe('рассадка', () => {
+	const table = ['a', 'b', 'c', 'd', 'e'];
+
+	test('обычный стол одинаков у всех, кто на него смотрит', () => {
+		for (const viewer of table) {
+			expect(roomPlayerOrder(table, viewer, false)).toEqual(table);
+		}
+	});
+
+	test('стол от первого лица сажает смотрящего первым, порядок по кругу тот же', () => {
+		expect(roomPlayerOrder(table, 'c', true)).toEqual(['c', 'd', 'e', 'a', 'b']);
+		expect(roomPlayerOrder(table, 'a', true)).toEqual(table);
+	});
+
+	test('того, кого за столом уже нет, разворачивать не по чему', () => {
+		expect(roomPlayerOrder(table, 'покойник', true)).toEqual(table);
 	});
 });

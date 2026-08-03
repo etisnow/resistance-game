@@ -46,8 +46,17 @@ test.describe.serial('Свидание вслепую (blindDate)', () => {
 		const offered = (await session.snapshot('Alice')).currentAction?.cards ?? {};
 		expect(Object.values(offered).map((c) => c.id)).toContain('whiskey');
 
+		// Передумать можно, не снимая отметку вручную: новая карта вытесняет
+		// прежнюю, иначе выбор из одной карты было бы не переставить.
+		await session.checkNotificationCard('Alice', 'analysis');
+		await session.checkNotificationCard('Alice', 'whiskey');
+		const whiskeyUid = Object.values(offered).find((c) => c.id === 'whiskey')?.uniqueId;
+		await session.waitFor('Alice', (s) =>
+			s.checkedNotificationCards.length === 1 && s.checkedNotificationCards[0] === whiskeyUid,
+		);
+
 		// Alice сбрасывает whiskey и берёт suspicion из колоды.
-		await session.selectNotificationCards('Alice', ['whiskey']);
+		await session.confirmSelectedCards('Alice');
 
 		await session.waitFor('Alice', (s) => Object.values(s.hand).some((c) => c.id === 'suspicion'));
 		const snap = await session.snapshot('Alice');

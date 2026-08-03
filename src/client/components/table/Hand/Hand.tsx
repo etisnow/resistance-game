@@ -43,12 +43,12 @@ const Hand = observer(({controller} : IHandProps) => {
 		x: tableCenterX() + x - getWindowWidth() / 2,
 		y: tableCenterY() + y - (getWindowHeight() - playerHandHeight()),
 	});
-	// Круг игроков — тот же, что рисует стол (см. Room): при «виде от игрока» он
-	// прокручен так, что ты сидишь внизу.
+	// Круг игроков — тот же, что рисует стол (см. Room): обычно это просто
+	// playersList, а «от первого лица» он прокручен так, что ты сидишь внизу.
 	const playerOrder = roomPlayerOrder(
 		controller.playersList,
 		controller.currentPlayerId ?? '',
-		controller.isLayoutSequential && player.turnState !== ETurnState.dead,
+		controller.isFirstPersonTable && player.turnState !== ETurnState.dead,
 	);
 	// Колода лежит в центре стола и рисуется картой шириной с бейдж (см. Deck).
 	const deckStyle = {...toHandCoords({x: 0, y: 0}), angle: 0, width: badgeDiagonal};

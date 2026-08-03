@@ -70,6 +70,13 @@ const TableMenu = observer(({controller}: ITableMenuProps) => {
 				{controller.isGameOver && <div className={'tableMenuTitle'}>Игра закончена</div>}
 				<button className={'tableMenuItem danger'} onClick={handleExitClick}>{exitText}</button>
 				<button className={'tableMenuItem'} onClick={() => setCardsOpen(true)}>Карты</button>
+				{/* Вид стола: меню не закрывается, чтобы переключатель можно было
+				    щёлкнуть туда-обратно и выбрать. Настройка переживает партию и
+				    перезаход — см. toggleFirstPersonTable. */}
+				<button className={'tableMenuItem toggle'} onClick={controller.toggleFirstPersonTable}>
+					Стол от первого лица
+					<span className={'tableMenuToggle' + (controller.isFirstPersonTable ? ' on' : '')}/>
+				</button>
 				<button className={'tableMenuItem'} onClick={closeMenu}>
 					{controller.isGameOver ? 'Остаться и почитать лог' : 'Вернуться к игре'}
 				</button>

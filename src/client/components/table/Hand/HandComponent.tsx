@@ -265,10 +265,24 @@ const FingerStamp = ({style, cardWidth, cardUniqueId}: {style: AnimatedCardStyle
 	// Палец ведут по карте и прижимают: полсекунды — быстрее глаз не успевает
 	// увидеть след, а отметка выглядит возникшей из ниоткуда.
 	const {t} = useSpring<{t: number}>({t: 1, from: {t: 0}, config: {tension: 95, friction: 22}});
-	// Маску назначаем объектом, поэтому её приходится сперва отрисовать и лишь
-	// потом отдать отпечатку — отсюда состояние.
+	// Маску назначают объектом, поэтому её приходится сперва отрисовать и лишь
+	// вторым проходом отдать тому, кого она маскирует: объект приходит в ref-колбэк
+	// и оттуда просит перерисовку. Ждать этого в useEffect нельзя — свой ref
+	// react-pixi-fiber заполняет позже, чем React успевает отработать эффект.
+	// Отсюда и сторож: отметку, снятую в тот же миг, колбэк догоняет уже у
+	// размонтированного штампа, а обновлять его состояние поздно.
+	const isAliveRef = React.useRef(true);
+	React.useEffect(() => () => { isAliveRef.current = false; }, []);
 	const [fadeMask, setFadeMask] = React.useState<PIXI.Sprite | null>(null);
 	const [streakMask, setStreakMask] = React.useState<PIXI.Sprite | null>(null);
+	const keepMask = (current: PIXI.Sprite | null, set: (sprite: PIXI.Sprite) => void) =>
+		(sprite: PIXI.Sprite | null) => {
+			if (sprite && sprite !== current && isAliveRef.current) set(sprite);
+		};
+	// Пока маски нет, пропа нет вовсе: с пустым значением react-pixi-fiber снимает
+	// маску и пишет об этом в консоль, а условный рендер самого спрайта ломает уже
+	// маскирование — маска встаёт на объект, которого в тот кадр ещё нет.
+	const maskProp = (mask: PIXI.Sprite | null) => (mask ? {mask} : {});
 
 	// Угол отпечатка и наклон мазка берём из разных концов хеша, иначе они ходили
 	// бы парой и все отметки ложились бы одинаково. Ведут палец всегда сверху вниз
@@ -341,7 +355,7 @@ const FingerStamp = ({style, cardWidth, cardUniqueId}: {style: AnimatedCardStyle
 			{/* Маска слоя полос: живёт в тех же координатах, что и они, поэтому лежит
 			    рядом — сдвинута от оттиска на половину своей длины вдоль мазка. */}
 			<AnimatedPixi.Sprite
-				ref={(sprite: PIXI.Sprite | null) => { if (sprite && sprite !== streakMask) setStreakMask(sprite); }}
+				ref={keepMask(streakMask, setStreakMask)}
 				texture={getStreakMaskTexture()}
 				anchor={0.5}
 				angle={swipeDeg - 270}
@@ -354,7 +368,7 @@ const FingerStamp = ({style, cardWidth, cardUniqueId}: {style: AnimatedCardStyle
 				<AnimatedPixi.Container
 					key={isCore ? 'core' : 'tail'}
 					filters={isCore ? streakCoreFilters : streakTailFilters}
-					mask={streakMask ?? undefined}
+					{...maskProp(streakMask)}
 					angle={(swipeRad * 180) / Math.PI + 90}
 					x={style.x}
 					y={interpolate([style.y, style.width], (y: number, w: number) => targetY(y, w))}
@@ -393,7 +407,7 @@ const FingerStamp = ({style, cardWidth, cardUniqueId}: {style: AnimatedCardStyle
 				y={interpolate([style.y, style.width, t], (y, w, p) => targetY(y, w) + swipeY * (1 - p))}
 			>
 				<Sprite
-					ref={(sprite: PIXI.Sprite | null) => { if (sprite && sprite !== fadeMask) setFadeMask(sprite); }}
+					ref={keepMask(fadeMask, setFadeMask)}
 					texture={getFadeTexture()}
 					anchor={0.5}
 					angle={swipeDeg - 270}
@@ -402,7 +416,7 @@ const FingerStamp = ({style, cardWidth, cardUniqueId}: {style: AnimatedCardStyle
 				/>
 				<AnimatedPixi.Sprite
 					texture={getPixiTexture(resources.fingerPrint)}
-					mask={fadeMask ?? undefined}
+					{...maskProp(fadeMask)}
 					anchor={0.5}
 					alpha={t.interpolate(p => Math.min(1, p * 1.6))}
 					angle={stampAngle}
