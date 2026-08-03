@@ -23,7 +23,7 @@ export const notifyPlayerDiscardCards = ({game, player}: {game:Game, player:Play
 		type: ENotificationAction.selectCards,
 		cards: formatCards(filteredCards),
 		count,
-		text: `Отметь ${count} карты — они разом поменяются на карты из колоды`,
+		text: `Выбери ${count} карты для сброса и возьми ${count} новые из колоды`,
 	}
 };
 

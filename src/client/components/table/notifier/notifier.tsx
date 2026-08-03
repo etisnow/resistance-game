@@ -152,16 +152,16 @@ const Notification = observer(({notification, controller}: {notification: INotif
 						height={okayWidth}
 						anchor={0.5}
 						x={getWindowWidth() / 2}
-						y={textY(cardHeight) + notificationFontSize + (okayWidth / 2)}
+						y={textY(cardHeight) + notificationFontSize * 2 + (okayWidth / 2)}
 					/>
-					{/* Сам текст задания висит бейджем над столом (ActionInteracter) —
-					    здесь только счёт отмеченного, иначе одно и то же читается дважды. */}
+					{/* Под картами — что вообще требуется сделать, и уже под этим счёт
+					    отмеченного: со счётом в одиночку окно не объясняет само себя. */}
 					<Text
 						x={getWindowWidth() / 2}
 						y={textY(cardHeight)}
 						text={isReady
-							? `Отмечено ${notification.count} из ${notification.count} — жми OKAY`
-							: `Отмечено ${checkedNotificationCards.length} из ${notification.count}`}
+							? `${notification.text}\nОтмечено ${notification.count} из ${notification.count} — жми OKAY`
+							: `${notification.text}\nОтмечено ${checkedNotificationCards.length} из ${notification.count}`}
 						anchor={0.5}
 						style={getFontStyle(18, getWindowWidth() * 0.8)}
 					/>

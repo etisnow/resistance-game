@@ -1,7 +1,7 @@
 import {AnimatedPixi, getPixiTexture} from 'client/components/table/pixiInjected';
 import React from 'react';
 import * as PIXI from 'pixi.js';
-import { Container } from 'react-pixi-fiber';
+import { Container, Sprite } from 'react-pixi-fiber';
 import {clamp, includes, map} from 'lodash';
 import {observer} from "mobx-react-lite";
 import {config, useSpring, useTransition, interpolate} from 'react-spring/universal';
@@ -153,36 +153,113 @@ const generateCardMenu = (card: ICardAny, cardActions: IHandActionsMap, onCardAc
 	)
 };
 
-// Отметка выбранной карты — кровавый отпечаток пальца: карту «подписывают
-// кровью». Палец приходит на карту мазком (смазанный след позади) и
-// останавливается, оставив отпечаток под своим углом.
-const bloodPrintAspect = 742 / 512;
+// Отметка выбранной карты — отпечаток пальца: карту «подписывают» пальцем, тем
+// же неоново-зелёным, что и ладонь на кнопке OKAY. Палец коротко ведут по карте
+// сверху вниз, оставляя за собой смазанный след, и прижимают; след с карты уже
+// не сходит и после остановки ничем не отличается от того, что было в движении —
+// он и рисуется-то один раз, просто проявляется по мере прохода пальца.
+const fingerPrintAspect = 742 / 512;
 // Ширина отпечатка в долях ширины карты: подпись, а не клякса во всю карту.
-const stampWidth = 0.26;
-// Сколько смазанных копий тянется за пальцем в движении и сколько их остаётся
-// потом: мазок с карты никуда не девается, но живой хвост из пяти копий нужен
-// только пока палец едет — засохший след короче.
-const smearTrail = 5;
-const smearTrailRest = 2;
-// Куда яркость хвоста падает к концу движения: не в ноль — это размазанная по
-// карте кровь, она остаётся, пока стоит сама отметка.
-const smearResidual = 0.34;
-// На столько (в долях мазка) копии остаются позади отпечатка, когда палец уже
-// встал: схлопнись они в одну точку, от следа не осталось бы и намёка.
-const smearTailKeep = 0.09;
-// Мазок на такую долю ширины карты, прежде чем палец встанет на место: весь
-// след должен уложиться на саму карту, иначе он читается как клякса на столе.
-const smearDistance = 0.55;
-// Хвост размыт — это след движения, а не второй отпечаток.
-const smearBlur = new PIXI.filters.BlurFilter(2.5);
-// Столько живёт след: заметно дольше самого мазка, чтобы кровь успела «подсохнуть»
-// на глазах, а не исчезнуть в тот же кадр, в котором палец встал.
-const smearMs = 1200;
+const stampWidth = 0.21;
+// Длина мазка — доля высоты карты. Палец именно прикладывают, а не возят по
+// столу: длинный проезд читается как прилетевшая откуда-то картинка.
+const smearDistance = 0.05;
+// Из скольких копий набран след. Их много и стоят они вплотную — так штука
+// выглядит смазанной полосой, а не цепочкой отдельных отпечатков.
+const smearTrail = 20;
+// Самая дальняя копия настолько бледнее ближней.
+const smearFarFade = 0.7;
+// Общая плотность следа: копии складываются, поэтому каждая почти прозрачна. Но
+// сама размазанная масса должна читаться — штрихи лежат поверх неё, а не вместо.
+const smearAlpha = 0.12;
+// Сколько штрихов краски тянется за пальцем и какого они цвета — тот же неон,
+// что и сам отпечаток (см. Streaks).
+const streakCount = 12;
+const streakColor = 0x72ff00;
+// Докуда достают полосы краски — в долях высоты самого оттиска: не дальше его
+// собственной растворённой части, иначе они выглядят выехавшими на чистую карту.
+const streakLength = 0.62;
+// У каждой полосы два куска: чёткое начало у самого оттиска и размытый хвост
+// дальше по мазку — краска сходит с пальца плотной чертой и растворяется.
+const streakCoreShare = 0.35;
+// Насколько полосы у краёв оттиска плотнее центральных: ребром палец давит
+// сильнее, и краска оттуда сходит гуще.
+const streakSideBoost = 0.5;
+const streakCoreFilters = [(() => {
+	const blur = new PIXI.filters.BlurFilter();
+	blur.blurX = 0.15;
+	blur.blurY = 0.6;
+	return blur;
+})()];
+const streakTailFilters = [(() => {
+	const blur = new PIXI.filters.BlurFilter();
+	blur.blurX = 0.3;
+	blur.blurY = 2;
+	return blur;
+})()];
+// Смазан след по вертикали — вдоль движения пальца. Фильтр висит на всём слое
+// следа сразу, а не на каждой копии: так это один проход рендера, а не двадцать.
+const smearFilters = [(() => {
+	const blur = new PIXI.filters.BlurFilter();
+	blur.blurX = 1;
+	blur.blurY = 14;
+	return blur;
+})()];
 
-// Один и тот же отпечаток у одной и той же карты: угол и направление мазка
-// считаем из её uniqueId, иначе штамп прыгал бы на каждой перерисовке. Хеш —
-// FNV-1a с финальным перемешиванием: у карт подряд идущие id (card_112,
-// card_113), и простая сумма давала им углы, отличающиеся на градус.
+// Маска фейда: отпечаток растворяется в ту сторону, откуда пришёл палец. Делаем
+// её процедурно — градиент по альфе, — и разворачиваем по направлению мазка, а не
+// по оси отпечатка: наклон у штампа свой, а тает он всегда в шлейф.
+let fadeTexture: PIXI.Texture | null = null;
+const getFadeTexture = (): PIXI.Texture => {
+	if (fadeTexture) return fadeTexture;
+	const canvas = document.createElement('canvas');
+	canvas.width = 4;
+	canvas.height = 256;
+	const ctx = canvas.getContext('2d');
+	if (ctx) {
+		const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+		gradient.addColorStop(0, 'rgba(255,255,255,0.08)');
+		gradient.addColorStop(0.35, 'rgba(255,255,255,0.32)');
+		gradient.addColorStop(0.7, 'rgba(255,255,255,0.74)');
+		gradient.addColorStop(1, 'rgba(255,255,255,1)');
+		ctx.fillStyle = gradient;
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+	}
+	fadeTexture = PIXI.Texture.from(canvas);
+	return fadeTexture;
+};
+
+// Маска слоя полос: у самого оттиска их не видно (там всё закрывает краска под
+// пальцем), сразу за ним они в полную силу и дальше по мазку сходят на нет. Без
+// неё полосы просвечивают сквозь ту часть отпечатка, которую мы растворили.
+let streakMaskTexture: PIXI.Texture | null = null;
+const getStreakMaskTexture = (): PIXI.Texture => {
+	if (streakMaskTexture) return streakMaskTexture;
+	const canvas = document.createElement('canvas');
+	canvas.width = 4;
+	canvas.height = 256;
+	const ctx = canvas.getContext('2d');
+	if (ctx) {
+		// Сверху вниз: дальний конец мазка → сам оттиск. У самого оттиска линий не
+		// видно — там всё закрывает краска под пальцем, — они проявляются сразу за
+		// его краем и сходят на нет к своему кончику.
+		const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+		gradient.addColorStop(0, 'rgba(255,255,255,0.12)');
+		gradient.addColorStop(0.3, 'rgba(255,255,255,1)');
+		gradient.addColorStop(0.68, 'rgba(255,255,255,0.8)');
+		gradient.addColorStop(0.9, 'rgba(255,255,255,0.18)');
+		gradient.addColorStop(1, 'rgba(255,255,255,0)');
+		ctx.fillStyle = gradient;
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+	}
+	streakMaskTexture = PIXI.Texture.from(canvas);
+	return streakMaskTexture;
+};
+
+// Один и тот же отпечаток у одной и той же карты: угол и наклон мазка считаем из
+// её uniqueId, иначе штамп прыгал бы на каждой перерисовке. Хеш — FNV-1a с
+// финальным перемешиванием: у карт подряд идущие id (card_112, card_113), и
+// простая сумма давала им углы, отличающиеся на градус.
 const seedOf = (value: string): number => {
 	let hash = 2166136261;
 	for (let i = 0; i < value.length; i++) {
@@ -194,82 +271,161 @@ const seedOf = (value: string): number => {
 	return Math.abs(hash | 0);
 };
 
-const BloodStamp = ({style, cardWidth, cardUniqueId}: {style: AnimatedCardStyle, cardWidth: number, cardUniqueId: string}) => {
-	// Палец ведут по карте и прижимают: мазок идёт полсекунды — быстрее глаз
-	// просто не успевает увидеть след, а отметка выглядит возникшей из ниоткуда.
+const FingerStamp = ({style, cardWidth, cardUniqueId}: {style: AnimatedCardStyle, cardWidth: number, cardUniqueId: string}) => {
+	// Палец ведут по карте и прижимают: полсекунды — быстрее глаз не успевает
+	// увидеть след, а отметка выглядит возникшей из ниоткуда.
 	const {t} = useSpring<{t: number}>({t: 1, from: {t: 0}, config: {tension: 95, friction: 22}});
-	// Пока палец едет, за ним тянется полный хвост; когда доехал — от него
-	// остаётся короткий засохший след (размытие считается каждый кадр, пока
-	// отметка стоит, и держать пять таких копий незачем).
-	const [isSmearing, setSmearing] = React.useState(true);
-	React.useEffect(() => {
-		const timer = setTimeout(() => setSmearing(false), smearMs);
-		return () => clearTimeout(timer);
-	}, []);
+	// Маску назначаем объектом, поэтому её приходится сперва отрисовать и лишь
+	// потом отдать отпечатку — отсюда состояние.
+	const [fadeMask, setFadeMask] = React.useState<PIXI.Sprite | null>(null);
+	const [streakMask, setStreakMask] = React.useState<PIXI.Sprite | null>(null);
 
-	// Угол и направление мазка берём из разных концов хеша, иначе они ходили бы
-	// парой и все отпечатки ложились бы одинаково. Ведут палец всегда сверху вниз
-	// (с разным уклоном): так весь след проходит по самой карте, а не приезжает
-	// на неё откуда-то со стола.
+	// Угол отпечатка и наклон мазка берём из разных концов хеша, иначе они ходили
+	// бы парой и все отметки ложились бы одинаково. Ведут палец всегда сверху вниз
+	// (с небольшим уклоном): вдоль этого же направления размазан и след.
 	const seed = seedOf(cardUniqueId);
-	const stampAngle = (seed % 91) - 45;
-	const swipeRad = degToRag(240 + (seed >>> 11) % 61);
-	const swipe = cardWidth * smearDistance;
+	const swipeDeg = 255 + (seed >>> 11) % 31;
+	const swipeRad = degToRag(swipeDeg);
+	// Наклон штампа свой у каждой карты и с мазком не связан: в какую сторону
+	// отпечаток тает, решает маска фейда, а она развёрнута по движению.
+	const stampAngle = (seed % 81) - 40;
+	const swipe = cardWidth * cardAspectRatio * smearDistance;
 	const swipeX = Math.cos(swipeRad) * swipe;
 	const swipeY = Math.sin(swipeRad) * swipe;
 
 	const width = cardWidth * stampWidth;
-	const height = width * bloodPrintAspect;
+	const height = width * fingerPrintAspect;
+	// Вся длина, на которую хватает полос: по ней же растянута их маска.
+	const streakSpan = height * streakLength;
+	// Пучок полос краски: у каждой своё место поперёк движения, свой отрезок пути
+	// и своя плотность — палец пачкает бумагу неровно. Считаем из того же seed,
+	// поэтому у карты он всегда один и тот же.
+	const streaks = Array.from({length: streakCount}, (_, i) => {
+		const noise = seedOf(`${cardUniqueId}:${i}`);
+		// Все полосы выходят из-под оттиска: краска сползает с пальца, а не
+		// начинается посреди карты.
+		const from = 0;
+		const offset = (((noise % 1000) / 1000) - 0.5) * width * 0.9;
+		const side = Math.min(1, Math.abs(offset) / (width * 0.45));
+		return {
+			offset,
+			from,
+			to: 0.35 + ((noise >>> 3) % 100) / 100 * 0.65,
+			thickness: width * (0.012 + ((noise >>> 17) % 100) / 100 * 0.026),
+			alpha: (0.3 + ((noise >>> 23) % 100) / 100 * 0.4) * (1 - streakSideBoost + streakSideBoost * side),
+		};
+	});
 	// Отпечаток лежит на нижней трети карты и целиком помещается на ней.
 	const targetY = (y: number, w: number) => y + w * cardAspectRatio * 0.22;
 
-	// Копия следа на расстоянии back мазков позади конечного места: пока палец
-	// едет (t < 1), они тянутся за ним и на месте гаснут.
-	const smear = (back: number) => {
-		// Ближние копии почти такие же яркие, как сам отпечаток, дальние бледнеют:
-		// так след читается сплошной полосой крови, а не пунктиром из штампов.
-		const fade = 0.75 / Math.pow(back, 0.6);
-		// Яркая в движении и приглушённая после — но не в ноль: кровь размазана по
-		// карте и там и остаётся.
-		const trailAlpha = (p: number) => fade * (smearResidual + (1 - smearResidual) * Math.max(0, 1 - p * 1.1));
-		// Копия отстаёт от пальца, пока он едет, и не догоняет его до конца: даже на
-		// месте она остаётся чуть позади — оттуда, откуда палец пришёл.
-		const trailOffset = (p: number) => (1 - p) * (1 + back * 0.12) + back * smearTailKeep;
+	// Копия следа стоит там, где палец уже побывал: на доле k пути от конечной
+	// точки к началу мазка. Она не едет — она проявляется в тот момент, когда
+	// палец до неё дошёл, поэтому в конце движения след просто остаётся как есть.
+	const smear = (index: number) => {
+		const k = (index + 1) / smearTrail;
+		const alpha = smearAlpha * (1 - k * smearFarFade);
 		return (
 			<AnimatedPixi.Sprite
-				key={back}
-				texture={getPixiTexture(resources.bloodPrint)}
+				key={index}
+				texture={getPixiTexture(resources.fingerPrint)}
 				anchor={0.5}
-				filters={[smearBlur]}
-				alpha={t.interpolate(trailAlpha)}
-				angle={stampAngle + back * 4}
+				alpha={t.interpolate(p => alpha * clamp((p - (1 - k)) * 6, 0, 1))}
+				angle={stampAngle}
 				width={width}
 				height={height}
-				x={interpolate([style.x, t], (x, p) => x + swipeX * trailOffset(p))}
-				y={interpolate([style.y, style.width, t], (y, w, p) => targetY(y, w) + swipeY * trailOffset(p))}
+				x={interpolate([style.x], (x: number) => x + swipeX * k)}
+				y={interpolate([style.y, style.width], (y: number, w: number) => targetY(y, w) + swipeY * k)}
 			/>
 		);
 	};
 
 	return (
 		<AnimatedPixi.Container interactiveChildren={false}>
-			{Array.from({length: isSmearing ? smearTrail : smearTrailRest}, (_, i) => smear(i + 1))}
+			<AnimatedPixi.Container filters={smearFilters}>
+				{Array.from({length: smearTrail}, (_, i) => smear(i))}
+			</AnimatedPixi.Container>
+			{/* Поверх смазанной массы — сами полосы краски, снятые пальцем с оттиска.
+			    Слой повёрнут вдоль мазка, полосы внутри идут вверх по своей оси и
+			    вытягиваются ровно на пройденное пальцем. Чёткие начала полос и их
+			    размытые хвосты — разными слоями: у них разное размытие. */}
+			{/* Маска слоя полос: живёт в тех же координатах, что и они, поэтому лежит
+			    рядом — сдвинута от оттиска на половину своей длины вдоль мазка. */}
 			<AnimatedPixi.Sprite
-				texture={getPixiTexture(resources.bloodPrint)}
+				ref={(sprite: PIXI.Sprite | null) => { if (sprite && sprite !== streakMask) setStreakMask(sprite); }}
+				texture={getStreakMaskTexture()}
 				anchor={0.5}
-				alpha={t.interpolate(p => Math.min(1, p * 1.6))}
-				angle={stampAngle}
-				width={width}
-				height={height}
+				angle={swipeDeg - 270}
+				width={width * 3}
+				height={streakSpan}
+				x={interpolate([style.x], (x: number) => x + Math.cos(swipeRad) * streakSpan / 2)}
+				y={interpolate([style.y, style.width], (y: number, w: number) => targetY(y, w) + Math.sin(swipeRad) * streakSpan / 2)}
+			/>
+			{[true, false].map(isCore => (
+				<AnimatedPixi.Container
+					key={isCore ? 'core' : 'tail'}
+					filters={isCore ? streakCoreFilters : streakTailFilters}
+					mask={streakMask ?? undefined}
+					angle={(swipeRad * 180) / Math.PI + 90}
+					x={style.x}
+					y={interpolate([style.y, style.width], (y: number, w: number) => targetY(y, w))}
+				>
+					{streaks.map((streak, i) => {
+						// Полоса живёт на отрезке [from, to] пути; ближняя к оттиску доля —
+						// её чёткое начало, остальное уходит в размытый хвост.
+						const edge = streak.from + (streak.to - streak.from) * streakCoreShare;
+						const from = isCore ? streak.from : edge;
+						const to = isCore ? edge : streak.to;
+						// Видна полоса лишь настолько, насколько палец по ней уже проехал
+						// (он идёт от 1 к 1 - p).
+						const start = (p: number) => Math.max(from, 1 - p);
+						const shown = (p: number) => Math.max(0, to - start(p));
+						return (
+							<AnimatedPixi.Sprite
+								key={i}
+								texture={PIXI.Texture.WHITE}
+								tint={streakColor}
+								anchor={0.5}
+								alpha={isCore ? Math.min(1, streak.alpha * 1.6) : streak.alpha * 0.7}
+								x={streak.offset}
+								width={isCore ? streak.thickness : streak.thickness * 0.8}
+								y={t.interpolate(p => -(start(p) + shown(p) / 2) * streakSpan)}
+								height={t.interpolate(p => shown(p) * streakSpan)}
+							/>
+						);
+					})}
+				</AnimatedPixi.Container>
+			))}
+			{/* Сам оттиск: целиком его не видно никогда — со стороны, откуда пришёл
+			    палец, он растворяется по градиентной маске. Маска едет вместе с ним в
+			    общем контейнере и развёрнута по направлению мазка. */}
+			<AnimatedPixi.Container
 				x={interpolate([style.x, t], (x, p) => x + swipeX * (1 - p))}
 				y={interpolate([style.y, style.width, t], (y, w, p) => targetY(y, w) + swipeY * (1 - p))}
-			/>
+			>
+				<Sprite
+					ref={(sprite: PIXI.Sprite | null) => { if (sprite && sprite !== fadeMask) setFadeMask(sprite); }}
+					texture={getFadeTexture()}
+					anchor={0.5}
+					angle={swipeDeg - 270}
+					width={height * 1.6}
+					height={height * 1.6}
+				/>
+				<AnimatedPixi.Sprite
+					texture={getPixiTexture(resources.fingerPrint)}
+					mask={fadeMask ?? undefined}
+					anchor={0.5}
+					alpha={t.interpolate(p => Math.min(1, p * 1.6))}
+					angle={stampAngle}
+					width={width}
+					height={height}
+				/>
+			</AnimatedPixi.Container>
 		</AnimatedPixi.Container>
 	);
 };
 
 const generateCheckBadge = (cardWidth: number, cardUniqueId: string) => (style: AnimatedCardStyle): React.ReactNode =>
-	<BloodStamp style={style} cardWidth={cardWidth} cardUniqueId={cardUniqueId}/>;
+	<FingerStamp style={style} cardWidth={cardWidth} cardUniqueId={cardUniqueId}/>;
 
 // Веер руки лежит на дуге большого круга: чем больше радиус, тем более плоским
 // получается веер. Это функции, а не константы модуля: посчитанные один раз при
