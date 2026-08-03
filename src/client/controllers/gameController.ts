@@ -3,13 +3,14 @@ import SocketController from 'client/controllers/socketController';
 import Player from 'client/models/Player';
 import type INotificationAction from 'shared/interfaces/notification';
 import RootController from 'client/controllers/rootController';
-import {ECardType} from 'shared/enum/cards';
+import {ECardType, EEventID} from 'shared/enum/cards';
+import {burnMs, burnTailMs} from 'client/helpers/burnTiming';
 import {EAppState, EGameState} from 'shared/enum/common';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import type {IFormatCardDraw, IFormatCardEffect, IFormatPanicCard, IFormatTradeContext} from 'shared/interfaces/common';
 import fscreen from 'fscreen';
-import {difference, each, every, filter, find, includes, keys, merge, reduce, without} from "lodash";
+import {difference, each, every, filter, find, includes, keys, merge, reduce, some, without} from "lodash";
 import {EAsyncState} from 'shared/enum/async';
 import type {
 	IDeckPayload,
@@ -140,6 +141,17 @@ export default class GameController {
 	// Живёт дольше самого уведомления о конце игры: игрок может его скрыть и
 	// остаться дочитывать лог, но выход ему всё равно нужен — см. TableMenu.
 	@observable isGameOver: boolean = false;
+	// Конец игры, который ещё не показан. Сервер шлёт gameEnd перед последним
+	// обновлением стола (Game.end), поэтому уведомление всегда придерживается до
+	// него: только по обновлению видно, занялся ли на столе костёр. Смотри
+	// syncGameEnd.
+	pendingGameEnd: INotificationAction | null = null;
+	gameEndTimer: ReturnType<typeof setTimeout> | null = null;
+	// Наибольший номер уже виденного применения карты. null — обновлений ещё не
+	// было: пришедшему в середину партии чужие костры разом не показывают.
+	lastCardEffectSeq: number | null = null;
+	// Сколько конец игры ждёт костёр: всё сожжение целиком и пауза после него.
+	gameEndHoldMs: number = burnMs + burnTailMs;
 
 	constructor(root: RootController) {
 		this.root = root;
@@ -225,12 +237,45 @@ export default class GameController {
 		// прошлого выбора (или брошенного окна) к его картам отношения не имеют.
 		if (notification.type === ENotificationAction.selectCards) this.checkedNotificationCards = [];
 		if (notification.type === ENotificationAction.gameEnd) {
-			this.isGameOver = true;
-			// Обновлений стола после конца игры не будет, поэтому снять карту паники
-			// сервер уже не попросит — снимаем сами, как только выйдет её выдержка.
-			this.isPanicOnServer = false;
-			this.hidePanicCardIfDone();
+			// Не показываем сразу: следом придёт последнее обновление стола, и по нему
+			// станет видно, кончилась ли партия сожжением (см. syncGameEnd). Таймер —
+			// на случай, если того обновления почему-то не будет: конец игры обязан
+			// показаться в любом случае.
+			this.pendingGameEnd = notification;
+			this.armGameEndTimer(this.gameEndHoldMs);
+			return;
 		}
+		this.notifications = [...this.notifications, notification];
+	};
+
+	// Конец игры ждёт, пока догорит костёр: сожжение — самая громкая сцена партии
+	// и чаще всего сама же её развязка (сгорело Нечто). Окно поверх пожара съело
+	// бы её целиком, поэтому сперва стол доигрывает огонь.
+	@action syncGameEnd = (isBurnStarted: boolean) => {
+		if (!this.pendingGameEnd) return;
+		if (!isBurnStarted) {
+			this.releaseGameEnd();
+			return;
+		}
+		this.armGameEndTimer(this.gameEndHoldMs);
+	};
+
+	armGameEndTimer = (ms: number) => {
+		if (this.gameEndTimer) clearTimeout(this.gameEndTimer);
+		this.gameEndTimer = setTimeout(this.releaseGameEnd, ms);
+	};
+
+	@action releaseGameEnd = () => {
+		if (this.gameEndTimer) clearTimeout(this.gameEndTimer);
+		this.gameEndTimer = null;
+		const notification = this.pendingGameEnd;
+		if (!notification) return;
+		this.pendingGameEnd = null;
+		this.isGameOver = true;
+		// Обновлений стола после конца игры не будет, поэтому снять карту паники
+		// сервер уже не попросит — снимаем сами, как только выйдет её выдержка.
+		this.isPanicOnServer = false;
+		this.hidePanicCardIfDone();
 		this.notifications = [...this.notifications, notification];
 	};
 
@@ -463,6 +508,20 @@ export default class GameController {
 		this.currentAction = currentAction;
 		this.state = state;
 		this.gameLog = gameLog;
+		this.syncGameEnd(this.takeBurnStarted(cardEffects));
+	};
+
+	// Занялся ли в этом обновлении костёр — тем же признаком, каким его поджигает
+	// стол (см. useBurns): свежее применение огнемёта с целью.
+	takeBurnStarted = (cardEffects: IFormatCardEffect[]): boolean => {
+		const seen = this.lastCardEffectSeq;
+		const latest = reduce(cardEffects, (acc: number, {seq}) => Math.max(acc, seq), 0);
+		this.lastCardEffectSeq = latest;
+		// Обновлений ещё не было или счёт пошёл заново (следующая партия) — догонять
+		// нечего.
+		if (seen === null || latest < seen) return false;
+		return some(cardEffects, ({seq, cardId, targetPlayerId}) =>
+			seq > seen && cardId === EEventID.flamethrower && !!targetPlayerId);
 	};
 
 	toggleGameLog = () => {
@@ -475,6 +534,10 @@ export default class GameController {
 		// уведомлениями и старым индикатором действия.
 		this.isMenuOpen = false;
 		this.isGameOver = false;
+		if (this.gameEndTimer) clearTimeout(this.gameEndTimer);
+		this.gameEndTimer = null;
+		this.pendingGameEnd = null;
+		this.lastCardEffectSeq = null;
 		this.notifications = [];
 		this.currentAction = null;
 		this.playersToSelect = [];

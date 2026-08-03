@@ -70,6 +70,13 @@ test.describe.serial('Концовки игры', () => {
 		await session.waitFor('Alice', (s) => s.currentAction?.type === 'actionDecision');
 		await session.decide('Alice', 'burn');
 
+		// Итог партии ждёт, пока догорит костёр: сожжение приезжает последним
+		// обновлением стола (строка в логе), а окна «игра закончена» в этот момент
+		// ещё нет — оно выходит только после анимации.
+		await session.waitFor('Bob', (s) => s.gameLog.some((line) => line.includes('заживо сожжен')));
+		const duringBurn = await session.snapshot('Bob');
+		expect(duringBurn.notifications.some((n) => n.type === 'gameEnd')).toBe(false);
+
 		await session.waitFor('Bob', (s) => s.notifications.some((n) => n.type === 'gameEnd'));
 		const end = (await session.snapshot('Bob')).notifications.find((n) => n.type === 'gameEnd');
 		expect(end?.text).toContain('не справился');

@@ -7,6 +7,7 @@ import {AnimatedPixi, getPixiTexture} from 'client/components/table/pixiInjected
 import {formatNickname, getBadgeResource} from 'client/components/table/PlayerBadge/PlayerBadge';
 import {EEventID} from 'shared/enum/cards';
 import GameController from 'client/controllers/gameController';
+import {burnMs} from 'client/helpers/burnTiming';
 
 // Сожжение огнемётом. Поджигатель поливает соседа струёй огня во всю ширину
 // стола, кружок жертвы чернеет, обугливается и прогорает, а на его месте стоит
@@ -17,8 +18,6 @@ import GameController from 'client/controllers/gameController';
 // и никого не пересаживает (см. useBurns и burnedOut). Это заметное событие
 // партии, и его дают разглядеть.
 
-// Сколько идёт всё сожжение целиком.
-export const burnMs = 5200;
 // Доли времени: когда кружок начинает чернеть, когда огонь начинает его
 // выедать и когда от него ничего не остаётся. Чернеет он загодя и не спеша —
 // большую часть костра обугленный кружок ещё виден.
