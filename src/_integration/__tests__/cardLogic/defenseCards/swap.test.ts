@@ -254,4 +254,41 @@ describe('leavemealone test',  () => {
 
 	});
 
+	it('should swap automatically when there is nothing to decide', () => {
+		const [gameServer, game, defensePlayer] = createMockGameServer();
+		assertDefined(defensePlayer, 'defensePlayer не найден');
+		// Без «Мне и здесь неплохо» в меню остаётся один пункт — «Поменяться».
+		defensePlayer.hand = defensePlayer.hand.filter((card) => card.id !== EEventID.leaveMeAlone);
+
+		const offensePlayer = game.getPlayerByPosition({isNext: false, playerId: defensePlayer.id})
+		offensePlayer.hand.splice(0,1, getCard(EEventID.positionswap));
+
+		game.changeTurn(offensePlayer.id);
+		const positionswap = find(offensePlayer.hand, {id: EEventID.positionswap});
+
+		testPlayerAction(gameServer, game, {
+			player:offensePlayer,
+			cardUniqueId: cardUid(positionswap),
+			actionType: EPlayerActionType.cardAct
+		});
+
+		const initialDefensePosition = game.playersList.indexOf(defensePlayer.id);
+		const initialOffensePosition = game.playersList.indexOf(offensePlayer.id);
+
+		testPlayerAction(gameServer, game, {
+			player:offensePlayer,
+			selectedPlayerId: defensePlayer.id,
+			actionType: EPlayerActionType.playerSelect
+		});
+
+		// Игрока ни о чём не спрашивали — обмен уже произошёл.
+		expect(defensePlayer.currentAction).toBe(null);
+		expect(game.playersList.indexOf(offensePlayer.id)).toBe(initialDefensePosition);
+		expect(game.playersList.indexOf(defensePlayer.id)).toBe(initialOffensePosition);
+
+		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
+		expect(requireTurnContext(game.turnContext).type).toBe(ETurnContextType.trade);
+		expect(defensePlayer.turnState).toBe(ETurnState.idle);
+	});
+
 });

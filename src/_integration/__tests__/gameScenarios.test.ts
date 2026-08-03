@@ -20,6 +20,9 @@ describe('game scenarios', () => {
 		defensePlayer.isThing = true;
 		defensePlayer.isInfected = true;
 
+		// Без «Никакого шашлыка» у жертвы выбора нет — сервер сжигает сразу.
+		defensePlayer.hand = defensePlayer.hand.filter((card) => card.id !== EEventID.noFire);
+
 		const offensePlayer = game.getPlayerByPosition({isNext: false, playerId: defensePlayer.id});
 		offensePlayer.hand.splice(0, 1, getCard(EEventID.flamethrower));
 
@@ -36,11 +39,6 @@ describe('game scenarios', () => {
 			player: offensePlayer,
 			selectedPlayerId: defensePlayer.id,
 			actionType: EPlayerActionType.playerSelect,
-		});
-		testPlayerAction(gameServer, game, {
-			actionType: EPlayerActionType.actionDecision,
-			player: defensePlayer,
-			action: 'burn',
 		});
 
 		expect(game.gameInProcess).toBe(false);
@@ -146,10 +144,13 @@ describe('game scenarios', () => {
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
 	});
 
-	it('a burned non-Thing neighbour is removed from the game', () => {
+	it('a burned non-Thing neighbour is removed from the game without asking', () => {
 		const [gameServer, game, defenseMaybe] = createMockGameServer();
 		const defensePlayer = requirePlayer(game, defenseMaybe?.id);
 		defensePlayer.isThing = false;
+		// Единственный вариант («Сгореть») сервер отыгрывает сам — окна с одной
+		// кнопкой жертве не показываем.
+		defensePlayer.hand = defensePlayer.hand.filter((card) => card.id !== EEventID.noFire);
 
 		const offensePlayer = game.getPlayerByPosition({isNext: false, playerId: defensePlayer.id});
 		offensePlayer.hand.splice(0, 1, getCard(EEventID.flamethrower));
@@ -168,13 +169,9 @@ describe('game scenarios', () => {
 			selectedPlayerId: defensePlayer.id,
 			actionType: EPlayerActionType.playerSelect,
 		});
-		testPlayerAction(gameServer, game, {
-			actionType: EPlayerActionType.actionDecision,
-			player: defensePlayer,
-			action: 'burn',
-		});
-
+		expect(defensePlayer.currentAction).toBe(null);
 		expect(game.playersList).not.toContain(defensePlayer.id);
 		expect(defensePlayer.turnState).toBe(ETurnState.dead);
+		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
 	});
 });

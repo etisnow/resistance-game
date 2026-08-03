@@ -66,9 +66,8 @@ test.describe.serial('Концовки игры', () => {
 
 		await session.play('Bob', 'flamethrower');
 		await session.waitFor('Bob', (s) => s.currentAction?.type === 'playerSelect');
+		// У Alice нет «Никакого шашлыка» — сгорает сразу, без окна выбора.
 		await session.selectPlayer('Bob', 'Alice');
-		await session.waitFor('Alice', (s) => s.currentAction?.type === 'actionDecision');
-		await session.decide('Alice', 'burn');
 
 		// Итог партии ждёт, пока догорит костёр: сожжение приезжает последним
 		// обновлением стола (строка в логе), а окна «игра закончена» в этот момент

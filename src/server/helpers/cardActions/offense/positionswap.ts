@@ -2,6 +2,7 @@ import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
+import {askDecision} from 'server/helpers/askDecision';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
@@ -58,16 +59,12 @@ export const positionswapSelect = ({game, player, selectedPlayerId} : {game: Gam
 		})
 		text = `Игрок ${player.nickname} предлагает поменяться местами, но у тебя есть "Мне и здесь неплохо"`
 	}
-    defensePlayer.notify(formatPlayerNotification({
-		player: player,
-		notification: {
-			type: ENotificationAction.actionDecision,
-			text,
-			menu: decisionMenu
-		},
-    }));
 	game.addLog(`Игрок ${player.nickname} предложил смену мест игроку ${defensePlayer.nickname}`, EGameLogType.card);
 	player.changeTurnState(ETurnState.idle)
+	// Спрашиваем последним: если решать нечего, positionswapFinish тут же вернёт
+	// нападающего в inOffenseTrade, и переход в idle не должен затереть это.
+	const autoAction = askDecision({asker: player, decider: defensePlayer, text, menu: decisionMenu});
+	if (autoAction) positionswapFinish({game, player: defensePlayer, action: autoAction});
 };
 
 

@@ -50,8 +50,7 @@ test.describe.serial('Лаунчер и меню стола', () => {
 		await session.play('Bob', 'flamethrower');
 		await session.waitFor('Bob', (s) => s.currentAction?.type === 'playerSelect');
 		await session.selectPlayer('Bob', 'Alice');
-		await session.waitFor('Alice', (s) => s.currentAction?.type === 'actionDecision');
-		await session.decide('Alice', 'burn');
+		// У Alice нет «Никакого шашлыка» — сервер сжигает её сам.
 		await session.waitFor('Bob', (s) => s.notifications.some((n) => n.type === 'gameEnd'));
 
 		const bob = session.page('Bob');

@@ -2,6 +2,7 @@ import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
+import {askDecision} from 'server/helpers/askDecision';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
@@ -64,14 +65,8 @@ export const flamethrowerSelect = ({game, player, selectedPlayerId} : {game: Gam
 	// The offense player's action is still in progress: they are waiting for the
 	// defense player to decide whether to burn or use "no fire".
 	player.changeTurnState(ETurnState.inCardActionProgress);
-    defensePlayer.notify(formatPlayerNotification({
-		player: player,
-		notification: {
-			type: ENotificationAction.actionDecision,
-			text,
-			menu: decisionMenu
-		},
-    }));
+	const autoAction = askDecision({asker: player, decider: defensePlayer, text, menu: decisionMenu});
+	if (autoAction) flamethrowerFinish({game, player: defensePlayer, action: autoAction});
 };
 
 
