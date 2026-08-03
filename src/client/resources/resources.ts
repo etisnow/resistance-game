@@ -60,7 +60,6 @@ import playerBadgeInfected from "client/resources/images/playerBadges/infected.p
 import cardAct from "client/resources/images/buttons/act.png";
 import cardDiscard from "client/resources/images/buttons/discard.png";
 import cardTrade from "client/resources/images/buttons/trade.png";
-import cardSelect from "client/resources/images/buttons/select.png";
 
 import okay from "client/resources/images/buttons/okay.png";
 
@@ -115,7 +114,6 @@ const resources = {
 	cardAct,
 	cardDiscard,
 	cardTrade,
-	cardSelect,
 
 	okay,
 

@@ -196,8 +196,8 @@ test.describe.serial('Полная игровая сессия', () => {
 		// tenacity — выбор одной из трёх.
 		await session.arrange({players: NICKS, turn: 'Carol', hands: {Carol: fill(['tenacity'])}, deck: ['suspicion', 'analysis', 'barricade', 'whiskey']});
 		await session.play('Carol', 'tenacity');
-		await session.waitFor('Carol', (s) => s.currentAction?.type === 'selectCard');
-		await session.selectNotificationCard('Carol', 'suspicion');
+		await session.waitFor('Carol', (s) => s.currentAction?.type === 'selectCards');
+		await session.selectNotificationCards('Carol', ['suspicion']);
 		await session.expectTurnState('Carol', 'inCardAction');
 
 		// lookaround / whiskey — без цели, сразу в обмен.
@@ -283,9 +283,6 @@ test.describe.serial('Полная игровая сессия', () => {
 			if (after.currentAction?.type === 'playerSelect') {
 				const target = (after.currentAction.playersToSelect ?? [])[0];
 				if (target) await session.selectId(turn, target);
-			} else if (after.currentAction?.type === 'selectCard') {
-				const first = Object.values(after.currentAction.cards ?? {})[0];
-				if (first) await session.selectNotificationCard(turn, first.id);
 			} else if (after.currentAction?.type === 'selectCards') {
 				// Забывчивость: одно окно на весь обмен — отмечаем сколько просят и
 				// подтверждаем разом.

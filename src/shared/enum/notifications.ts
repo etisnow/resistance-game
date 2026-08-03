@@ -5,7 +5,6 @@ export enum ENotificationAction {
 	defenseTradeCard = 'defenseTradeCard',
 	info = 'info',
 	okayCard = 'okayCard',
-	selectCard = 'selectCard',
 	// Выбор сразу нескольких карт одним окном: игрок отмечает ровно count карт и
 	// подтверждает выбор целиком (забывчивость).
 	selectCards = 'selectCards',

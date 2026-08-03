@@ -30,13 +30,13 @@ test.describe.serial('Упорство (tenacity)', () => {
 		await session.play('Alice', 'tenacity');
 
 		// The three top event cards are offered for selection.
-		await session.waitFor('Alice', (s) => s.currentAction?.type === 'selectCard');
+		await session.waitFor('Alice', (s) => s.currentAction?.type === 'selectCards');
 		const offered = (await session.snapshot('Alice')).currentAction?.cards ?? {};
 		expect(Object.values(offered).map((c) => c.id).sort()).toEqual(['barricade', 'seduction', 'suspicion']);
 
 		// Keep suspicion; tenacity itself is gone, suspicion joins the hand, the
 		// player returns to the action phase with a card to play or discard.
-		await session.selectNotificationCard('Alice', 'suspicion');
+		await session.selectNotificationCards('Alice', ['suspicion']);
 		await session.waitFor('Alice', (s) => Object.values(s.hand).some((c) => c.id === 'suspicion'));
 		const snap = await session.snapshot('Alice');
 		expect(Object.values(snap.hand).some((c) => c.id === 'tenacity')).toBe(false);

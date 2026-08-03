@@ -79,7 +79,6 @@ const generateCardMenu = (card: ICardAny, cardActions: IHandActionsMap, onCardAc
 	const cardAct = getPixiTexture(resources['cardAct']);
 	const cardDiscard = getPixiTexture(resources['cardDiscard']);
 	const cardTrade = getPixiTexture(resources['cardTrade']);
-	const cardSelect = getPixiTexture(resources['cardSelect']);
 
 	const cardWidthPercent = 0.44
 	const calcWidth = (w: number) => w * cardWidthPercent
@@ -132,15 +131,6 @@ const generateCardMenu = (card: ICardAny, cardActions: IHandActionsMap, onCardAc
 					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.36)}
 					key={EPlayerActionType.cardTrade}
 					pointerdown={() => onCardAction(uniqueId, EPlayerActionType.cardTrade)}
-					{...overrideStyles}
-				/>
-			case EPlayerActionType.cardSelect:
-				return <AnimatedPixi.Sprite
-					{...commonSpriteProps}
-					texture={cardSelect}
-					y={interpolate([style.y, cardHeight], (y,h) => y + h * 0.36)}
-					key={EPlayerActionType.cardTrade}
-					pointerdown={() => onCardAction(uniqueId, EPlayerActionType.cardSelect)}
 					{...overrideStyles}
 				/>
 		}

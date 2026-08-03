@@ -64,22 +64,17 @@ export const actCard = ({game, cardUniqueId, player} : {game: Game, player: Play
 	}
 };
 
-export const selectCard = ({game, cardUniqueId, player} : {game: Game, player: Player, cardUniqueId: string}) => {
-	const {turnContext} = game;
-	if (!turnContext) return;
-	switch (turnContext.type) {
-		case ETurnContextType.tenacityCardSelect:
-			return tenacitySelect({game, cardUniqueId, player})
-		case ETurnContextType.blindDateCardSelect:
-			return blindDateSelect({game, cardUniqueId, player})
-	}
-};
-
-// Выбор нескольких карт одним подтверждением (см. ENotificationAction.selectCards).
+// Выбор карт в окне отметок: сколько бы их ни просили — одну (упорство,
+// свидание вслепую) или три (забывчивость), — приходят они одним действием
+// (см. ENotificationAction.selectCards).
 export const selectCards = ({game, cardUniqueIds, player} : {game: Game, player: Player, cardUniqueIds: string[]}) => {
 	const {turnContext} = game;
 	if (!turnContext) return;
 	switch (turnContext.type) {
+		case ETurnContextType.tenacityCardSelect:
+			return tenacitySelect({game, cardUniqueIds, player})
+		case ETurnContextType.blindDateCardSelect:
+			return blindDateSelect({game, cardUniqueIds, player})
 		case ETurnContextType.forgetfullnessSelect:
 			return forgetfullnessSelect({game, cardUniqueIds, player})
 	}

@@ -152,7 +152,6 @@ interface GcController {
 	socket: {socket: {emit(event: string, payload?: unknown): void; once(event: string, cb: (d: unknown) => void): void}};
 	cardAction(actionType: string, cardUniqueId: string): void;
 	selectPlayer(playerId: string): void;
-	selectCard(notification: GcNotification | null, cardUniqueId: string): void;
 	actionDecision(action: string): void;
 	cardPick(): void;
 	actionCancel(): void;
@@ -371,21 +370,6 @@ export class GameSession {
 		await this.page(nick).evaluate((i) => (window as unknown as GcWindow).__nechto!.selectPlayer(i), targetId);
 	}
 
-	async selectNotificationCard(nick: string, cardId: string): Promise<void> {
-		const uid = await this.page(nick).evaluate((wantId) => {
-			const gc = (window as unknown as GcWindow).__nechto!;
-			const action = gc.currentAction;
-			const cards = action?.cards ?? {};
-			const match = Object.values(cards).find((c) => c.id === wantId);
-			return match ? match.uniqueId : null;
-		}, cardId);
-		if (!uid) throw new Error(`В уведомлении игрока ${nick} нет карты ${cardId}`);
-		await this.page(nick).evaluate((u) => {
-			const gc = (window as unknown as GcWindow).__nechto!;
-			gc.selectCard(gc.currentAction, u);
-		}, uid);
-	}
-
 	// Окно множественного выбора (selectCards): отмечаем галочками названные карты
 	// и жмём OKEY — ровно то же, что делает живой игрок по канвасу.
 	async checkNotificationCard(nick: string, cardId: string): Promise<void> {
@@ -559,16 +543,6 @@ export class GameSession {
 				// осмотре (см. cardsView).
 				await this.confirmCardsView(nick);
 				return;
-			case 'selectCard': {
-				const cards = Object.values(ca.cards ?? {});
-				if (!cards.length) return;
-				const uid = pick(cards).uniqueId;
-				await this.page(nick).evaluate((u) => {
-					const gc = (window as unknown as GcWindow).__nechto!;
-					gc.selectCard(gc.currentAction, u);
-				}, uid);
-				return;
-			}
 			case 'selectCards': {
 				// Отмечаем count карт подряд и подтверждаем разом — тем же путём, что
 				// и живой игрок.

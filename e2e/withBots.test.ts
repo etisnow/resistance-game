@@ -19,7 +19,6 @@ interface GcWindow {
 		selectPlayer(id: string): void;
 		actionDecision(a: string): void;
 		cardPick(): void;
-		selectCard(n: unknown, uid: string): void;
 	};
 }
 

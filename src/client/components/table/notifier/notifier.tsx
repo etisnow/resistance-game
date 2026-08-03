@@ -1,9 +1,7 @@
 import React from 'react';
 import {observer} from 'mobx-react-lite';
 import './styles.scss';
-import {reduce} from 'lodash';
 import type INotificationAction from 'shared/interfaces/notification';
-import type {IHandActionsMap} from 'client/controllers/socketTypes';
 import GameController from 'client/controllers/gameController';
 import {ENotificationAction} from 'shared/enum/notifications';
 import * as PIXI from 'pixi.js';
@@ -21,7 +19,6 @@ import {getPixiTexture} from 'client/components/table/pixiInjected';
 import {resources} from 'client/resources/resources';
 import Rectangle from 'client/components/pixiPrimitives/Rectangle';
 import {cardAspectRatio} from 'shared/constant/cards';
-import {EPlayerActionType} from 'shared/enum/playerActions';
 
 interface INotifierProps {
 	controller:  GameController;
@@ -89,44 +86,6 @@ const Notification = observer(({notification, controller}: {notification: INotif
 						cardActions={{}}
 						onSelectCard={controller.selectNotificationCardPreview}
 						onCardAction={() => {}}
-						y={tableCenterY()}
-					/>
-				</React.Fragment>
-			);
-			break;
-		case ENotificationAction.selectCard:
-			//const menu = (cardUniqueId) => generateCardMenuByNotificationType(controller, notification, cardUniqueId);
-			cardHeight = rowHeight(Object.keys(notification.cards).length);
-			const menuAccumulator: IHandActionsMap = {};
-			const menu = reduce(notification.cards, (acc, card) => {
-				const uniqueId = card.uniqueId;
-				if (uniqueId) {
-					acc[uniqueId] = [{type: EPlayerActionType.cardSelect, menuType: EPlayerActionType.cardSelect}]
-				}
-				return acc;
-			}, menuAccumulator);
-
-			const handleCardSelect = (cardUniqueId: string, _actionType: EPlayerActionType) => {
-				controller.cardAction(EPlayerActionType.cardSelect, cardUniqueId)
-				controller.hidENotificationAction();
-			}
-
-			notificationContent = (
-				<React.Fragment>
-					<Text
-						x={getWindowWidth() / 2}
-						y={textY(cardHeight)}
-						text={notification.text}
-						anchor={0.5}
-						style={getFontStyle(18, getWindowWidth() * 0.8)}
-					/>
-					<HandComponent
-						cards={notification.cards}
-						selectedCardIndex={cardInNotificationPreview}
-						autoWidth={true}
-						cardActions={menu}
-						onSelectCard={controller.selectNotificationCardPreview}
-						onCardAction={handleCardSelect}
 						y={tableCenterY()}
 					/>
 				</React.Fragment>

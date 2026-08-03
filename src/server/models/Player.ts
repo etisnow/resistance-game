@@ -65,7 +65,6 @@ export class Player {
 		switch (notificationAction.type) {
 			case ENotificationAction.actionDecision:
 			case ENotificationAction.playerSelect:
-			case ENotificationAction.selectCard:
 			case ENotificationAction.selectCards:
 			case ENotificationAction.turnCard:
 			case ENotificationAction.defenseTradeCard:

@@ -6,7 +6,6 @@ import {formatCommonError, formatLobbyState, formatPlayerNotification} from 'ser
 import {
   isPlayerCanActCard, isPlayerCanCancel,
   isPlayerCanDiscardCard,
-  isPlayerCanSelectCard,
   isPlayerCanSelectCards,
   isPlayerCanSelectDesicion,
   isPlayerCanSelectPlayer,
@@ -391,12 +390,6 @@ class GameServer {
         case EPlayerActionType.playerSelect:
           if (!isPlayerCanSelectPlayer(game, player, selectedPlayerId)) {
             debugLog(`Игрок ${player.nickname} не выбрать игрока ${selectedPlayerId}`);
-            return;
-          }
-          break;
-        case EPlayerActionType.cardSelect:
-          if (!isPlayerCanSelectCard(game, player, cardUniqueId)) {
-            debugLog(`Игрок ${player.nickname} не выбрать карту ${cardUniqueId}`);
             return;
           }
           break;

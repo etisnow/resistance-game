@@ -3,7 +3,6 @@ export enum EPlayerActionType {
 	cardDiscard = 'discard',
 	cardTrade = 'cardTrade',
 	cardAct = 'act',
-	cardSelect = 'select',
 	cardsSelect = 'selectCards',
 	playerSelect = 'playerSelect',
 	// Игрок закрыл окно с чужими картами — осмотр подтверждён, ход идёт дальше

@@ -14,7 +14,7 @@ import {thingCard} from 'shared/constant/cards';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import INotificationAction from 'shared/interfaces/notification';
 import {ICardAny, ICardEvent, ICardPanic} from 'shared/interfaces/cards';
-import {actCard, playerActionDecision, selectCard, selectCards, selectPlayer, viewConfirm} from 'server/helpers/playerAction';
+import {actCard, playerActionDecision, selectCards, selectPlayer, viewConfirm} from 'server/helpers/playerAction';
 import {ITurnContext} from 'shared/interfaces/turnContext';
 import {tradeCard} from 'server/helpers/tradeCard';
 import {discardCardAction} from 'server/helpers/discardCard';
@@ -553,11 +553,6 @@ export class Game {
       case EPlayerActionType.cardAct:
         if (!cardUniqueId) return;
         actCard({game: this, player, cardUniqueId});
-        this.updateGame();
-        return;
-      case EPlayerActionType.cardSelect:
-        if (!cardUniqueId) return;
-        selectCard({game: this, player, cardUniqueId});
         this.updateGame();
         return;
       case EPlayerActionType.cardsSelect:

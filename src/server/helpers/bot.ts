@@ -77,11 +77,6 @@ const performBotAction = (gameServer: GameServer, game: Game, player: Player): v
 			// осмотре вечно (см. cardsView).
 			gameServer.playerAction({player, actionType: EPlayerActionType.viewConfirm});
 			return;
-		case ENotificationAction.selectCard: {
-			const card = pick(Object.values(action.cards), game.rng);
-			if (card?.uniqueId) gameServer.playerAction({player, actionType: EPlayerActionType.cardSelect, cardUniqueId: card.uniqueId});
-			return;
-		}
 		case ENotificationAction.selectCards: {
 			// Отмечаем нужное количество карт разом — тем же одним действием, каким
 			// их подтверждает живой игрок.

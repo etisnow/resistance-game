@@ -32,15 +32,15 @@ describe('tenacity test',  () => {
 
 
 		const currentAction = offensePlayer.currentAction;
-		if (!currentAction || currentAction.type !== ENotificationAction.selectCard) {
-			throw new Error('Ожидалось уведомление selectCard');
+		if (!currentAction || currentAction.type !== ENotificationAction.selectCards) {
+			throw new Error('Ожидалось уведомление selectCards');
 		}
 		const {cards} = currentAction;
 		const [firstTenacityCard] = Object.values(cards) as ICardEvent[];
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
-			cardUniqueId: firstTenacityCard?.uniqueId ?? undefined,
-			actionType: EPlayerActionType.cardSelect
+			cardUniqueIds: firstTenacityCard?.uniqueId ? [firstTenacityCard.uniqueId] : [],
+			actionType: EPlayerActionType.cardsSelect
 		});
 
 		expect(offensePlayer.hand).toContainEqual(

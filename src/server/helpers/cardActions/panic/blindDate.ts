@@ -10,12 +10,13 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {formatCards, getDiscardableCards} from 'server/helpers/cardHelpers';
 import INotificationAction from 'shared/interfaces/notification';
 
-// Свидание вслепую меняет одну карту, поэтому и окно у него обычное, на один
-// выбор (забывчивость меняет три и просит отметить их галочками разом).
+// Свидание вслепую меняет одну карту — то же окно выбора, что и у забывчивости,
+// только отметить в нём просят одну карту.
 export const notifyPlayerBlindDateCard = ({game, player}: {game:Game, player:Player}) : INotificationAction => ({
-	type: ENotificationAction.selectCard,
+	type: ENotificationAction.selectCards,
 	cards: formatCards(getDiscardableCards({game, player})),
-	text: 'Выбери одну из своих карт, чтобы поменять её на карту из колоды',
+	count: 1,
+	text: 'Выбери карту для сброса и возьми новую из колоды',
 });
 
 export const blindDateAct = ({game, player}: {game:Game, player:Player}) => {
@@ -32,7 +33,9 @@ export const blindDateAct = ({game, player}: {game:Game, player:Player}) => {
 };
 
 
-export const blindDateSelect = ({game, cardUniqueId, player}: {game:Game, player: Player, cardUniqueId: string}) => {
+export const blindDateSelect = ({game, cardUniqueIds, player}: {game:Game, player: Player, cardUniqueIds: string[]}) => {
+	const [cardUniqueId] = cardUniqueIds;
+	if (!cardUniqueId) return;
 	debugLog('BLIND DATE CARD UNIQUE', cardUniqueId);
 	player.discardCard(cardUniqueId);
 	const first = game.pickFirstEventCard();

@@ -41,13 +41,13 @@ test.describe.serial('Свидание вслепую (blindDate)', () => {
 			s.gameLog.some((l) => l.includes('достает карту паники')),
 		);
 
-		// Затем Alice получает выбор карты (selectCard) для обмена.
-		await session.waitFor('Alice', (s) => s.currentAction?.type === 'selectCard');
+		// Затем Alice получает окно отметок (selectCards) на одну карту для обмена.
+		await session.waitFor('Alice', (s) => s.currentAction?.type === 'selectCards');
 		const offered = (await session.snapshot('Alice')).currentAction?.cards ?? {};
 		expect(Object.values(offered).map((c) => c.id)).toContain('whiskey');
 
 		// Alice сбрасывает whiskey и берёт suspicion из колоды.
-		await session.selectNotificationCard('Alice', 'whiskey');
+		await session.selectNotificationCards('Alice', ['whiskey']);
 
 		await session.waitFor('Alice', (s) => Object.values(s.hand).some((c) => c.id === 'suspicion'));
 		const snap = await session.snapshot('Alice');

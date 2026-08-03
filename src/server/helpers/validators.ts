@@ -123,18 +123,6 @@ export const isPlayerCanSelectPlayer = (game: Game, player: Player, selectedPlay
 	return event.playersToSelect.includes(selectedPlayerId)
 };
 
-export const isPlayerCanSelectCard = (_game: Game, player: Player, cardUniqueId: string | undefined) => {
-	if (!player.currentAction || player.currentAction.type !== ENotificationAction.selectCard) {
-		return false;
-	}
-	const event = player.currentAction;
-	const selectedCard = find(event.cards, {uniqueId: cardUniqueId})
-	if (!selectedCard) {
-		console.error(`В предложенных картах нету ID выбранной`, event, cardUniqueId)
-	}
-	return !!selectedCard
-};
-
 // Пачка карт приходит одним действием, поэтому и проверяем её целиком: ровно
 // столько карт, сколько просили, без повторов и все — из предложенных.
 export const isPlayerCanSelectCards = (_game: Game, player: Player, cardUniqueIds: string[] | undefined) => {

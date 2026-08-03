@@ -54,14 +54,6 @@ const checkLastAction = (player: Player, actions: ICardEventMenuItem[]) => {
 	lastAction = signature;
 };
 
-const botSelectCardLogic = (gameServer: GameServer, player: Player) => {
-	const action = player.currentAction;
-	if (!action || action.type !== ENotificationAction.selectCard) return;
-	const randomCard = getRandomItemFromArray(Object.values(action.cards));
-	if (!randomCard || !randomCard.uniqueId) return;
-	gameServer.playerAction({player, actionType: EPlayerActionType.cardSelect, cardUniqueId: randomCard.uniqueId});
-};
-
 // Пачку карт бот отмечает и подтверждает разом — ровно как живой игрок в окне
 // выбора (ENotificationAction.selectCards).
 const botSelectCardsLogic = (gameServer: GameServer, player: Player) => {
@@ -121,9 +113,6 @@ const botAct = (gameServer: GameServer, player: Player, game: Game): boolean => 
 	if (!player.currentAction) return false;
 	if (player.state === EPlayerState.door) return false;
 	switch (player.currentAction.type) {
-		case ENotificationAction.selectCard:
-			botSelectCardLogic(gameServer, player);
-			return true;
 		case ENotificationAction.selectCards:
 			botSelectCardsLogic(gameServer, player);
 			return true;

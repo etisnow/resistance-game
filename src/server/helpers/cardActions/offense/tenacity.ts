@@ -27,17 +27,19 @@ export const tenacityAct = ({card, game, player} : {card:ICardEvent, game: Game,
     player.notify(formatPlayerNotification({
       player: player,
       notification: {
-        type: ENotificationAction.selectCard,
+        type: ENotificationAction.selectCards,
         cards: formatCards([first, second, third]),
-        text: `Выбери одну их этих карт себе в колоду`,
+        count: 1,
+        text: `Выбери карту, которую заберёшь себе в руку`,
       },
     }));
 };
 
-export const tenacitySelect = ({game, player, cardUniqueId} : {game: Game, player: Player, cardUniqueId: string}) => {
+export const tenacitySelect = ({game, player, cardUniqueIds} : {game: Game, player: Player, cardUniqueIds: string[]}) => {
 	if (!game.turnContext || game.turnContext.type !== ETurnContextType.tenacityCardSelect) {
 		throw new Error('Выбор упорства произошел без контекста tenacityCardSelect');
 	}
+	const [cardUniqueId] = cardUniqueIds;
 	game.addLog(`Игрок ${player.nickname} играет карту "Упорство"`, EGameLogType.card);
 	each(game.turnContext.cards, (card) => {
 		if (card.uniqueId === cardUniqueId) {

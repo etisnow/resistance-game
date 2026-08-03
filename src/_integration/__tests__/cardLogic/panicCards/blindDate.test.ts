@@ -25,8 +25,8 @@ describe('blindDate test',  () => {
 		if (!whiskey) throw new Error('whiskey card not found');
 		testPlayerAction(gameServer, game, {
 			player:offensePlayer,
-			cardUniqueId: whiskey.uniqueId ?? undefined,
-			actionType: EPlayerActionType.cardSelect
+			cardUniqueIds: whiskey.uniqueId ? [whiskey.uniqueId] : [],
+			actionType: EPlayerActionType.cardsSelect
 		});
 
 		// After the panic-driven swap the player proceeds to the normal
