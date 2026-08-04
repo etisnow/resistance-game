@@ -79,5 +79,14 @@ test.describe.serial('Концовки игры', () => {
 		await session.waitFor('Bob', (s) => s.notifications.some((n) => n.type === 'gameEnd'));
 		const end = (await session.snapshot('Bob')).notifications.find((n) => n.type === 'gameEnd');
 		expect(end?.text).toContain('не справился');
+
+		// Последний кадр стола — тот, на котором стол и останется: обновлений
+		// после конца партии не будет. Значит, сожжённое Нечто в рассадке не
+		// сидит, и стрелка огнемёта от поджигателя к нему не висит над столом.
+		const aliceId = await session.idOf('Alice');
+		const final = await session.snapshot('Bob');
+		expect(final.playersList).not.toContain(aliceId);
+		expect(final.players[aliceId]?.turnState).toBe('dead');
+		expect(final.tradeContext).toBe(null);
 	});
 });

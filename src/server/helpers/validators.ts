@@ -55,6 +55,11 @@ export const isPlayerCanActCard = (game: Game, player: Player, cardUniqueId: str
 	}
 };
 
+// Отменить можно ровно одно: не выбранную ещё цель. Как только цель выбрана,
+// карта уже ушла в сброс, а ход — к тому, на кого ей ходят: он решает, сгореть
+// ему или отбиться. Отмена в этот момент забирала бы у него это решение (и
+// оставляла его с меню, отвечать на которое уже некому), а сам ходящий получал
+// бы назад ход вместе с уже потраченной картой.
 export const isPlayerCanCancel = (game: Game, player: Player) => {
 	switch (player.turnState) {
 		case ETurnState.inCardActionProgress:
@@ -63,12 +68,13 @@ export const isPlayerCanCancel = (game: Game, player: Player) => {
 					case ETurnContextType.analysisPersonSelect:
 					case ETurnContextType.axePersonSelect:
 					case ETurnContextType.barricadePersonSelect:
-					case ETurnContextType.burn:
-					case ETurnContextType.positionswap:
 					case ETurnContextType.quarantinePersonSelect:
-					case ETurnContextType.seduction:
 					case ETurnContextType.suspicionPersonSelect:
 						return true;
+					case ETurnContextType.burn:
+					case ETurnContextType.positionswap:
+					case ETurnContextType.seduction:
+						return !game.turnContext.defensePlayer;
 				}
 			}
 	}

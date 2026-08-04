@@ -111,10 +111,6 @@ export class Game {
 
   killPlayer = (player: Player) => {
     player.currentAction = null;
-	if (player.isThing) {
-		this.end('Нечто проиграло');
-		return;
-	}
 
     const discardCardIds = player.hand.map(cardToDiscard => cardToDiscard.uniqueId);
     each(discardCardIds, cardUniqueId => {
@@ -130,6 +126,15 @@ export class Game {
 
     player.changeTurnState(ETurnState.dead)
     this.playersList = this.playersList.filter(pId => pId !== player.id);
+
+    // Нечто выбывает так же, как любой другой: сперва встаёт из-за стола (карты
+    // в сброс, из рассадки вон) и только потом заканчивает партию. Иначе в
+    // последнем кадре стола сожжённое Нечто остаётся сидеть живым — с рукой, в
+    // списке игроков и на своём месте, — и стол так и застывает с ним.
+    if (player.isThing) {
+      return this.end('Нечто проиграло');
+    }
+
     const alivePlayers = filter(clone(this.playersList), pId => !!this.players[pId]?.isAlive());
 
     const cleanPlayers = filter(alivePlayers, pId => !this.players[pId]?.isInfected);
@@ -263,9 +268,18 @@ export class Game {
 
     this.addLog(lastMessage ? lastMessage : 'Игра закончена.', EGameLogType.system, true)
 
+    // Стол разбирают до последнего кадра: партия кончилась, значит ничей ход не
+    // идёт (прицел наводить не на кого), никакое действие не разыграно до конца
+    // (стрелка от «того, кто ходит», к его цели больше ничего не значит) и ни от
+    // кого ничего не ждут. Всё это живёт ровно до следующего обновления, а его
+    // уже не будет — что осталось в этом кадре, то и застынет на столе.
+    this.turnContext = null;
+    this.turnPlayerId = null;
     each(this.playersList, (pId) => {
       const pl = this.players[pId];
-      if (pl) pl.changeTurnState(ETurnState.idle);
+      if (!pl) return;
+      pl.currentAction = null;
+      pl.changeTurnState(ETurnState.idle);
     });
     // Последний кадр стола. Он обязан уйти ДО gameInProcess = false: дальше
     // updateGame молча выходит, и всё, что случилось этим же ходом, до клиентов

@@ -8,6 +8,7 @@ import {requirePlayer} from '_integration/helpers';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 import {ETurnContextType} from 'shared/enum/turnContextType';
+import {isPlayerCanCancel} from 'server/helpers/validators';
 
 
 describe('antifire test',  () => {
@@ -77,6 +78,53 @@ describe('antifire test',  () => {
 		expect(defensePlayer.hand.length).toBe(4);
 
 
+	});
+
+	it('поджигатель не может отменить огнемет, когда цель уже выбрана', () => {
+		const [gameServer, game, defenseMaybe] = createMockGameServer();
+		const defensePlayer = requirePlayer(game, defenseMaybe?.id);
+		// С «Никаким шашлыком» на руках жертве есть что решать, поэтому ход
+		// останавливается на ней — в этот момент поджигатель и видел «Отмену».
+		defensePlayer.hand.splice(0, 1, getCard(EEventID.noFire));
+
+		const offensePlayer = game.getPlayerByPosition({isNext: false, playerId: defensePlayer.id});
+		offensePlayer.hand.splice(0, 1, getCard(EEventID.flamethrower));
+
+		game.changeTurn(offensePlayer.id);
+		const flamethrower = find(offensePlayer.hand, {id: EEventID.flamethrower});
+		if (!flamethrower) throw new Error('flamethrower card not found');
+
+		testPlayerAction(gameServer, game, {
+			player: offensePlayer,
+			cardUniqueId: flamethrower.uniqueId ?? undefined,
+			actionType: EPlayerActionType.cardAct,
+		});
+		// Цель ещё не выбрана — отменить огнемет можно.
+		expect(isPlayerCanCancel(game, offensePlayer)).toBe(true);
+
+		testPlayerAction(gameServer, game, {
+			player: offensePlayer,
+			selectedPlayerId: defensePlayer.id,
+			actionType: EPlayerActionType.playerSelect,
+		});
+
+		// Карта ушла в сброс, и решает теперь жертва — отменять нечего.
+		expect(isPlayerCanCancel(game, offensePlayer)).toBe(false);
+
+		// А если поджигатель всё-таки пришлёт отмену, сервер её не примет: иначе
+		// контекст хода пропадёт, и ответ жертвы упадёт в пустоту.
+		testPlayerAction(gameServer, game, {
+			player: offensePlayer,
+			actionType: EPlayerActionType.actionCancel,
+		});
+		expect(game.turnContext?.type).toBe(ETurnContextType.burn);
+
+		testPlayerAction(gameServer, game, {
+			actionType: EPlayerActionType.actionDecision,
+			player: defensePlayer,
+			action: 'burn',
+		});
+		expect(defensePlayer.turnState).toBe(ETurnState.dead);
 	});
 
 	it('antifire burn', () => {

@@ -43,6 +43,20 @@ describe('game scenarios', () => {
 
 		expect(game.gameInProcess).toBe(false);
 		expect(game.gameLog[game.gameLog.length - 1]?.text).toBe('Нечто проиграло');
+
+		// Сожжённое Нечто выбывает как любой другой: со стола его убирают ДО конца
+		// партии. Иначе последний (и уже никем не обновляемый) кадр стола оставляет
+		// его сидеть живым, с картами на руках.
+		expect(defensePlayer.turnState).toBe(ETurnState.dead);
+		expect(defensePlayer.hand.length).toBe(0);
+		expect(game.playersList).not.toContain(defensePlayer.id);
+
+		// И сам стол к этому кадру разобран: ничей ход не идёт и никакое действие
+		// не «висит» между игроками — иначе прицел и стрелка застывают навсегда.
+		expect(game.turnPlayerId).toBe(null);
+		expect(game.turnContext).toBe(null);
+		expect(offensePlayer.turnState).toBe(ETurnState.idle);
+		expect(offensePlayer.currentAction).toBe(null);
 	});
 
 	it('quarantine stays active for the target\'s next 3 turns, then frees', () => {

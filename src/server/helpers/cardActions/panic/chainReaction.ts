@@ -48,6 +48,10 @@ export const chainReactionTrade = ({game, player, cardUniqueId}: {game: Game, pl
 	player.changeTurnState(ETurnState.idle);
 
 	if (game.turnContext.playersPick.length === getPlayersCount({game})) {
+		// Раздача карт по кругу может закончить партию (последнему чистому игроку
+		// пришло заражение), а с концом игры контекст хода снимают со стола —
+		// поэтому чей это был ход, запоминаем до раздачи.
+		const startPlayerId = game.turnContext.startPlayer.id;
 		each(game.turnContext.playersPick, ({player: pickPlayer, card: pickCard}) => {
 			const nextPlayer = getNextChainReactionPlayer({game, currentPlayer: pickPlayer});
 			if (!nextPlayer) return;
@@ -56,7 +60,7 @@ export const chainReactionTrade = ({game, player, cardUniqueId}: {game: Game, pl
 				game.infectPlayer(nextPlayer.id);
 			}
 		})
-		game.endTurn(game.turnContext.startPlayer.id)
+		game.endTurn(startPlayerId)
 	}
 
 
