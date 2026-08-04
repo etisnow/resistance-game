@@ -7,16 +7,16 @@ const PROXY_TARGET = process.env.VITE_PROXY_TARGET || "http://localhost:3000";
 const CLIENT_PORT = Number(process.env.CLIENT_PORT) || 5173;
 
 // Public host when served via the Cloudflare tunnel (e.g. nechto.estaco.my).
-const ROOT_HOST = process.env.ROOT_HOST || "estaco.my";
 const PUBLIC_CLIENT_HOST = process.env.PUBLIC_CLIENT_HOST || "";
 
 const proxy = {
   "/socket.io": { target: PROXY_TARGET, ws: true, changeOrigin: true },
 };
 
-// Always allow localhost and any *.${ROOT_HOST} subdomain through vite's host
-// check (so the tunnel host is never blocked, even without per-host env).
-const allowedHosts = ["localhost", "127.0.0.1", "." + ROOT_HOST];
+// Always allow localhost, plus the tunnel host when one is configured, through
+// vite's host check.
+const allowedHosts = ["localhost", "127.0.0.1"];
+if (PUBLIC_CLIENT_HOST) allowedHosts.push(PUBLIC_CLIENT_HOST);
 // HMR must ride the tunnel (wss on :443) when the page is served from it.
 const hmr = PUBLIC_CLIENT_HOST
   ? { host: PUBLIC_CLIENT_HOST, protocol: "wss" as const, clientPort: 443 }

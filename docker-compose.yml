@@ -1,6 +1,13 @@
-# Dev stack: the client (vite dev server, HMR) and the backend (bun socket.io)
-# run as separate Docker services. The vite container proxies /socket.io to the
-# server container. Open http://localhost:5173.
+# Dev stack: the client (vite dev server, HMR), the backend (bun socket.io) and
+# the Cloudflare tunnel connector, all as Docker services. The vite container
+# proxies /socket.io to the server container.
+#
+# Reachable at http://localhost:5173 and, through the tunnel, at
+# https://${CLIENT_HOST} (the api lives on https://${API_HOST}).
+#
+# The tunnel itself is created by hand in the Cloudflare dashboard — its ingress
+# and DNS live there, and only the connector token comes from .env. Expected
+# ingress: ${CLIENT_HOST} -> http://client:5173, ${API_HOST} -> http://server:3000
 #
 # Source is bind-mounted for hot reload; the host's node_modules is reused
 # (run `./run install` once). A missing node_modules is bootstrapped on start.
@@ -26,9 +33,23 @@ services:
     environment:
       VITE_PROXY_TARGET: "http://server:3000"
       CLIENT_PORT: "5173"
+      # The browser loads the client from ${CLIENT_HOST}; socket.io connects to
+      # the api subdomain (cross-origin, CORS is permissive on the server).
+      VITE_SERVER_URL: "https://${API_HOST}"
+      PUBLIC_CLIENT_HOST: "${CLIENT_HOST}"
     volumes:
       - ./:/app
     ports:
       - "5173:5173"
     depends_on:
+      - server
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - client
       - server

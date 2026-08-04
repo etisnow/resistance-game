@@ -13,12 +13,10 @@ export PORT CLIENT_PORT
 
 DC="docker compose -f docker-compose.yml"
 DCP="docker compose -f docker-compose.prod.yml"
-DCT="docker compose -f docker-compose.yml -f docker-compose.tunnel.yml"
 
 # Hostnames / tunnel token (docker compose reads .env on its own; we need
 # CLIENT_HOST / API_HOST here too).
-load_env() { if [ -f .env ]; then set -a; . ./.env; set +a; fi; }
-load_env
+if [ -f .env ]; then set -a; . ./.env; set +a; fi
 
 # Poll an HTTP endpoint until it answers. args: url label [timeout_s]
 wait_http() {
@@ -37,19 +35,17 @@ usage() {
 Nechto — ./run <command>
 
 One button:
-  go             Everything up, publicly: deps + CF tunnel + client + server,
-                 waits until each answers (alias of `tunnel up`)
+  go             Deps + the whole dev stack in the background, waits until
+                 localhost and the public tunnel host both answer
 
-Docker (client = vite, server = bun — like grailgun):
-  up [args]      Start the dev stack (vite client + bun server) in Docker
+Docker (client = vite, server = bun, tunnel = cloudflared):
+  up [args]      Start the dev stack in the foreground (streams logs)
   down [args]    Stop the dev stack
-  logs [svc]     Follow logs (optionally one service: client | server)
+  logs [svc]     Follow logs (optionally one service: client | server | tunnel)
   restart [svc]  Restart services
   ps             List services
   prod <cmd>     Prod stack via docker-compose.prod.yml
                    prod up | prod down | prod build | prod logs
-  tunnel <cmd>   Expose via Cloudflare tunnel (client + api subdomains)
-                   tunnel up | tunnel down | tunnel status | tunnel logs
 
 Local (no Docker):
   install        bun install + Playwright chromium
@@ -75,8 +71,25 @@ cmd="${1:-help}"
 shift || true
 
 case "$cmd" in
-  # ---- One button: everything, publicly, via the tunnel ----
-  go|all)    exec "$0" tunnel up "$@" ;;
+  # ---- One button: the whole dev stack, publicly reachable ----
+  go|all)
+    : "${CLOUDFLARE_TUNNEL_TOKEN:?set in .env (Cloudflare dashboard -> Tunnels -> connector token)}"
+    : "${CLIENT_HOST:?set in .env}" "${API_HOST:?set in .env}"
+    [ -x node_modules/.bin/vite ] || bun install
+    $DC up -d --remove-orphans "$@"
+    echo
+    echo "Waiting for services:"
+    rc=0
+    wait_http "http://localhost:${PORT}/socket.io/?EIO=4&transport=polling" server 60 || rc=1
+    wait_http "http://localhost:${CLIENT_PORT}" client 60 || rc=1
+    wait_http "https://${CLIENT_HOST}" public 90 || rc=1
+    echo
+    echo "Up:"
+    echo "  local  : http://localhost:${CLIENT_PORT}"
+    echo "  client : https://${CLIENT_HOST}"
+    echo "  api    : https://${API_HOST}"
+    [ "$rc" -eq 0 ] || echo "  something did not come up — ./run logs"
+    exit "$rc" ;;
   # ---- Docker (dev) ----
   up|dev)    exec $DC up --remove-orphans "$@" ;;
   down)      exec $DC down --remove-orphans "$@" ;;
@@ -92,35 +105,6 @@ case "$cmd" in
       build) exec $DCP build "$@" ;;
       logs)  exec $DCP logs -f "$@" ;;
       *)     exec $DCP "$sub" "$@" ;;
-    esac ;;
-  # ---- Cloudflare tunnel ----
-  tunnel)
-    sub="${1:-up}"; shift || true
-    case "$sub" in
-      up)
-        # One button: deps -> CF tunnel + DNS -> client/server/cloudflared -> wait.
-        [ -x node_modules/.bin/vite ] || bun install
-        ./cmd/tunnel up
-        load_env                       # pick up the token cmd/tunnel just wrote
-        $DCT up -d --remove-orphans "$@"
-        echo
-        echo "Waiting for services:"
-        rc=0
-        wait_http "http://localhost:${PORT}/socket.io/?EIO=4&transport=polling" server 60 || rc=1
-        wait_http "http://localhost:${CLIENT_PORT}" client 60 || rc=1
-        wait_http "https://${CLIENT_HOST}" public 90 || rc=1
-        echo
-        echo "Up via tunnel:"
-        echo "  client: https://${CLIENT_HOST}"
-        echo "  api:    https://${API_HOST}"
-        [ "$rc" -eq 0 ] || echo "  something did not come up — ./run tunnel logs"
-        exit "$rc" ;;
-      down)
-        $DCT down "$@" || true
-        ./cmd/tunnel down ;;
-      status) ./cmd/tunnel status; echo; $DCT ps ;;
-      logs)   exec $DCT logs -f "$@" ;;
-      *)      ./cmd/tunnel "$sub" "$@" ;;
     esac ;;
   # ---- Local ----
   install)
