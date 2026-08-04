@@ -9,6 +9,7 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {isPlayerCanCancel} from 'server/helpers/validators';
+import {decisionTimeout} from 'server/helpers/askDecision';
 
 
 describe('antifire test',  () => {
@@ -125,6 +126,98 @@ describe('antifire test',  () => {
 			action: 'burn',
 		});
 		expect(defensePlayer.turnState).toBe(ETurnState.dead);
+	});
+
+	it('без «шашлыка» жертву всё равно спрашивают, а по таймауту сервер жмёт за неё', async () => {
+		const [gameServer, game, defenseMaybe] = createMockGameServer();
+		const defensePlayer = requirePlayer(game, defenseMaybe?.id);
+		defensePlayer.isThing = false;
+		// Ни одного «Никакого шашлыка» — в меню остаётся единственный пункт.
+		defensePlayer.hand = defensePlayer.hand.filter((card) => card.id !== EEventID.noFire);
+
+		const offensePlayer = game.getPlayerByPosition({isNext: false, playerId: defensePlayer.id});
+		offensePlayer.hand.splice(0, 1, getCard(EEventID.flamethrower));
+
+		game.changeTurn(offensePlayer.id);
+		const flamethrower = find(offensePlayer.hand, {id: EEventID.flamethrower});
+		if (!flamethrower) throw new Error('flamethrower card not found');
+
+		const initialTimeout = decisionTimeout.seconds;
+		decisionTimeout.seconds = 0.02;
+		try {
+			testPlayerAction(gameServer, game, {
+				player: offensePlayer,
+				cardUniqueId: flamethrower.uniqueId ?? undefined,
+				actionType: EPlayerActionType.cardAct,
+			});
+			testPlayerAction(gameServer, game, {
+				player: offensePlayer,
+				selectedPlayerId: defensePlayer.id,
+				actionType: EPlayerActionType.playerSelect,
+			});
+
+			// Спрашиваем даже с одной кнопкой: если бы окно появлялось только у того,
+			// кому есть чем ответить, скорость ответа выдавала бы карту в руке.
+			expect(defensePlayer.currentAction).toEqual(
+				expect.objectContaining({
+					type: ENotificationAction.actionDecision,
+					menu: [expect.objectContaining({action: 'burn'})],
+				})
+			);
+			expect(defensePlayer.turnState).toBe(ETurnState.idle);
+			expect(game.playersList).toContain(defensePlayer.id);
+
+			await new Promise((resolve) => setTimeout(resolve, 60));
+		} finally {
+			decisionTimeout.seconds = initialTimeout;
+		}
+
+		// Игрок промолчал — сервер отыграл за него единственный вариант.
+		expect(defensePlayer.currentAction).toBe(null);
+		expect(defensePlayer.turnState).toBe(ETurnState.dead);
+		expect(game.playersList).not.toContain(defensePlayer.id);
+		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
+	});
+
+	it('по таймауту «шашлык» применяется сам, а не сгорает', async () => {
+		const [gameServer, game, defenseMaybe] = createMockGameServer();
+		const defensePlayer = requirePlayer(game, defenseMaybe?.id);
+		defensePlayer.isThing = false;
+		defensePlayer.hand.splice(0, 1, getCard(EEventID.noFire));
+		const noFire = find(defensePlayer.hand, {id: EEventID.noFire});
+		if (!noFire) throw new Error('noFire card not found');
+
+		const offensePlayer = game.getPlayerByPosition({isNext: false, playerId: defensePlayer.id});
+		offensePlayer.hand.splice(0, 1, getCard(EEventID.flamethrower));
+
+		game.changeTurn(offensePlayer.id);
+		const flamethrower = find(offensePlayer.hand, {id: EEventID.flamethrower});
+		if (!flamethrower) throw new Error('flamethrower card not found');
+
+		const initialTimeout = decisionTimeout.seconds;
+		decisionTimeout.seconds = 0.02;
+		try {
+			testPlayerAction(gameServer, game, {
+				player: offensePlayer,
+				cardUniqueId: flamethrower.uniqueId ?? undefined,
+				actionType: EPlayerActionType.cardAct,
+			});
+			testPlayerAction(gameServer, game, {
+				player: offensePlayer,
+				selectedPlayerId: defensePlayer.id,
+				actionType: EPlayerActionType.playerSelect,
+			});
+			await new Promise((resolve) => setTimeout(resolve, 60));
+		} finally {
+			decisionTimeout.seconds = initialTimeout;
+		}
+
+		// Молчание — не согласие сгореть: по умолчанию играется защита, последний
+		// пункт меню.
+		expect(defensePlayer.turnState).toBe(ETurnState.idle);
+		expect(game.playersList).toContain(defensePlayer.id);
+		expect(defensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: noFire.uniqueId}));
+		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
 	});
 
 	it('antifire burn', () => {

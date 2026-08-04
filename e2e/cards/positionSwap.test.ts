@@ -31,14 +31,16 @@ test.describe.serial('Меняемся местами (positionswap)', () => {
 		const bobId = await session.idOf('Bob');
 		expect(offered).toContain(bobId);
 
+		await session.selectPlayer('Alice', 'Bob');
+		// Bob (no leaveMeAlone) only gets the plain swap option.
+		await session.waitFor('Bob', (s) => s.currentAction?.type === 'actionDecision');
+		const menu = (await session.snapshot('Bob')).currentAction?.menu ?? [];
+		expect(menu.map((m) => m.action)).toEqual(['swap']);
+
 		const before = (await session.snapshot('Alice')).playersList;
 		const aliceId = await session.idOf('Alice');
-
-		// У Bob'а нет «Мне и здесь неплохо»: единственный вариант («Поменяться»)
-		// сервер отыгрывает сам, ничего у Bob'а не спрашивая.
-		await session.selectPlayer('Alice', 'Bob');
+		await session.decide('Bob', 'swap');
 		await session.waitFor('Alice', (s) => s.playersList.indexOf(aliceId) === before.indexOf(bobId));
-		expect((await session.snapshot('Bob')).currentAction?.type).toBeUndefined();
 		const after = (await session.snapshot('Alice')).playersList;
 		// Alice and Bob exchanged seats.
 		expect(after.indexOf(aliceId)).toBe(before.indexOf(bobId));

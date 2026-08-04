@@ -4,8 +4,7 @@ import {GameSession, startGame, fill} from '../helpers/nechto';
 // Никакого шашлыка (noFire): защита от Огнемёта. Когда Огнемёт нацелен на
 // игрока с картой noFire, меню решения предлагает 'noFire' (спастись) рядом с
 // 'burn'. Выбор noFire спасает игрока, сбрасывает noFire, игрок тянет карту, а
-// offense переходит в inOffenseTrade. Без noFire выбирать нечего — сервер
-// сжигает сразу, окна решения у жертвы не появляется.
+// offense переходит в inOffenseTrade. Без noFire меню предлагает только 'burn'.
 // Mirrors src/_integration/__tests__/cardLogic/defenseCards/antiFireTest.ts +
 // src/server/helpers/cardActions/offense/flamethrower.ts.
 
@@ -22,7 +21,7 @@ test.describe.serial('Никакого шашлыка (noFire / antiFire)', () =
 		await session.close();
 	});
 
-	test('без noFire игрока не спрашивают — он сгорает сразу', async () => {
+	test('без noFire меню предлагает только "burn"', async () => {
 		await session.arrange({
 			players: NICKS,
 			turn: 'Alice',
@@ -36,12 +35,9 @@ test.describe.serial('Никакого шашлыка (noFire / antiFire)', () =
 		await session.waitFor('Alice', (s) => s.currentAction?.type === 'playerSelect');
 		await session.selectPlayer('Alice', 'Bob');
 
-		await session.waitFor('Bob', (s) => {
-			const me = s.currentPlayerId ? s.players[s.currentPlayerId] : undefined;
-			return me?.turnState === 'dead';
-		});
-		expect((await session.snapshot('Bob')).currentAction?.type).toBeUndefined();
-		await session.expectTurnState('Alice', 'inOffenseTrade');
+		await session.waitFor('Bob', (s) => s.currentAction?.type === 'actionDecision');
+		const menu = (await session.snapshot('Bob')).currentAction?.menu ?? [];
+		expect(menu.map((m) => m.action)).toEqual(['burn']);
 	});
 
 	test('с noFire меню предлагает "burn" и "noFire", выбор noFire спасает', async () => {

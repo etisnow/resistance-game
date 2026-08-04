@@ -15,6 +15,10 @@ interface INotificationActionGameEnd {
 export interface INotificationActionDecision {
 	type: ENotificationAction.actionDecision,
 	menu : {text: string, action: string}[]
+	// Сколько секунд отведено на ответ и что сервер нажмёт сам, когда они выйдут.
+	// Клиент отсчитывает это на кнопке по умолчанию (см. server/helpers/askDecision).
+	seconds?: number,
+	defaultAction?: string,
 }
 export interface INotificationActionOkayCard {
 	type: ENotificationAction.okayCard,

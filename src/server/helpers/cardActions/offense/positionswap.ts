@@ -61,10 +61,7 @@ export const positionswapSelect = ({game, player, selectedPlayerId} : {game: Gam
 	}
 	game.addLog(`Игрок ${player.nickname} предложил смену мест игроку ${defensePlayer.nickname}`, EGameLogType.card);
 	player.changeTurnState(ETurnState.idle)
-	// Спрашиваем последним: если решать нечего, positionswapFinish тут же вернёт
-	// нападающего в inOffenseTrade, и переход в idle не должен затереть это.
-	const autoAction = askDecision({asker: player, decider: defensePlayer, text, menu: decisionMenu});
-	if (autoAction) positionswapFinish({game, player: defensePlayer, action: autoAction});
+	askDecision({asker: player, decider: defensePlayer, text, menu: decisionMenu});
 };
 
 

@@ -35,14 +35,18 @@ test.describe.serial('Огнемёт (flamethrower)', () => {
 		const bobId = await session.idOf('Bob');
 		expect(offered).toContain(bobId);
 
-		// Alice targets Bob. У Bob'а нет «Никакого шашлыка», выбирать нечего —
-		// сервер сжигает сам, окна с единственной кнопкой Bob не видит.
+		// Alice targets Bob; Bob gets a burn decision.
 		await session.selectPlayer('Alice', 'Bob');
+		await session.waitFor('Bob', (s) => s.currentAction?.type === 'actionDecision');
+		const menu = (await session.snapshot('Bob')).currentAction?.menu ?? [];
+		expect(menu.map((m) => m.action)).toEqual(['burn']);
+
+		// Bob burns. He dies and leaves the players list; Alice moves to trade.
+		await session.decide('Bob', 'burn');
 		await session.waitFor('Bob', (s) => {
 			const me = s.currentPlayerId ? s.players[s.currentPlayerId] : undefined;
 			return me?.turnState === 'dead';
 		});
-		expect((await session.snapshot('Bob')).currentAction?.type).toBeUndefined();
 		const after = await session.snapshot('Alice');
 		expect(after.playersList).not.toContain(bobId);
 		const aliceId = after.currentPlayerId!;
@@ -97,8 +101,9 @@ test.describe.serial('Огнемёт (flamethrower)', () => {
 
 		await session.play('Alice', 'flamethrower');
 		await session.waitFor('Alice', (s) => s.currentAction?.type === 'playerSelect');
-		// Единственный вариант — сгореть, сервер отыгрывает его сразу.
 		await session.selectPlayer('Alice', 'Bob');
+		await session.waitFor('Bob', (s) => s.currentAction?.type === 'actionDecision');
+		await session.decide('Bob', 'burn');
 
 		// The game ends: every player gets the gameEnd notification, and its text
 		// says the Thing failed ("не справился").

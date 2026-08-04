@@ -35,8 +35,9 @@ test.describe.serial('Сматывай удочки (reelFishingRods)', () => {
 
 		const before = (await session.snapshot('Alice')).playersList;
 		const aliceId = await session.idOf('Alice');
-		// У Carol нет «Мне и здесь неплохо» — обмен проходит без вопроса к ней.
 		await session.selectPlayer('Alice', 'Carol');
+		await session.waitFor('Carol', (s) => s.currentAction?.type === 'actionDecision');
+		await session.decide('Carol', 'swap');
 
 		await session.waitFor('Alice', (s) => s.playersList.indexOf(aliceId) === before.indexOf(carolId));
 		const after = (await session.snapshot('Alice')).playersList;

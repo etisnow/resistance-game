@@ -145,8 +145,9 @@ test.describe.serial('Полная игровая сессия', () => {
 		await session.arrange({players: NICKS, turn: 'Dave', hands: {Dave: fill(['positionswap']), Erin: fill([], 4)}});
 		await session.play('Dave', 'positionswap');
 		await session.waitFor('Dave', (s) => s.currentAction?.type === 'playerSelect');
-		// У Erin нет анти-свопа — единственный вариант отыгрывается автоматически.
 		await session.selectPlayer('Dave', 'Erin');
+		await session.waitFor('Erin', (s) => s.currentAction?.type === 'actionDecision');
+		await session.decide('Erin', 'swap');
 		await session.expectTurnState('Dave', 'inOffenseTrade');
 
 		// reelFishingRods — на дальнего игрока + согласие.
@@ -154,6 +155,8 @@ test.describe.serial('Полная игровая сессия', () => {
 		await session.play('Alice', 'reelFishingRods');
 		await session.waitFor('Alice', (s) => s.currentAction?.type === 'playerSelect');
 		await session.selectPlayer('Alice', 'Carol');
+		await session.waitFor('Carol', (s) => s.currentAction?.type === 'actionDecision');
+		await session.decide('Carol', 'swap');
 		await session.expectTurnState('Alice', 'inOffenseTrade');
 
 		// flamethrower — сосед спасается «Никакого шашлыка» (никто не гибнет).

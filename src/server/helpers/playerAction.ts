@@ -22,6 +22,7 @@ import {oneTwoPlayerSelect} from 'server/helpers/cardActions/panic/oneTwo';
 import {onlyBetweenUsSelect} from 'server/helpers/cardActions/panic/onlyBetweenUs';
 import {forgetfullnessSelect} from 'server/helpers/cardActions/panic/forgetfulness';
 import {finishCardsView} from 'server/helpers/cardActions/cardsView';
+import {clearDecisionTimer} from 'server/helpers/askDecision';
 
 export const actCard = ({game, cardUniqueId, player} : {game: Game, player: Player, cardUniqueId: string}) => {
 	const card = player.getCardByUniqueId(cardUniqueId);
@@ -122,6 +123,8 @@ export const selectPlayer = ({game, selectedPlayerId, player} : {game: Game, pla
 
 
 export const playerActionDecision = ({game, action, player} : {game: Game, player: Player, action: string}) => {
+	// Ответили — автоответ сервера больше не нужен (см. askDecision).
+	clearDecisionTimer(player);
 	player.currentAction = null;
 	switch (action) {
 		case "cancelSwap":

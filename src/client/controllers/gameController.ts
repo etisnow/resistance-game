@@ -128,6 +128,10 @@ export default class GameController {
 	// на каждой панике (специальный спек проверяет настоящую выдержку).
 	panicCardMinMs: number = panicCardHoldMs;
 	@observable currentAction: INotificationAction | null = null;
+	// Секунды до автоответа на текущий вопрос: их показывает кнопка по умолчанию
+	// (см. startDecisionCountdown). null — отсчитывать нечего.
+	@observable decisionSecondsLeft: number | null = null;
+	decisionTimer: ReturnType<typeof setInterval> | null = null;
 	@observable hand: IHandMap = {};
 	@observable handActions: IHandActionsMap = {};
 	@observable cardInPreview: string | null = null;
@@ -236,6 +240,10 @@ export default class GameController {
 		// Новое окно множественного выбора начинается с чистого листа: галочки
 		// прошлого выбора (или брошенного окна) к его картам отношения не имеют.
 		if (notification.type === ENotificationAction.selectCards) this.checkedNotificationCards = [];
+		// Отсчёт до автоответа заводим по самому вопросу, а не по currentAction:
+		// обновления стола приносят тот же вопрос заново, и отсчёт стартовал бы с
+		// начала на каждом чужом действии.
+		if (notification.type === ENotificationAction.actionDecision) this.startDecisionCountdown(notification.seconds);
 		if (notification.type === ENotificationAction.gameEnd) {
 			// Не показываем сразу: следом придёт последнее обновление стола, и по нему
 			// станет видно, кончилась ли партия сожжением (см. syncGameEnd). Таймер —
@@ -246,6 +254,27 @@ export default class GameController {
 			return;
 		}
 		this.notifications = [...this.notifications, notification];
+	};
+
+	// Сколько секунд осталось до того, как сервер нажмёт кнопку по умолчанию сам
+	// (см. server/helpers/askDecision). null — вопроса с отсчётом сейчас нет.
+	@action startDecisionCountdown = (seconds: number | undefined) => {
+		this.stopDecisionCountdown();
+		if (!seconds) return;
+		this.decisionSecondsLeft = seconds;
+		this.decisionTimer = setInterval(() => this.tickDecisionCountdown(), 1000);
+	};
+
+	@action tickDecisionCountdown = () => {
+		if (this.decisionSecondsLeft === null) return;
+		// На нуле замираем: закрыть окно — дело сервера, он же и отыграет ответ.
+		this.decisionSecondsLeft = Math.max(0, this.decisionSecondsLeft - 1);
+	};
+
+	@action stopDecisionCountdown = () => {
+		if (this.decisionTimer) clearInterval(this.decisionTimer);
+		this.decisionTimer = null;
+		this.decisionSecondsLeft = null;
 	};
 
 	// Конец игры ждёт, пока догорит костёр: сожжение — самая громкая сцена партии
@@ -368,6 +397,7 @@ export default class GameController {
 
 	actionDecision = (action: string ) => {
 		this.hidENotificationAction();
+		this.stopDecisionCountdown();
 		switch (action) {
 			case 'restart':
 				this.isGameOver = false;
@@ -506,6 +536,8 @@ export default class GameController {
 		this.cardDraws = cardDraws;
 		this.syncPanicCard(panicCard);
 		this.currentAction = currentAction;
+		// Вопрос закрыт (ответили сами или за нас) — отсчитывать больше нечего.
+		if (!currentAction || currentAction.type !== ENotificationAction.actionDecision) this.stopDecisionCountdown();
 		this.state = state;
 		this.gameLog = gameLog;
 		this.syncGameEnd(this.takeBurnStarted(cardEffects));
@@ -540,6 +572,7 @@ export default class GameController {
 		this.lastCardEffectSeq = null;
 		this.notifications = [];
 		this.currentAction = null;
+		this.stopDecisionCountdown();
 		this.playersToSelect = [];
 		this.checkedNotificationCards = [];
 		if (this.panicHoldTimer) clearTimeout(this.panicHoldTimer);

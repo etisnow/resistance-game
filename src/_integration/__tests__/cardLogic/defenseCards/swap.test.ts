@@ -9,6 +9,7 @@ import {testPlayerAction} from '_integration/testPlayerActionsDecisions';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ICardAny} from 'shared/interfaces/cards';
 import {ITurnContext} from 'shared/interfaces/turnContext';
+import {decisionTimeout} from 'server/helpers/askDecision';
 
 function assertDefined<T>(value: T, message: string): asserts value is NonNullable<T> {
 	if (value === null || value === undefined) throw new Error(message);
@@ -254,41 +255,96 @@ describe('leavemealone test',  () => {
 
 	});
 
-	it('should swap automatically when there is nothing to decide', () => {
+	it('без «мне и здесь неплохо» всё равно спрашивают, а по таймауту меняют местами', async () => {
 		const [gameServer, game, defensePlayer] = createMockGameServer();
 		assertDefined(defensePlayer, 'defensePlayer не найден');
-		// Без «Мне и здесь неплохо» в меню остаётся один пункт — «Поменяться».
+		// Без защитной карты в меню остаётся единственный пункт — «Поменяться».
 		defensePlayer.hand = defensePlayer.hand.filter((card) => card.id !== EEventID.leaveMeAlone);
 
-		const offensePlayer = game.getPlayerByPosition({isNext: false, playerId: defensePlayer.id})
-		offensePlayer.hand.splice(0,1, getCard(EEventID.positionswap));
+		const offensePlayer = defensePlayer.getPrevPlayer();
+		offensePlayer.hand.splice(0, 1, getCard(EEventID.positionswap));
 
 		game.changeTurn(offensePlayer.id);
 		const positionswap = find(offensePlayer.hand, {id: EEventID.positionswap});
 
-		testPlayerAction(gameServer, game, {
-			player:offensePlayer,
-			cardUniqueId: cardUid(positionswap),
-			actionType: EPlayerActionType.cardAct
-		});
+		const initialDefensePosition = game.playersList.indexOf(defensePlayer.id);
+		const initialOffensePosition = game.playersList.indexOf(offensePlayer.id);
+
+		const initialTimeout = decisionTimeout.seconds;
+		decisionTimeout.seconds = 0.02;
+		try {
+			testPlayerAction(gameServer, game, {
+				player: offensePlayer,
+				cardUniqueId: cardUid(positionswap),
+				actionType: EPlayerActionType.cardAct
+			});
+			testPlayerAction(gameServer, game, {
+				player: offensePlayer,
+				selectedPlayerId: defensePlayer.id,
+				actionType: EPlayerActionType.playerSelect
+			});
+
+			// Спрашиваем даже с одной кнопкой: молчаливый обмен выдавал бы, что
+			// защитной карты на руке нет.
+			expect(defensePlayer.currentAction).toEqual(
+				expect.objectContaining({
+					type: ENotificationAction.actionDecision,
+					menu: [expect.objectContaining({action: 'swap'})],
+				})
+			);
+			expect(game.playersList.indexOf(defensePlayer.id)).toBe(initialDefensePosition);
+
+			await new Promise((resolve) => setTimeout(resolve, 60));
+		} finally {
+			decisionTimeout.seconds = initialTimeout;
+		}
+
+		expect(defensePlayer.currentAction).toBe(null);
+		expect(game.playersList.indexOf(offensePlayer.id)).toBe(initialDefensePosition);
+		expect(game.playersList.indexOf(defensePlayer.id)).toBe(initialOffensePosition);
+		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
+		expect(requireTurnContext(game.turnContext).type).toBe(ETurnContextType.trade);
+	});
+
+	it('по таймауту играется отказ от обмена, если защитная карта есть', async () => {
+		const [gameServer, game, defensePlayer] = createMockGameServer();
+		assertDefined(defensePlayer, 'defensePlayer не найден');
+		defensePlayer.hand.splice(0, 1, getCard(EEventID.leaveMeAlone));
+		const leaveMeAlone = find(defensePlayer.hand, {id: EEventID.leaveMeAlone});
+
+		const offensePlayer = defensePlayer.getPrevPlayer();
+		offensePlayer.hand.splice(0, 1, getCard(EEventID.positionswap));
+
+		game.changeTurn(offensePlayer.id);
+		const positionswap = find(offensePlayer.hand, {id: EEventID.positionswap});
 
 		const initialDefensePosition = game.playersList.indexOf(defensePlayer.id);
 		const initialOffensePosition = game.playersList.indexOf(offensePlayer.id);
 
-		testPlayerAction(gameServer, game, {
-			player:offensePlayer,
-			selectedPlayerId: defensePlayer.id,
-			actionType: EPlayerActionType.playerSelect
-		});
+		const initialTimeout = decisionTimeout.seconds;
+		decisionTimeout.seconds = 0.02;
+		try {
+			testPlayerAction(gameServer, game, {
+				player: offensePlayer,
+				cardUniqueId: cardUid(positionswap),
+				actionType: EPlayerActionType.cardAct
+			});
+			testPlayerAction(gameServer, game, {
+				player: offensePlayer,
+				selectedPlayerId: defensePlayer.id,
+				actionType: EPlayerActionType.playerSelect
+			});
+			await new Promise((resolve) => setTimeout(resolve, 60));
+		} finally {
+			decisionTimeout.seconds = initialTimeout;
+		}
 
-		// Игрока ни о чём не спрашивали — обмен уже произошёл.
-		expect(defensePlayer.currentAction).toBe(null);
-		expect(game.playersList.indexOf(offensePlayer.id)).toBe(initialDefensePosition);
-		expect(game.playersList.indexOf(defensePlayer.id)).toBe(initialOffensePosition);
-
+		// По умолчанию — последний пункт меню, то есть защита: места остаются свои,
+		// а «Мне и здесь неплохо» уходит в сброс.
+		expect(game.playersList.indexOf(defensePlayer.id)).toBe(initialDefensePosition);
+		expect(game.playersList.indexOf(offensePlayer.id)).toBe(initialOffensePosition);
+		expect(defensePlayer.hand).not.toContainEqual(expect.objectContaining({uniqueId: cardUid(leaveMeAlone)}));
 		expect(offensePlayer.turnState).toBe(ETurnState.inOffenseTrade);
-		expect(requireTurnContext(game.turnContext).type).toBe(ETurnContextType.trade);
-		expect(defensePlayer.turnState).toBe(ETurnState.idle);
 	});
 
 });

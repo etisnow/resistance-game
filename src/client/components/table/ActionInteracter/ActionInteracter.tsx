@@ -15,16 +15,25 @@ interface IActionInteracterProps {
 
 const renderAction = (action: INotificationAction, controller: GameController) => {
 	if (action.type !== ENotificationAction.actionDecision && action.type !== ENotificationAction.gameEnd) return null;
+	// Кнопка по умолчанию: её сервер нажмёт сам, когда выйдет время (см.
+	// server/helpers/askDecision). Отсчёт идёт прямо на ней — молчание тоже ход,
+	// и игрок должен видеть, сколько у него осталось и что именно случится.
+	const defaultAction = action.type === ENotificationAction.actionDecision ? action.defaultAction : undefined;
+	const secondsLeft = controller.decisionSecondsLeft;
+	const seconds = action.type === ENotificationAction.actionDecision ? action.seconds : undefined;
 	return (
 		<div className={"menu-wrapper"}>
 			<div className={"centeredNotificationRow column"}>
 				{map(action.menu, ({text, action}) => {
+					const isCountingDown = secondsLeft !== null && !!seconds && action === defaultAction;
 					return (<div
 						key={action}
-						className={'okayNotificationButton'}
+						className={cn('okayNotificationButton', {counting: isCountingDown})}
 						onClick={() => controller.actionDecision(action)}
 					>
-						{text}
+						{isCountingDown && <div className={'countdown-fill'} style={{width: (secondsLeft / seconds) * 100 + '%'}}/>}
+						<div className={'button-text'}>{text}</div>
+						{isCountingDown && <div className={'countdown-seconds'}>{secondsLeft}</div>}
 					</div>)
 				})}
 			</div>

@@ -65,8 +65,7 @@ export const flamethrowerSelect = ({game, player, selectedPlayerId} : {game: Gam
 	// The offense player's action is still in progress: they are waiting for the
 	// defense player to decide whether to burn or use "no fire".
 	player.changeTurnState(ETurnState.inCardActionProgress);
-	const autoAction = askDecision({asker: player, decider: defensePlayer, text, menu: decisionMenu});
-	if (autoAction) flamethrowerFinish({game, player: defensePlayer, action: autoAction});
+	askDecision({asker: player, decider: defensePlayer, text, menu: decisionMenu});
 };
 
 

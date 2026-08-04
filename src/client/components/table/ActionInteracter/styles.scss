@@ -58,5 +58,31 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
+
+		// Кнопка по умолчанию: полоса под подписью утекает справа налево, а справа
+		// стоят оставшиеся секунды. Когда они кончатся, сервер нажмёт её сам.
+		.okayNotificationButton.counting {
+			position: relative;
+			overflow: hidden;
+
+			.countdown-fill {
+				position: absolute;
+				top: 0;
+				left: 0;
+				bottom: 0;
+				background: rgba(255, 255, 255, 0.22);
+				transition: width 1s linear;
+				pointer-events: none;
+			}
+			.button-text {
+				position: relative;
+			}
+			.countdown-seconds {
+				position: absolute;
+				right: 10px;
+				font-variant-numeric: tabular-nums;
+				opacity: 0.85;
+			}
+		}
 	}
 }
