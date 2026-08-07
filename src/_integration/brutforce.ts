@@ -155,13 +155,16 @@ export interface IBrutforceResult {
 // Play `iterations` full random games to completion. Throws if the engine
 // throws, a game gets stuck, or a game fails to reach a valid end state —
 // i.e. this is the crash/undefined-behavior fuzz test for the server.
-export const runBrutforce = (iterations: number, {silent = true}: {silent?: boolean} = {}): IBrutforceResult => {
+export const runBrutforce = (
+	iterations: number,
+	{silent = true, playersCount}: {silent?: boolean; playersCount?: number} = {},
+): IBrutforceResult => {
 	let thingWins = 0;
 	lastAction = null;
 	actionCounter = 0;
 
 	for (let iteration = 0; iteration < iterations; iteration++) {
-		const [gameServer, game] = createBrutforceServer();
+		const [gameServer, game] = createBrutforceServer(playersCount);
 		let safety = 0;
 		while (!isGameOver(game)) {
 			if (++safety > 10000) {

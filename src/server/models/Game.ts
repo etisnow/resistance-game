@@ -31,6 +31,9 @@ import type {IServerEvent} from 'shared/interfaces/socket';
 import {EGameLogType} from 'shared/enum/gameLogType';
 import type {IGameLogEntry} from 'shared/interfaces/gameLog';
 import type {IFormatCardDraw, IFormatCardEffect} from 'shared/interfaces/common';
+import {MatchRecorder} from 'server/analytics/recorder';
+import {submitMatch} from 'server/analytics/track';
+import {EAnalyticsDeathCause} from 'shared/analytics/contract';
 
 // Сколько последних применений карт держим для клиента: он показывает только
 // то, что случилось с прошлого обновления, но переподключившемуся полезно
@@ -81,10 +84,14 @@ export class Game {
   // enough to replay the exact deal/draws. Override before start() via reseed().
   seed: number = 0;
   rng: () => number = Math.random;
+  // Запись партии для аналитического центра. Копится в памяти всю игру и
+  // уезжает наружу одним пакетом в конце (см. server/analytics/recorder.ts).
+  analytics: MatchRecorder;
   constructor({ player }: { player: Player }) {
     this.id = uniqueId("game_");
     this.players[player.id] = player;
     this.reseed(Math.floor(Math.random() * 0xffffffff));
+    this.analytics = new MatchRecorder(crypto.randomUUID());
   }
 
   reseed = (seed: number) => {
@@ -109,7 +116,10 @@ export class Game {
     player.notify(formatPlayerNotification({ player, notification }));
   }
 
-  killPlayer = (player: Player) => {
+  // cause/by — только для аналитики: движку всё равно, отчего игрок выбыл, а
+  // разбору партии («кто кого сжёг») без этого не обойтись.
+  killPlayer = (player: Player, {cause = EAnalyticsDeathCause.other, by = null}: {cause?: EAnalyticsDeathCause, by?: Player | null} = {}) => {
+    this.analytics.death({player, cause, by});
     player.currentAction = null;
 
     const discardCardIds = player.hand.map(cardToDiscard => cardToDiscard.uniqueId);
@@ -239,6 +249,7 @@ export class Game {
   addCardDraw({player, count = 1}: {player: Player, count?: number}) {
     if (!this.gameInProcess) return;
     this.cardDrawSeq += 1;
+    this.analytics.cardDraw(player, count);
     this.cardDraws.push({seq: this.cardDrawSeq, playerId: player.id, count});
     if (this.cardDraws.length > cardDrawsKept) this.cardDraws = this.cardDraws.slice(-cardDrawsKept);
   }
@@ -267,6 +278,10 @@ export class Game {
 
 
     this.addLog(lastMessage ? lastMessage : 'Игра закончена.', EGameLogType.system, true)
+
+    // Партия доиграна — только сейчас её можно отдать в аналитику: до этого
+    // момента роли за столом ещё тайна, и наружу они уходить не должны.
+    submitMatch(this, {endMessage: lastMessage, isComplete: true});
 
     // Стол разбирают до последнего кадра: партия кончилась, значит ничей ход не
     // идёт (прицел наводить не на кого), никакое действие не разыграно до конца
@@ -299,6 +314,8 @@ export class Game {
     this.addLog('Игра началась', EGameLogType.system);
     this.state = EGameState.sarted;
     gameStarter(this);
+    // После раздачи: рассадка и роли уже известны, ходов ещё не было.
+    this.analytics.gameStart(this);
     const firstPlayerId = this.playersList[0];
     if (firstPlayerId) this.changeTurn(firstPlayerId);
     checkAllDeckCards(this, !gameServer.isMock);
@@ -314,6 +331,7 @@ export class Game {
   };
 
   makePanic = (player: Player, panicCard: ICardPanic) => {
+    this.analytics.panic(player, panicCard.id);
     this.discardedDeckPush(panicCard);
     this.panicCard = panicCard;
     this.panicPlayerId = player.id;
@@ -365,12 +383,17 @@ export class Game {
 
 
 
-  infectPlayer = (playerId: string) => {
+  // source/via — только для аналитики: от кого прилетело «Заражение!» и каким
+  // путём (обмен, цепная реакция). На саму игру не влияют.
+  infectPlayer = (playerId: string, {source = null, via = 'trade'}: {source?: Player | null, via?: string} = {}) => {
     const notificationPlayer = this.players[playerId];
     if (!notificationPlayer) {
       console.error('Неудалось заразить игрока, т.к не было найдено его ID', playerId);
       return;
     }
+    // Роль пишем ДО заражения: иначе цель уже «заражённая» и по событию не
+    // видно, что момент заражения — именно этот.
+    this.analytics.infection({target: notificationPlayer, source, via});
     notificationPlayer.isInfected = true;
 
     const cleanPlayerId = find(this.playersList, (pId) => {
@@ -462,6 +485,7 @@ export class Game {
       return this.changeTurn(nextPlayer.id)
     }
     this.addLog(`Ходит игрок ${player.nickname}!`, EGameLogType.turn);
+    this.analytics.turnStart(player);
     player.changeTurnState(ETurnState.inCardPick);
     // In mock/test mode there is no interactive "draw a card" step: the player
     // immediately draws and enters the action phase (the pre-cardPick contract

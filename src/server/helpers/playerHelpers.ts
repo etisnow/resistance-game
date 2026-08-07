@@ -3,12 +3,13 @@ import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {debugLog} from 'server/helpers/util';
 import {EGameLogType} from 'shared/enum/gameLogType';
+import {EAnalyticsDeathCause} from 'shared/analytics/contract';
 
 const processDeathByOverinfection = (player:Player) => {
 	const game = player.game;
 	const nextPlayer = player.getNextAlivePlayer();
 	game.addLog(`Какое несчастье. ${player.nickname} умер от перезаражения. Вместо него теперь играет ${nextPlayer.nickname}`, EGameLogType.death)
-	game.killPlayer(player);
+	game.killPlayer(player, {cause: EAnalyticsDeathCause.overinfect});
 	debugLog(`Состояние игры ${game.turnContext && game.turnContext.type}. Стейт некста ${nextPlayer.turnState}`)
 	if (game.turnContext && game.turnContext.type === ETurnContextType.trade) {
 		if (game.turnContext.defensePlayer === player) {

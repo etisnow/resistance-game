@@ -23,11 +23,21 @@ import {onlyBetweenUsSelect} from 'server/helpers/cardActions/panic/onlyBetweenU
 import {forgetfullnessSelect} from 'server/helpers/cardActions/panic/forgetfulness';
 import {finishCardsView} from 'server/helpers/cardActions/cardsView';
 import {clearDecisionTimer} from 'server/helpers/askDecision';
+import {contextCardId, decisionCardId} from 'server/analytics/track';
 
 export const actCard = ({game, cardUniqueId, player} : {game: Game, player: Player, cardUniqueId: string}) => {
 	const card = player.getCardByUniqueId(cardUniqueId);
 	if (!card) {
 		throw new Error('Похоже карта не была найдена у игрока ' + player.nickname + ' c ID ' + cardUniqueId);
+	}
+	// Единая точка «карта разыграна» для аналитики: цель у прицельных карт
+	// выбирается следующим действием и доклеивается в selectPlayer.
+	game.analytics.cardPlay(player, card.id);
+	// Защитная карта в контексте обмена — это ещё и срыв обмена: считаем отдельно,
+	// иначе «сколько раз игрок отбился» пришлось бы вычислять по логу.
+	const tradeContext = game.turnContext && game.turnContext.type === ETurnContextType.trade ? game.turnContext : null;
+	if (tradeContext && (card.id === EEventID.fear || card.id === EEventID.miss || card.id === EEventID.noThanks)) {
+		game.analytics.tradeRefuse(player, tradeContext.offensePlayer, card.id);
 	}
 	switch (card.id) {
 		case EEventID.tenacity:
@@ -94,6 +104,13 @@ export const viewConfirm = ({game, player} : {game: Game, player: Player}) => {
 export const selectPlayer = ({game, selectedPlayerId, player} : {game: Game, player: Player, selectedPlayerId: string}) => {
 	const {turnContext} = game;
 	if (!turnContext) return;
+	// Цель прицельной карты — то самое «сыграл анализ НА X», ради чего аналитика
+	// и затевалась. Дописываем её к уже записанному розыгрышу карты.
+	const targetedCardId = contextCardId(turnContext.type);
+	const selectedPlayer = game.players[selectedPlayerId];
+	if (targetedCardId && selectedPlayer) {
+		game.analytics.cardPlayTarget(player, targetedCardId, selectedPlayer);
+	}
 	switch (turnContext.type) {
 		case ETurnContextType.suspicionPersonSelect:
 			return suspicionSelect({game, selectedPlayerId, player});
@@ -125,6 +142,7 @@ export const selectPlayer = ({game, selectedPlayerId, player} : {game: Game, pla
 export const playerActionDecision = ({game, action, player} : {game: Game, player: Player, action: string}) => {
 	// Ответили — автоответ сервера больше не нужен (см. askDecision).
 	clearDecisionTimer(player);
+	game.analytics.decision({player, action, cardId: decisionCardId(action)});
 	player.currentAction = null;
 	switch (action) {
 		case "cancelSwap":

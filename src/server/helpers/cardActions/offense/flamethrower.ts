@@ -10,6 +10,7 @@ import {ETurnState} from 'shared/enum/player';
 import {EEventID} from 'shared/enum/cards';
 import {find} from 'lodash';
 import {EGameLogType} from 'shared/enum/gameLogType';
+import {EAnalyticsDeathCause} from 'shared/analytics/contract';
 
 export const flamethrowerAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	if (!card.uniqueId) return;
@@ -85,13 +86,18 @@ export const flamethrowerFinish = ({game, player, action} : {game: Game, player:
 			// последнее обновление стола.
 			game.addCardEffect({cardId: EEventID.flamethrower, player: offensePlayer, target: defensePlayer});
 			game.addLog(`Игрок ${defensePlayer.nickname} был заживо сожжен игроком ${offensePlayer.nickname} и выбывает из игры`, EGameLogType.death);
-			game.killPlayer(defensePlayer)
+			game.killPlayer(defensePlayer, {cause: EAnalyticsDeathCause.flamethrower, by: offensePlayer})
 			if (!game.gameInProcess) return;
 
 			break;
 		}
 		case "noFire": {
 			const noFireCard = find(defensePlayer.hand, {id: EEventID.noFire});
+			// Спасение — такое же событие, как сожжение, и с той же парой ролей:
+			// без него в статистике огнемёта был бы виден только исход «сгорел», а
+			// половина выстрелов (те, что отбили шашлыком) провалилась бы мимо.
+			// actor — спасшийся, target — стрелявший.
+			game.analytics.cardPlay(defensePlayer, EEventID.noFire, offensePlayer);
 			game.addLog(`Игрок ${defensePlayer.nickname} использовал "Никакого шашлыка" и спасся от огнемета`, EGameLogType.defense);
 			//discardCard({player: defensePlayer, cardUniqueId: noFireCard.uniqueId, game});
 			if (noFireCard && noFireCard.uniqueId) {

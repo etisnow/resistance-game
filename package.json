@@ -2,6 +2,9 @@
   "name": "@nechto/game",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "analytics"
+  ],
   "module": "src/server/index.ts",
   "type": "module",
   "scripts": {

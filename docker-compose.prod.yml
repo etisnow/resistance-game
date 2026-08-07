@@ -15,6 +15,11 @@ services:
       NODE_ENV: "production"
       PORT: "3000"
       HOST: "0.0.0.0"
+      ANALYTICS_URL: "${ANALYTICS_URL-http://analytics:3200}"
+      ANALYTICS_TOKEN: "${ANALYTICS_TOKEN-}"
+      ANALYTICS_SPOOL: "/data/spool.jsonl"
+    volumes:
+      - analytics-data:/data
     ports:
       - "3000:3000"
 
@@ -29,3 +34,27 @@ services:
       - "5173:5173"
     depends_on:
       - server
+
+  # Аналитический центр: один процесс отдаёт и API, и собранную витрину, поэтому
+  # публичный домен статистики достаточно направить сюда.
+  analytics:
+    image: nechto:latest
+    working_dir: /app/analytics
+    command: ["bun", "src/server/index.ts"]
+    environment:
+      NODE_ENV: "production"
+      ANALYTICS_PORT: "3200"
+      ANALYTICS_HOST: "0.0.0.0"
+      ANALYTICS_DB: "/data/analytics.sqlite"
+      ANALYTICS_TOKEN: "${ANALYTICS_TOKEN-}"
+      ANALYTICS_ADMIN_TOKEN: "${ANALYTICS_ADMIN_TOKEN-}"
+    volumes:
+      - analytics-data:/data
+    ports:
+      - "3200:3200"
+    depends_on:
+      - server
+
+volumes:
+  # Статистика переживает пересборку образа.
+  analytics-data:

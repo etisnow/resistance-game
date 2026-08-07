@@ -13,15 +13,23 @@ export PORT CLIENT_PORT
 
 DC="docker compose -f docker-compose.yml"
 DCP="docker compose -f docker-compose.prod.yml"
+# Аналитический центр поднимается тем же дев-компоузом, но отдельным профилем:
+# играть можно и без него, а статистика при этом просто не собирается.
+DCA="docker compose -f docker-compose.yml --profile analytics"
 
 # Hostnames / tunnel token (docker compose reads .env on its own; we need
 # CLIENT_HOST / API_HOST here too).
 if [ -f .env ]; then set -a; . ./.env; set +a; fi
 
+# Порты аналитики — после .env, чтобы её значения побеждали.
+ANALYTICS_PORT="${ANALYTICS_PORT:-3200}"
+ANALYTICS_WEB_PORT="${ANALYTICS_WEB_PORT:-5174}"
+export ANALYTICS_PORT ANALYTICS_WEB_PORT
+
 # Poll an HTTP endpoint until it answers. args: url label [timeout_s]
 wait_http() {
   local url="$1" label="$2" timeout="${3:-60}" i=0
-  printf '  %-7s %-42s ' "$label" "$url"
+  printf '  %-9s %-46s ' "$label" "$url"
   while [ "$i" -lt "$timeout" ]; do
     if curl -sfo /dev/null --max-time 3 "$url"; then echo "ok"; return 0; fi
     printf '.'; sleep 1; i=$((i + 1))
@@ -35,8 +43,8 @@ usage() {
 Nechto — ./run <command>
 
 One button:
-  go             Deps + the whole dev stack in the background, waits until
-                 localhost and the public tunnel host both answer
+  go             Deps + the whole dev stack (игра + аналитика) в фоне; ждёт,
+                 пока ответят и localhost, и публичные хосты туннеля
 
 Docker (client = vite, server = bun, tunnel = cloudflared):
   up [args]      Start the dev stack in the foreground (streams logs)
@@ -46,6 +54,17 @@ Docker (client = vite, server = bun, tunnel = cloudflared):
   ps             List services
   prod <cmd>     Prod stack via docker-compose.prod.yml
                    prod up | prod down | prod build | prod logs
+
+Аналитика (отдельный пакет analytics/ — свой сервер, витрина и база):
+  analytics up|down|logs        Аналитические сервисы в докере
+  analytics server              Бекенд аналитики (bun, :3200) локально
+  analytics web                 Витрина (vite, :5174) локально
+  analytics build               Собрать витрину в analytics/dist/web
+  analytics migrate             Накатить миграции на базу
+  analytics seed                Заполнить базу демо-партиями
+  analytics generate            Сгенерировать миграции по схеме (drizzle-kit)
+  analytics typecheck           tsc --noEmit по пакету аналитики
+  analytics test                Тесты аналитики
 
 Local (no Docker):
   install        bun install + Playwright chromium
@@ -76,26 +95,35 @@ case "$cmd" in
     : "${CLOUDFLARE_TUNNEL_TOKEN:?set in .env (Cloudflare dashboard -> Tunnels -> connector token)}"
     : "${CLIENT_HOST:?set in .env}" "${API_HOST:?set in .env}"
     [ -x node_modules/.bin/vite ] || bun install
-    $DC up -d --remove-orphans "$@"
+    # Профиль analytics включён: одной кнопкой поднимается и игра, и
+    # исследовательский центр (без него статистика просто не собиралась бы).
+    $DCA up -d --remove-orphans "$@"
     echo
     echo "Waiting for services:"
     rc=0
     wait_http "http://localhost:${PORT}/socket.io/?EIO=4&transport=polling" server 60 || rc=1
     wait_http "http://localhost:${CLIENT_PORT}" client 60 || rc=1
+    wait_http "http://localhost:${ANALYTICS_PORT}/healthz" stats-api 60 || rc=1
+    wait_http "http://localhost:${ANALYTICS_WEB_PORT}" stats 60 || rc=1
     wait_http "https://${CLIENT_HOST}" public 90 || rc=1
+    [ -z "${ANALYTICS_HOST_PUBLIC:-}" ] || wait_http "https://${ANALYTICS_HOST_PUBLIC}" pub-stats 90 || rc=1
     echo
     echo "Up:"
-    echo "  local  : http://localhost:${CLIENT_PORT}"
-    echo "  client : https://${CLIENT_HOST}"
-    echo "  api    : https://${API_HOST}"
+    echo "  local   : http://localhost:${CLIENT_PORT}"
+    echo "  client  : https://${CLIENT_HOST}"
+    echo "  api     : https://${API_HOST}"
+    echo "  stats   : http://localhost:${ANALYTICS_WEB_PORT}${ANALYTICS_HOST_PUBLIC:+  |  https://${ANALYTICS_HOST_PUBLIC}}"
+    echo "  stats-api: http://localhost:${ANALYTICS_PORT}${ANALYTICS_API_HOST:+  |  https://${ANALYTICS_API_HOST}}"
     [ "$rc" -eq 0 ] || echo "  something did not come up — ./run logs"
     exit "$rc" ;;
   # ---- Docker (dev) ----
+  # up — только игра; всё остальное с профилем analytics, иначе `down` оставил бы
+  # аналитические контейнеры висеть (и не смог бы убрать сеть проекта).
   up|dev)    exec $DC up --remove-orphans "$@" ;;
-  down)      exec $DC down --remove-orphans "$@" ;;
-  logs)      exec $DC logs -f "$@" ;;
-  restart)   exec $DC restart "$@" ;;
-  ps)        exec $DC ps "$@" ;;
+  down)      exec $DCA down --remove-orphans "$@" ;;
+  logs)      exec $DCA logs -f "$@" ;;
+  restart)   exec $DCA restart "$@" ;;
+  ps)        exec $DCA ps "$@" ;;
   # ---- Docker (prod) ----
   prod)
     sub="${1:-up}"; shift || true
@@ -105,6 +133,29 @@ case "$cmd" in
       build) exec $DCP build "$@" ;;
       logs)  exec $DCP logs -f "$@" ;;
       *)     exec $DCP "$sub" "$@" ;;
+    esac ;;
+  # ---- Аналитика ----
+  analytics|stats)
+    sub="${1:-help}"; shift || true
+    # Сервисы аналитики живут в профиле, поэтому называем их явно: обычный
+    # `./run up` их не трогает, а `./run analytics down` не гасит игру.
+    case "$sub" in
+      up)   exec $DCA up --remove-orphans analytics-server analytics-web "$@" ;;
+      down) exec $DCA stop analytics-server analytics-web "$@" ;;
+      logs) exec $DCA logs -f analytics-server analytics-web "$@" ;;
+      *) : ;;
+    esac
+    cd analytics
+    case "$sub" in
+      server)    exec bun run --hot src/server/index.ts ;;
+      web)       exec bunx vite ;;
+      build)     exec bunx vite build ;;
+      migrate)   exec bun run src/db/migrate.ts ;;
+      seed)      exec bun run src/db/seed.ts ;;
+      generate)  exec bunx drizzle-kit generate ;;
+      typecheck) exec bunx tsc --noEmit ;;
+      test)      exec bun test src ;;
+      *) echo "Unknown analytics command: $sub" >&2; exit 1 ;;
     esac ;;
   # ---- Local ----
   install)

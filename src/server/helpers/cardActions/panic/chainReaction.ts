@@ -57,7 +57,7 @@ export const chainReactionTrade = ({game, player, cardUniqueId}: {game: Game, pl
 			if (!nextPlayer) return;
 			nextPlayer.getCard(pickCard);
 			if (pickCard.id=== EEventID.infect) {
-				game.infectPlayer(nextPlayer.id);
+				game.infectPlayer(nextPlayer.id, {source: pickPlayer, via: 'chainReaction'});
 			}
 		})
 		game.endTurn(startPlayerId)

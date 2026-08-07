@@ -36,6 +36,7 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
     player.changeTurnState(ETurnState.idle);
 
     game.addLog(`Игроки ${player.nickname} и ${playerToTrade.nickname} меняются картами`, EGameLogType.trade);
+    game.analytics.tradeOffer(player, playerToTrade, tradingCard.id);
     game.turnContext = {
       type: ETurnContextType.trade,
       defensePlayer: playerToTrade,
@@ -69,17 +70,23 @@ export const tradeCard = ({game, player, cardUniqueId}: {game: Game, player: Pla
     return;
   }
   const defensePlayerCard = tradingCard;
+  game.analytics.tradeComplete({
+    offense: offensePlayer,
+    defense: player,
+    offenseCardId: offensePlayerCard.id,
+    defenseCardId: defensePlayerCard.id,
+  });
   /* OFFENSE CARD PUSH */
   offensePlayer.getCard(defensePlayerCard);
   if (defensePlayerCard.id=== EEventID.infect) {
-    game.infectPlayer(offensePlayer.id);
+    game.infectPlayer(offensePlayer.id, {source: player, via: 'trade'});
     if (!game.gameInProcess) return;
   }
 
   /* DEFENSE CARD PUSH */
   player.getCard(offensePlayerCard);
   if (offensePlayerCard.id=== EEventID.infect) {
-    game.infectPlayer(player.id);
+    game.infectPlayer(player.id, {source: offensePlayer, via: 'trade'});
     if (!game.gameInProcess) return;
   }
   player.changeTurnState(ETurnState.idle)

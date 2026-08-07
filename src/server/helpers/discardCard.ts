@@ -11,6 +11,8 @@ import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const discardCardAction = ({game, player, cardUniqueId}: {game: Game, player: Player, cardUniqueId: string}) => {
   //discardCard({game, player, cardUniqueId});
+  const discarded = player.getCardByUniqueId(cardUniqueId);
+  if (discarded) game.analytics.cardDiscard(player, discarded.id);
   game.addLog(`Игрок ${player.nickname} сбросил карту`, EGameLogType.card);
   player.discardCard(cardUniqueId);
   player.changeTurnState(ETurnState.inOffenseTrade);

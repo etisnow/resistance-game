@@ -17,6 +17,7 @@ import {
 } from 'server/formatters/formatOutgoingEvents';
 import {EPlayerMark} from 'shared/enum/playerMarks';
 import type {IGameSocket, IServerEvent} from 'shared/interfaces/socket';
+import {toAnalyticsMark} from 'server/analytics/track';
 
 export class Player {
 	// Real players get a unique id; the door placeholder keeps '' (it is
@@ -311,7 +312,21 @@ export class Player {
 	}
 
 	markPlayer = (markPlayerId: string) => {
-		this.marks[markPlayerId] = getNextMark(this.marks[markPlayerId]);
+		const previousMark = this.marks[markPlayerId];
+		const nextMark = getNextMark(previousMark);
+		this.marks[markPlayerId] = nextMark;
+		// Статусы — главное, что аналитика знает о том, кто что думал: пишем и
+		// сам статус, и кем цель была на самом деле в эту секунду.
+		const target = this.game ? this.game.players[markPlayerId] : undefined;
+		const analyticsMark = toAnalyticsMark(nextMark);
+		if (target && analyticsMark) {
+			this.game.analytics.mark({
+				actor: this,
+				target,
+				mark: analyticsMark,
+				previousMark: toAnalyticsMark(previousMark),
+			});
+		}
 		this.notify(formatUpdateGameEvent({game: this.game, viewer: this}));
 	}
 

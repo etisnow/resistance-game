@@ -4,3 +4,10 @@ root = "src"
 
 [install]
 # Use the standard npm registry.
+#
+# Плоский node_modules. Как только в package.json появились workspaces (пакет
+# analytics), bun по умолчанию переключается на изолированный линкер: пакеты
+# уезжают в node_modules/.bun, а сверху остаются симлинки. Playwright после
+# такого не находит свои браузеры (ищет сборку от другой версии), и e2e падает
+# ещё до старта. Явно оставляем прежнюю плоскую раскладку.
+linker = "hoisted"

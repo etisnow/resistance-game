@@ -18,6 +18,8 @@ import {gameHasBots, scheduleBots} from 'server/helpers/bot';
 import {getCard, getPanic} from 'shared/constant/cards';
 import {EEventID, EPanicID} from 'shared/enum/cards';
 import {EGameLogType} from 'shared/enum/gameLogType';
+import {submitMatch} from 'server/analytics/track';
+import {EAnalyticsSource} from 'shared/analytics/contract';
 
 export interface IBotGameOptions {
   withBots?: boolean;
@@ -54,6 +56,10 @@ class GameServer {
   sockets: Map<IGameSocket, Player | null> = new Map();
   isMock: boolean = false;
   ignoreChecks: boolean = false;
+  // Чем помечать партии этого сервера в аналитике. Нужен тестовым стендам,
+  // которые играют в РЕАЛЬНОМ режиме (фаззер): по isMock их не отличить от
+  // живой игры, а их партиям в публичной статистике делать нечего.
+  analyticsSource: EAnalyticsSource | null = null;
   io: ISocketServer | null = null;
   initialize(io: ISocketServer) {
     this.io = io;
@@ -337,8 +343,15 @@ class GameServer {
   destroyGame(id: string) {
     const game = this.games[id];
     if (game) {
-      // Комнаты больше нет — помечаем игру завершённой, иначе привязанные к ней
-      // таймеры (боты) продолжают ходить в комнате-призраке.
+      // Комнату закрыли, не доиграв (хост вышел, все отвалились). Партия всё
+      // равно уезжает в аналитику — но помеченной как брошенная, чтобы не
+      // портить статистику побед. Доигранные партии сюда приходят уже
+      // отправленными (Game.end), и рекордер их не продублирует.
+      if (game.gameInProcess) {
+        submitMatch(game, {endMessage: 'Партия не доиграна', isComplete: false});
+      }
+      // Помечаем игру завершённой, иначе привязанные к ней таймеры (боты)
+      // продолжают ходить в комнате-призраке.
       game.gameInProcess = false;
       delete this.games[id]
     }
