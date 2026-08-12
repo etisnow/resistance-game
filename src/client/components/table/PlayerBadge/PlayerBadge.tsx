@@ -11,6 +11,7 @@ import {getPixiTexture} from 'client/components/table/pixiInjected';
 import {toggleCardHintFor} from 'client/components/hint/canvasHint';
 import {EPlayerMark} from 'shared/enum/playerMarks';
 import {EEventID} from 'shared/enum/cards';
+import {cardAspectRatio} from 'shared/constant/cards';
 
 interface IPlayerBadgeProps {
 	id: string;
@@ -34,6 +35,8 @@ interface IPlayerBadgeProps {
 
 
 const playerGlowTexture = getPixiTexture(resources.playerbadgeGlow);
+// Дверь на месте игрока — это сама карта «Заколоченная дверь» (см. ниже).
+const doorCardTexture = getPixiTexture(resources.barricade);
 /*Marks*/
 const playerStatusQuestion = getPixiTexture(resources.playerStatusQuestion);
 const playerStatusThing = getPixiTexture(resources.playerStatusThing);
@@ -225,7 +228,12 @@ const PlayerBadge = ({
 	if (!color && !isDoor) return null;
 	const badgeResource = getBadgeResource({isDoor, isConnected, color, isThing, isInfected});
 	if (!badgeResource) return null;
-	const playerBadgeTexture = getPixiTexture(badgeResource);
+	// Дверь — не игрок, а сыгранная между соседями карта «Заколоченная дверь»:
+	// её и рисуем — самой картой, прямоугольником и в карточных пропорциях, а не
+	// кружком в чужой шкуре. Высоту ей оставляем ту же, что у кружков, чтобы
+	// место за столом выглядело занятым ровно так же.
+	const bodyTexture = isDoor ? doorCardTexture : getPixiTexture(badgeResource);
+	const bodyWidth = isDoor ? style.height / cardAspectRatio : style.width;
 	// На кружке у всех ник, включая свой: что кружок твой, говорит этикетка над
 	// ним (см. YouTag), а раньше вместо ника там стояло «ТЫ» — и собственное имя
 	// за столом было не найти.
@@ -235,12 +243,12 @@ const PlayerBadge = ({
 	const nick = formatNickname(nickname) ?? ''
 	return (
 		<Container pointerdown={markPlayer} buttonMode={true} interactive={true}>
-			<PlayerShadow badgeWidth={style.width} badgeHeight={style.height}/>
+			<PlayerShadow badgeWidth={bodyWidth} badgeHeight={style.height}/>
 			{canBeSelected && (
 				<Sprite
 					texture={playerGlowTexture}
 					anchor={0.5}
-					width={style.width * 1.35}
+					width={bodyWidth * 1.35}
 					height={style.height * 1.35}
 				/>
 			)}
@@ -249,9 +257,9 @@ const PlayerBadge = ({
 			    видим из-за его края, и вытянут по вертикали (см. badgeAspect).
 			    Картинка бейджа круглая, растягивает её сам спрайт. */}
 			<Sprite
-				texture={playerBadgeTexture}
+				texture={bodyTexture}
 				anchor={0.5}
-				width={style.width}
+				width={bodyWidth}
 				height={style.height}
 				alpha={quarantine>0 ? 0.4 : 1}
 				interactive={canBeSelected || isDoor}
