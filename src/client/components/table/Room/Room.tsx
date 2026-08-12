@@ -14,6 +14,7 @@ import {
 	roomPlayerPoint,
 	roomRadii,
 	tableCardPoint,
+	tableLift,
 	tableRadii,
 	tableThickness,
 	unwrapAngle,
@@ -622,7 +623,15 @@ const Room = observer(({controller, children} : IRoomProps) => {
 				    хозяином, ложилась бы на соседа. */}
 				{map(farSeats, renderShadow)}
 				{map(farSeats, renderBadge)}
-				<TableSurface rx={surface.rx} ry={surface.ry} thickness={tableThickness(playersCount)}/>
+				{/* Стол стоит в середине комнаты — там же, где круг на полу задника
+				    (см. RoomBackdrop). Свою высоту он отмеряет сам: столешницу
+				    поднимает, тень оставляет на полу. */}
+				<TableSurface
+					rx={surface.rx}
+					ry={surface.ry}
+					thickness={tableThickness(playersCount)}
+					lift={tableLift(playersCount)}
+				/>
 			</Container>
 			{/* Всё, что лежит на столешнице: колода и сработавшая паника (см. Table).
 			    Они уже в координатах экрана, поэтому идут без сдвига к центру. */}

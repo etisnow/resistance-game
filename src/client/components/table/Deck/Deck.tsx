@@ -2,7 +2,7 @@ import React from 'react';
 import {observer} from "mobx-react-lite";
 import {cardAspectRatio} from 'shared/constant/cards';
 import GameController from 'client/controllers/gameController';
-import {deckCardWidth, tableCardPoint, tableCardTaper, tableSquash} from 'client/helpers/roomHelpers';
+import {deckCardWidth, tableCardPoint, tableCardTaper, tableTopSquash} from 'client/helpers/roomHelpers';
 import {ECardType} from 'shared/enum/cards';
 import {Container, Text} from 'react-pixi-fiber';
 import PerspectiveTexture from 'client/components/pixiPrimitives/PerspectiveTexture';
@@ -43,6 +43,20 @@ const deckGlowTexture = getPixiTexture(resources.glowEffect);
 // Насколько подсветка «колоду можно взять» больше самой колоды.
 const glowShare = 1.2;
 
+// Тень колоды на столешнице. Стопка на столе лежит не плашмя — у неё есть
+// высота (см. deckLayers), и свет в комнате падает сверху слева (тот же, что
+// лепит кружки игроков), поэтому тень выходит из-под неё вправо и вниз.
+//
+// Двумя трапециями той же формы, что и сама колода: тень от карты — это карта,
+// уроненная на стол. Одна пожиже и пошире, другая плотнее и по самой стопке, —
+// у одной сплошной слишком резкий край, и она читается второй колодой.
+//
+// Сдвиг и разбег — в долях высоты лежащей карты.
+const deckShadows = [
+	{spread: 1.1, alpha: 0.26, shiftX: 0.16, shiftY: 0.12},
+	{spread: 1, alpha: 0.34, shiftX: 0.09, shiftY: 0.07},
+];
+
 // react-pixi-fiber присваивает обработчик прямо в свойство объекта и снять его
 // не умеет: prop со значением undefined он только сопровождает варнингом
 // «ignoring prop», оставляя прежний колбэк. Поэтому обработчик передаём всегда
@@ -72,8 +86,8 @@ const Deck = observer(({controller}: IDeckProps) => {
 	const {playersList, deck} = controller;
 	const width = deckCardWidth(playersList.length);
 	// Колода лежит на столе, поэтому видна в проекции стола: по вертикали она
-	// сжата ровно так же, как сама столешница (см. tableSquash).
-	const height = width * cardAspectRatio * tableSquash;
+	// сжата ровно так же, как сама столешница (см. tableTopSquash).
+	const height = width * cardAspectRatio * tableTopSquash;
 	const layerStep = Math.max(layerStepMin, height * layerStepShare);
 	const topCardType = deck.topCardType;
 	// Пока на столе лежит сработавшая паника, колода закрыта — сначала все читают,
@@ -84,12 +98,27 @@ const Deck = observer(({controller}: IDeckProps) => {
 	// Колода лежит не в самой середине стола, а чуть глубже: у ближнего края
 	// стоят игроки (см. tableCardPoint).
 	const place = tableCardPoint(playersList.length);
+	const layers = deckLayers(deck.count);
+	// Низ стопки: от него и падает тень — стопка стоит на столе этим краем.
+	const stackBottom = layerStep * layers.length;
 	return (
 		<Container x={tableCenterX() + place.x} y={tableCenterY() + place.y}>
+			{/* Тень стопки на столешнице — до самой стопки: она под ней. */}
+			{map(deckShadows, ({spread, alpha, shiftX, shiftY}) => (
+				<Container key={spread} x={height * shiftX} y={stackBottom + height * shiftY}>
+					<Trapezoid
+						width={width * spread}
+						height={height * spread}
+						taper={tableCardTaper}
+						color={0x000000}
+						alpha={alpha}
+					/>
+				</Container>
+			))}
 			{/* Толщина стопки: рисуем её до верхней карты, из-под которой она и видна.
 			    Торцы — той же трапеции, что и сама карта, иначе стопка расходится с
 			    ней краями. */}
-			{map(deckLayers(deck.count), ({depth, step}) => (
+			{map(layers, ({depth, step}) => (
 				<Trapezoid
 					key={step}
 					color={layerColor(depth)}

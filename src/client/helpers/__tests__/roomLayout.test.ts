@@ -17,6 +17,8 @@ const fakeWindow = {
 let viewport: typeof import('client/helpers/viewport').viewport;
 let roomRadii: typeof import('client/helpers/roomHelpers').roomRadii;
 let tableRadii: typeof import('client/helpers/roomHelpers').tableRadii;
+let tableLift: typeof import('client/helpers/roomHelpers').tableLift;
+let tableCardPoint: typeof import('client/helpers/roomHelpers').tableCardPoint;
 let deckCardWidth: typeof import('client/helpers/roomHelpers').deckCardWidth;
 let playerRoomDiag: typeof import('client/helpers/roomHelpers').playerRoomDiag;
 let roomPlayerOrder: typeof import('client/helpers/roomHelpers').roomPlayerOrder;
@@ -24,6 +26,7 @@ let roomPlayerPoint: typeof import('client/helpers/roomHelpers').roomPlayerPoint
 let isFarSeat: typeof import('client/helpers/roomHelpers').isFarSeat;
 let unwrapAngle: typeof import('client/helpers/roomHelpers').unwrapAngle;
 let tableSquash: number;
+let tableTopSquash: number;
 let badgeAspect: number;
 let tableField: typeof import('client/helpers/window').tableField;
 let tableCenterY: typeof import('client/helpers/window').tableCenterY;
@@ -31,8 +34,8 @@ let tableCenterY: typeof import('client/helpers/window').tableCenterY;
 beforeAll(async () => {
 	({viewport} = await import('client/helpers/viewport'));
 	({
-		roomRadii, tableRadii, deckCardWidth, playerRoomDiag, roomPlayerOrder, roomPlayerPoint,
-		isFarSeat, unwrapAngle, tableSquash, badgeAspect,
+		roomRadii, tableRadii, tableLift, tableCardPoint, deckCardWidth, playerRoomDiag, roomPlayerOrder, roomPlayerPoint,
+		isFarSeat, unwrapAngle, tableSquash, tableTopSquash, badgeAspect,
 	} = await import('client/helpers/roomHelpers'));
 	({tableField, tableCenterY} = await import('client/helpers/window'));
 });
@@ -109,9 +112,11 @@ describe('геометрия стола', () => {
 				const {rx, ry} = roomRadii(count);
 				const surface = tableRadii(count);
 
-				// Столешница той же проекции и вписана в круг рассадки: игроки сидят
-				// вокруг неё, а не на ней.
-				expect(surface.ry / surface.rx).toBeCloseTo(tableSquash, 6);
+				// Столешница вписана в круг рассадки: игроки сидят вокруг неё, а не на
+				// ней. Сжата она слабее пола — она поднята над ним, и мы смотрим на неё
+				// под более пологим углом (см. tableTopSquash).
+				expect(surface.ry / surface.rx).toBeCloseTo(tableTopSquash, 6);
+				expect(tableTopSquash).toBeLessThan(tableSquash);
 				expect(surface.rx).toBeLessThan(rx);
 
 				// Дальних она подрезает, но не съедает целиком: их кружки должны
@@ -121,10 +126,41 @@ describe('геометрия стола', () => {
 				expect(hidden).toBeLessThan(badge * badgeAspect * 0.45);
 
 				// Колода лежит на столешнице, а не свисает с неё. Лежит — то есть в
-				// проекции стола: по вертикали она сжата тем же tableSquash.
+				// проекции столешницы: по вертикали она сжата тем же tableTopSquash.
 				const deck = deckCardWidth(count);
 				expect(deck / 2).toBeLessThanOrEqual(surface.rx);
-				expect((deck * 1.46 * tableSquash) / 2).toBeLessThanOrEqual(surface.ry);
+				expect((deck * 1.46 * tableTopSquash) / 2).toBeLessThanOrEqual(surface.ry);
+			});
+
+			test(`${label}: стол стоит на полу, а карты лежат на его крышке`, () => {
+				resize(screen.width, screen.height);
+				const {rx, ry} = roomRadii(count);
+				const surface = tableRadii(count);
+				const lift = tableLift(count);
+				const badgeHeight = playerRoomDiag(count) * badgeAspect;
+
+				// Высота стола — это высота стола: она отмеряется от комнаты и на любом
+				// экране составляет одну и ту же её долю. Прибитая к пикселям (а так
+				// она и была подобрана на глаз) она на телефоне складывала бы стол
+				// вдвое, а на большом экране терялась.
+				expect(lift / rx).toBeCloseTo(tableLift(count) / rx, 12);
+				expect(lift).toBeGreaterThan(0);
+				expect(lift).toBeLessThan(surface.ry);
+
+				// Поднятая столешница не должна уезжать выше круга рассадки: дальние
+				// игроки стоят ЗА столом, и он подрезает их, а не они его.
+				expect(lift + surface.ry).toBeLessThan(ry);
+
+				// Стол вместе с поднятой крышкой и кружками влезает в свободное поле.
+				const center = tableCenterY();
+				expect(center - lift - surface.ry).toBeGreaterThanOrEqual(tableField().top);
+				expect(center - ry - badgeHeight / 2).toBeGreaterThanOrEqual(tableField().top);
+
+				// Карты лежат на крышке — вместе с ней поднятые над полом и внутри её
+				// краёв, а не свисая с дальнего.
+				const cards = tableCardPoint(count);
+				expect(cards.y).toBeLessThan(-lift);
+				expect(Math.abs(cards.y + lift)).toBeLessThan(surface.ry);
 			});
 		}
 	}

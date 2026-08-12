@@ -6,7 +6,7 @@ import GameController from 'client/controllers/gameController';
 import {AnimatedPixi, getPixiTexture} from 'client/components/table/pixiInjected';
 import {resources} from 'client/resources/resources';
 import {cardAspectRatio} from 'shared/constant/cards';
-import {tableCardPoint, tableCardTaper, tableSquash} from 'client/helpers/roomHelpers';
+import {tableCardPoint, tableCardTaper, tableTopSquash} from 'client/helpers/roomHelpers';
 import {panicCardWidth, tableCenterX, tableCenterY} from 'client/helpers/window';
 import {toggleCardHintFor} from 'client/components/hint/canvasHint';
 import type {IFormatPanicCard} from 'shared/interfaces/common';
@@ -25,7 +25,7 @@ const cardResources: Record<string, string | undefined> = cardImages;
 const flipDelayMs = 220;
 const flipDurationMs = 480;
 // А перевернувшись — встаёт: лежащая трапеция распрямляется в стоячую карту,
-// разом теряя и сужение к дальнему краю, и сжатие по высоте (см. tableSquash и
+// разом теряя и сужение к дальнему краю, и сжатие по высоте (см. tableTopSquash и
 // tableCardTaper), и заодно подрастает. Пауза перед подъёмом — чтобы движения
 // не слились в одно: сначала все видят, ЧТО выпало, и только потом карта
 // поднимается.
@@ -72,7 +72,7 @@ const PanicCardView = observer(({panicCard, place, isLeaving}: IPanicCardViewPro
 	// Габариты по ходу подъёма: карта растёт, сжатие по высоте сходит на нет, и
 	// сужение к дальнему краю распрямляется.
 	const widthAt = (r: number) => laidWidth * (1 + (riseScale - 1) * r);
-	const heightAt = (r: number) => widthAt(r) * cardAspectRatio * (tableSquash + (1 - tableSquash) * r);
+	const heightAt = (r: number) => widthAt(r) * cardAspectRatio * (tableTopSquash + (1 - tableTopSquash) * r);
 	const taperAt = (r: number) => tableCardTaper + (1 - tableCardTaper) * r;
 
 	// Рубашка сжимается к нулю, лицо из нуля разворачивается. Высота на середине
