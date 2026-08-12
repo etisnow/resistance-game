@@ -1,66 +1,133 @@
 import {clamp} from 'lodash';
 import {tableField} from 'client/helpers/window';
+import {cardAspectRatio} from 'shared/constant/cards';
 
 // Доля свободного поля, которую оставляем по краям стола.
 const roomMargin = 0.04;
-// Насколько эллипс стола может быть вытянут. 1 — идеальный круг; небольшой
-// запас позволяет занять чуть больше места на широком экране, но стол при этом
-// всё ещё читается как круглый.
-const maxRoomEccentricity = 1.2;
-// Зазор между соседними бейджами: во сколько раз шаг по кругу больше диаметра.
-const badgeGap = 1.35;
-// Бейдж не крупнее половины полуоси стола — иначе кружки смыкаются в центре и
-// стола как такового не видно.
-const maxBadgeShare = 0.5;
 
-// Габариты стола вместе с бейджами: половина свободного поля, ужатая до
-// допустимой вытянутости.
+/**
+ * Стол видно не сверху, а из-за его края: круг в такой проекции — эллипс,
+ * сжатый по вертикали вот во столько раз. Отсюда же берётся и глубина: чем выше
+ * место на экране, тем оно дальше от смотрящего, и сидящих на дальней половине
+ * наполовину загораживает сама столешница (см. Room).
+ *
+ * Один и тот же коэффициент задаёт форму и круга рассадки, и столешницы, и тени
+ * под колодой — иначе «камера» смотрела бы на разные предметы под разными
+ * углами и стол рассыпался бы на несвязанные эллипсы.
+ */
+export const tableSquash = 0.58;
+
+// Кружок игрока — это стоящая за столом фигура, а не лежащая на столе фишка:
+// по вертикали он вытянут вот во столько раз (см. PlayerBadge).
+export const badgeAspect = 1.26;
+
+// Зазор между соседями по кругу: во сколько раз шаг между ними больше ширины
+// кружка.
+const badgeGap = 1.1;
+// Кружок не шире этой доли большой полуоси: иначе игроки смыкаются над столом и
+// самого стола не видно.
+const maxBadgeShare = 0.55;
+
+// Половина свободного поля — в неё вписываем круг рассадки вместе с кружками.
 const roomExtents = () => {
 	const field = tableField();
-	const availX = Math.max(0, (field.width / 2) * (1 - roomMargin));
-	const availY = Math.max(0, (field.height / 2) * (1 - roomMargin));
 	return {
-		x: Math.min(availX, availY * maxRoomEccentricity),
-		y: Math.min(availY, availX * maxRoomEccentricity),
+		x: Math.max(0, (field.width / 2) * (1 - roomMargin)),
+		y: Math.max(0, (field.height / 2) * (1 - roomMargin)),
 	};
 };
 
 export const degToRag = (deg: number) => (deg * (Math.PI/180));
 
 /**
- * Диаметр бейджа игрока.
+ * Ширина кружка в долях большой полуоси круга рассадки.
  *
- * Раньше это был процент от короткой стороны окна: на телефоне выходило ~70 px —
- * мелко и неудобно попадать пальцем. Теперь бейдж настолько крупный, насколько
- * влезает: сверху его ограничивают либо шаг между соседями по кругу (чтобы
- * кружки не наезжали друг на друга), либо половина полуоси стола.
+ * Теснее всего соседи сидят у боков стола: там эллипс уходит вглубь, и на
+ * экране места разделяет только сжатая вертикаль. Расстояние между соседними
+ * местами (rx·cos t, ry·sin t) равно 2·sin(π/N)·√(rx²sin²u + ry²cos²u), то есть
+ * минимум — ровно 2·ry·sin(π/N), у самого бока.
+ *
+ * Меряем этот просвет шириной кружка, а не высотой: кружки вытянуты вверх, и
+ * лёгкое перекрытие по вертикали у боков стола читается как глубина — дальний
+ * стоит за ближним, — а не как наезжающие друг на друга бейджи.
+ */
+const badgeShareOfRadius = (count: number) =>
+	Math.min(maxBadgeShare, (2 * tableSquash * Math.sin(Math.PI / Math.max(count, 2))) / badgeGap);
+
+/**
+ * Ширина кружка игрока.
+ *
+ * Кружок настолько крупный, насколько влезает: сверху его ограничивают либо шаг
+ * между соседями по кругу, либо доля полуоси, либо само свободное поле — в него
+ * круг рассадки должен войти вместе с кружками, причём по вертикали кружок
+ * занимает в badgeAspect раз больше.
  */
 export const playerRoomDiag = (count: number) => {
 	const extents = roomExtents();
-	// Тесно бейджам там, где стол уже — по малой полуоси, от неё и считаем.
-	const minor = Math.min(extents.x, extents.y);
-	// Шаг между соседями — хорда 2·R·sin(π/N), в неё должен влезть диаметр с
-	// зазором. R здесь ещё неизвестен (он сам зависит от бейджа), поэтому
-	// решаем d = 2·(minor − d/2)·share относительно d.
-	const share = Math.sin(Math.PI / Math.max(count, 2)) / badgeGap;
-	const bySpacing = (2 * minor * share) / (1 + share);
-	return clamp(Math.min(bySpacing, minor * maxBadgeShare), 36, 220);
+	const share = badgeShareOfRadius(count);
+	// rx из двух условий: rx + share·rx/2 ≤ availX и rx·squash + share·rx·aspect/2 ≤ availY.
+	const rx = Math.min(
+		extents.x / (1 + share / 2),
+		extents.y / (tableSquash + (share * badgeAspect) / 2),
+	);
+	return clamp(share * rx, 36, 220);
 };
 
 /**
- * Полуоси эллипса, по которому рассажены игроки: габариты стола минус радиус
- * самого бейджа. Раньше это был круг радиусом в 1/6 высоты окна — он не замечал
- * ни ширины экрана, ни того, сколько места занимают лог сверху и рука снизу.
+ * Полуоси эллипса, по которому рассажены игроки. Форму задаёт проекция
+ * (tableSquash), размер — свободное поле за вычетом самого кружка.
  */
 export const roomRadii = (count: number) => {
 	const extents = roomExtents();
-	const badgeRadius = playerRoomDiag(count) / 2;
-	const rx = Math.max(0, extents.x - badgeRadius);
-	const ry = Math.max(0, extents.y - badgeRadius);
-	return {
-		rx: Math.min(rx, ry * maxRoomEccentricity),
-		ry: Math.min(ry, rx * maxRoomEccentricity),
-	};
+	const width = playerRoomDiag(count);
+	const rx = Math.max(0, Math.min(
+		extents.x - width / 2,
+		(extents.y - (width * badgeAspect) / 2) / tableSquash,
+	));
+	return {rx, ry: rx * tableSquash};
+};
+
+// Насколько столешница уже круга рассадки, в долях ширины кружка. Игроки сидят
+// ВОКРУГ стола, а не на нём: у ближних край стола проходит по груди, дальних он
+// на столько же загораживает.
+const tableEdgeShare = 0.42;
+
+/**
+ * Полуоси самой столешницы. Она вписана в круг рассадки: дальние игроки
+ * оказываются за ней (и она их подрезает), ближние — перед ней.
+ */
+export const tableRadii = (count: number) => {
+	const {rx} = roomRadii(count);
+	const surfaceRx = Math.max(0, rx - playerRoomDiag(count) * tableEdgeShare);
+	return {rx: surfaceRx, ry: surfaceRx * tableSquash};
+};
+
+// Толщина борта: столешница не плёнка, у неё видно торец.
+export const tableThickness = (count: number) => clamp(tableRadii(count).ry * 0.13, 3, 24);
+
+// Насколько лежащие на столе карты сдвинуты от середины столешницы вглубь, в
+// долях её малой полуоси. У ближнего края стоят игроки — они заходят на стол
+// грудью (см. tableEdgeShare), и колода из-под них выглядывала бы краем.
+const tableCardLift = 0.16;
+
+/**
+ * Где на столе лежат карты — колода и сработавшая паника. Точка одна на всех,
+ * кто с колодой работает: по ней же рука тянет карту в веер, а стол — чужую
+ * карту к её хозяину (см. Hand и CardDraw).
+ */
+export const tableCardPoint = (count: number): {x: number, y: number} =>
+	({x: 0, y: -tableRadii(count).ry * tableCardLift});
+
+/**
+ * Ширина карты в колоде. Колода лежит посреди стола и должна читаться издалека,
+ * но столешница вокруг неё обязана остаться видна — иначе стола снова нет.
+ *
+ * По высоте карта лежит в проекции стола (её сжимает tableSquash, см. Card), и
+ * места ей нужно ровно на столько меньше.
+ */
+export const deckCardWidth = (count: number) => {
+	const {rx, ry} = tableRadii(count);
+	return clamp(Math.min(rx * 0.62, (ry * 1.1) / (cardAspectRatio * tableSquash)), 44, 260);
 };
 
 /**
@@ -85,14 +152,67 @@ export const roomPlayerOrder = (playersList: string[], viewerId: string, isFirst
 	return [...playersList.slice(index), ...playersList.slice(0, index)];
 };
 
+// Насколько ближние места стянуты к нижнему. 1 — рассадка ровно по эллипсу,
+// больше — сильнее сгоняет ближних в кучу у нижнего края.
+const nearSeatPull = 1.3;
+
 /**
- * Место игрока за столом относительно его центра. Стол — эллипс: угол задаёт
- * место, а полуоси подогнаны под форму свободной области (см. roomRadii).
- * Отсчёт от +90°, поэтому первый в рассадке сидит внизу.
+ * Небольшой сдвиг мест ближней половины к нижнему месту.
+ *
+ * Ровно по эллипсу внизу стола просторно (там он широкий), а по бокам тесно —
+ * и именно между боковыми соседями стол рисует стрелки со значками обмена,
+ * которым туда не влезть. Поэтому ближние места чуть сгоняются к нижнему, и
+ * освободившееся место достаётся боковым промежуткам.
+ *
+ * Дальняя половина сидит как сидела: её и так подрезает столешница. Места на
+ * самих боках (±90° от нижнего) не двигаются вовсе — иначе рассадка разъехалась
+ * бы на стыке половин.
  */
-export const roomPlayerPoint = (playerId: string, playerOrder: string[]): {x: number, y: number} => {
-	const deg = (360 / playerOrder.length) * playerOrder.indexOf(playerId) + 90;
+const pullSeatToFront = (deg: number): number => {
+	// Отклонение от нижнего места, −180..180.
+	const away = ((((deg - 90) % 360) + 540) % 360) - 180;
+	const shift = Math.abs(away);
+	if (shift >= 90) return deg;
+	return 90 + Math.sign(away) * 90 * Math.pow(shift / 90, nearSeatPull);
+};
+
+/**
+ * Угол места игрока за столом, в градусах. Отсчёт от +90°, поэтому первый в
+ * рассадке сидит внизу — ближе всех к смотрящему.
+ */
+export const roomPlayerAngle = (playerId: string, playerOrder: string[]): number =>
+	pullSeatToFront((360 / Math.max(playerOrder.length, 1)) * playerOrder.indexOf(playerId) + 90);
+
+/**
+ * Точка на круге рассадки по углу. Пересадка — это движение ПО кругу, поэтому
+ * стол анимирует угол, а не координаты, и берёт точку отсюда (см. Room).
+ */
+export const roomPointAt = (deg: number, count: number): {x: number, y: number} => {
 	const rad = degToRag(deg);
-	const {rx, ry} = roomRadii(playerOrder.length);
+	const {rx, ry} = roomRadii(count);
 	return {x: rx * Math.cos(rad), y: ry * Math.sin(rad)};
+};
+
+/**
+ * Место игрока за столом относительно его центра.
+ */
+export const roomPlayerPoint = (playerId: string, playerOrder: string[]): {x: number, y: number} =>
+	roomPointAt(roomPlayerAngle(playerId, playerOrder), playerOrder.length);
+
+/**
+ * Сидит ли место на дальней половине стола — той, что уходит за столешницу.
+ * Дальних рисуют ДО стола, ближних — после (см. Room).
+ */
+export const isFarSeat = (deg: number): boolean => Math.sin(degToRag(deg)) < 0;
+
+/**
+ * Тот же угол, но «размотанный» рядом с предыдущим: пересаженный игрок должен
+ * доехать до нового места по кругу и кратчайшей дугой, а не по прямой через
+ * стол и не через весь стол в обход. Без этого пружина, увидев скачок с 350° на
+ * 10°, поехала бы назад через всю рассадку.
+ */
+export const unwrapAngle = (deg: number, previous: number | undefined): number => {
+	if (previous === undefined) return deg;
+	const delta = ((((deg - previous) % 360) + 540) % 360) - 180;
+	return previous + delta;
 };

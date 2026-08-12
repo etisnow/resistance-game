@@ -42,7 +42,8 @@ interface IPoint {
 
 interface IDrawFlight {
 	id: number;
-	// Куда летит — колода лежит в центре стола, то есть в начале координат.
+	// Откуда и куда летит: от колоды, лежащей на столе, к кружку игрока.
+	from: IPoint;
 	to: IPoint;
 	// Сторона и величина выгиба дуги относительно направления полёта.
 	arc: number;
@@ -51,7 +52,8 @@ interface IDrawFlight {
 interface ICardDrawsProps {
 	controller: GameController;
 	getPosition: (playerId: string) => IPoint;
-	// Ширина карты в колоде: с неё полёт начинается.
+	// Где на столе лежит колода и какой ширины её карта: с этого полёт начинается.
+	deckPoint: IPoint;
 	deckCardWidth: number;
 	badgeRadius: number;
 }
@@ -60,7 +62,7 @@ interface ICardDrawsProps {
 // передачи карт между игроками.
 const arcShape = (progress: number): number => 4 * progress * (1 - progress);
 
-const DrawnCard = ({to, arc, deckCardWidth, toWidth}: Omit<IDrawFlight, 'id'> & {deckCardWidth: number, toWidth: number}) => {
+const DrawnCard = ({from, to, arc, deckCardWidth, toWidth}: Omit<IDrawFlight, 'id'> & {deckCardWidth: number, toWidth: number}) => {
 	const {t} = useSpring<{t: number}>({
 		t: 1,
 		from: {t: 0},
@@ -69,8 +71,9 @@ const DrawnCard = ({to, arc, deckCardWidth, toWidth}: Omit<IDrawFlight, 'id'> & 
 
 	// Нормаль к отрезку «колода — кружок»: вдоль неё карта сходит с прямой и к
 	// концу пути возвращается на неё.
-	const arcX = -to.y * arc;
-	const arcY = to.x * arc;
+	const path = {x: to.x - from.x, y: to.y - from.y};
+	const arcX = -path.y * arc;
+	const arcY = path.x * arc;
 	const alpha = t.interpolate(progress => progress < fadeFrom ? 1 : (1 - progress) / (1 - fadeFrom));
 
 	return (
@@ -80,8 +83,8 @@ const DrawnCard = ({to, arc, deckCardWidth, toWidth}: Omit<IDrawFlight, 'id'> & 
 			<Card
 				id={cardBack}
 				style={{
-					x: t.interpolate(progress => to.x * progress + arcX * arcShape(progress)),
-					y: t.interpolate(progress => to.y * progress + arcY * arcShape(progress)),
+					x: t.interpolate(progress => from.x + path.x * progress + arcX * arcShape(progress)),
+					y: t.interpolate(progress => from.y + path.y * progress + arcY * arcShape(progress)),
 					angle: t.interpolate(progress => tiltDeg * Math.sign(arc) * arcShape(progress)),
 					width: t.interpolate(progress => {
 						const size = deckCardWidth + (toWidth - deckCardWidth) * progress;
@@ -93,7 +96,7 @@ const DrawnCard = ({to, arc, deckCardWidth, toWidth}: Omit<IDrawFlight, 'id'> & 
 	);
 };
 
-const CardDraws = observer(({controller, getPosition, deckCardWidth, badgeRadius}: ICardDrawsProps) => {
+const CardDraws = observer(({controller, getPosition, deckPoint, deckCardWidth, badgeRadius}: ICardDrawsProps) => {
 	const {cardDraws, currentPlayerId} = controller;
 
 	const [flights, setFlights] = React.useState<IDrawFlight[]>([]);
@@ -129,6 +132,7 @@ const CardDraws = observer(({controller, getPosition, deckCardWidth, badgeRadius
 				const spread = count > 1 ? (index - (count - 1) / 2) * arcSpread : 0;
 				started.push({
 					id: nextFlightId.current++,
+					from: deckPoint,
 					to: getPosition(playerId),
 					arc: arcRatio + spread,
 				});

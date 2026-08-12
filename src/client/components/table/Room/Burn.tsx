@@ -8,6 +8,7 @@ import {formatNickname, getBadgeResource} from 'client/components/table/PlayerBa
 import {EEventID} from 'shared/enum/cards';
 import GameController from 'client/controllers/gameController';
 import {burnMs} from 'client/helpers/burnTiming';
+import {badgeAspect} from 'client/helpers/roomHelpers';
 
 // Сожжение огнемётом. Поджигатель поливает соседа струёй огня во всю ширину
 // стола, кружок жертвы чернеет, обугливается и прогорает, а на его месте стоит
@@ -260,7 +261,7 @@ const BurningPlayer = ({burn: {seq, playerId, x, y, fromX, fromY}, controller, b
 						texture={getPixiTexture(badgeResource)}
 						anchor={0.5}
 						width={size}
-						height={size}
+						height={size * badgeAspect}
 					/>
 					<Text
 						text={player && player.isYou ? 'ТЫ' : (formatNickname(player ? player.nickname : null) ?? '')}

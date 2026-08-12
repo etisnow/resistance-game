@@ -3,7 +3,9 @@ import {map, range} from 'lodash';
 import * as PIXI from 'pixi.js';
 import {Container, Sprite, Text} from 'react-pixi-fiber';
 import Circle from 'client/components/pixiPrimitives/Circle';
+import Ellipse from 'client/components/pixiPrimitives/Ellipse';
 import Plate from 'client/components/pixiPrimitives/Plate';
+import {tableSquash} from 'client/helpers/roomHelpers';
 import {resources} from 'client/resources/resources';
 import {getPixiTexture} from 'client/components/table/pixiInjected';
 import {toggleCardHintFor} from 'client/components/hint/canvasHint';
@@ -49,12 +51,21 @@ export const formatNickname = (nickname: string | null): string | null => {
 // и делаем не тоньше пальца.
 const quarantineHitHeight = 30;
 
-const Quarantine = ({quarantine, badgeRadius, isInteractive}: {quarantine: number; badgeRadius: number; isInteractive: boolean}) => {
-	const r = badgeRadius * 0.05;
-	const yOffset = badgeRadius * 0.45;
+interface IQuarantineProps {
+	quarantine: number;
+	// Габариты кружка: он вытянут по вертикали (см. badgeAspect), поэтому точки
+	// разложены по его ширине, а опущены — по его высоте.
+	badgeWidth: number;
+	badgeHeight: number;
+	isInteractive: boolean;
+}
+
+const Quarantine = ({quarantine, badgeWidth, badgeHeight, isInteractive}: IQuarantineProps) => {
+	const r = (badgeWidth / 2) * 0.05;
+	const yOffset = (badgeHeight / 2) * 0.45;
 	const xOffset = r * 4;
 	if (!quarantine) return null;
-	const hitWidth = Math.max(badgeRadius, r * 4 * quarantine);
+	const hitWidth = Math.max(badgeWidth / 2, r * 4 * quarantine);
 	const hitArea = new PIXI.Rectangle(-hitWidth / 2, yOffset - quarantineHitHeight / 2, hitWidth, quarantineHitHeight);
 	return (
 		<Container
@@ -103,6 +114,36 @@ const YouNickname = ({text}: {text: string}) => {
 		</Container>
 	);
 };
+
+// Тень под игроком. Без неё кружок висит над столом, а не стоит у него: пол
+// (и столешница, на которую тень заходит у ближних мест) — это та же плоскость,
+// что и стол, поэтому и тень лежит в его проекции, сплюснутым эллипсом.
+//
+// Двумя кольцами: снаружи пожиже, внутри плотнее — у одного сплошного эллипса
+// слишком резкий край, и он читается лужей, а не тенью.
+const badgeShadows = [
+	{spread: 0.66, alpha: 0.3},
+	{spread: 0.46, alpha: 0.35},
+];
+// Насколько тень приплюснута сверх проекции стола (она лежит, а не стоит) и где
+// она начинается — в долях высоты кружка от его середины.
+const shadowFlatten = 0.42;
+const shadowDrop = 0.44;
+
+const PlayerShadow = ({badgeWidth, badgeHeight}: {badgeWidth: number, badgeHeight: number}) => (
+	<Container interactiveChildren={false}>
+		{map(badgeShadows, ({spread, alpha}) => (
+			<Ellipse
+				key={spread}
+				yCoord={badgeHeight * shadowDrop}
+				rx={badgeWidth * spread}
+				ry={badgeWidth * spread * tableSquash * shadowFlatten}
+				color={0x000000}
+				alpha={alpha}
+			/>
+		))}
+	</Container>
+);
 
 const playerBadgesByKey: Record<string, string | undefined> = resources.playerBadges;
 const colorBadgesCount = 11;
@@ -194,19 +235,23 @@ const PlayerBadge = ({
 	const nick = formatNickname(nickname) ?? ''
 	return (
 		<Container pointerdown={markPlayer} buttonMode={true} interactive={true}>
+			<PlayerShadow badgeWidth={style.width} badgeHeight={style.height}/>
 			{canBeSelected && (
 				<Sprite
 					texture={playerGlowTexture}
 					anchor={0.5}
-					width={style.height * 1.35}
+					width={style.width * 1.35}
 					height={style.height * 1.35}
 				/>
 			)}
 
+			{/* Кружок игрока — эллипс, а не круг: он стоит за столом, который мы
+			    видим из-за его края, и вытянут по вертикали (см. badgeAspect).
+			    Картинка бейджа круглая, растягивает её сам спрайт. */}
 			<Sprite
 				texture={playerBadgeTexture}
 				anchor={0.5}
-				width={style.height}
+				width={style.width}
 				height={style.height}
 				alpha={quarantine>0 ? 0.4 : 1}
 				interactive={canBeSelected || isDoor}
@@ -218,15 +263,20 @@ const PlayerBadge = ({
 					{isYou
 						? <YouNickname text={nick}/>
 						: <Text text={nick} anchor={0.5} style={nicknameStyle}/>}
-					<Quarantine quarantine={quarantine} badgeRadius={style.height/2} isInteractive={!canBeSelected} />
+					<Quarantine
+						quarantine={quarantine}
+						badgeWidth={style.width}
+						badgeHeight={style.height}
+						isInteractive={!canBeSelected}
+					/>
 					{/* Роль игрока — это сам бейдж: отдельных значков нечто/заражения нет. */}
 					{(mark && mark !==EPlayerMark.none && !isRoleKnown) && (
 						<Sprite
 							texture={getMarkTexture(mark)}
 							anchor={0.5}
 							y={-style.height/4}
-							width={style.height * 0.3}
-							height={style.height * 0.3}
+							width={style.width * 0.3}
+							height={style.width * 0.3}
 						/>
 					)}
 				</React.Fragment>

@@ -7,6 +7,7 @@ import GameController from 'client/controllers/gameController';
 import {AnimatedPixi, getPixiTexture} from 'client/components/table/pixiInjected';
 import {resources} from 'client/resources/resources';
 import {cardAspectRatio} from 'shared/constant/cards';
+import {tableCardPoint, tableSquash} from 'client/helpers/roomHelpers';
 import {panicCardWidth, tableCenterX, tableCenterY} from 'client/helpers/window';
 import {toggleCardHintFor} from 'client/components/hint/canvasHint';
 import type {IFormatPanicCard} from 'shared/interfaces/common';
@@ -27,7 +28,7 @@ const flipDurationMs = 480;
 
 // Сама карта: монтируется на каждую новую панику, поэтому переворот играется
 // ровно один раз — на появлении.
-const PanicCardView = observer(({panicCard}: {panicCard: IFormatPanicCard}) => {
+const PanicCardView = observer(({panicCard, place}: {panicCard: IFormatPanicCard, place: {x: number, y: number}}) => {
 	// Полуоборот вокруг вертикальной оси: 0 — рубашка, 1 — лицо.
 	const {flip} = useSpring<{flip: number}>({
 		flip: 1,
@@ -37,7 +38,10 @@ const PanicCardView = observer(({panicCard}: {panicCard: IFormatPanicCard}) => {
 	});
 
 	const width = panicCardWidth();
-	const height = width * cardAspectRatio;
+	// Паника лежит на столе, а не стоит на нём: её высоту сжимает та же проекция,
+	// что и столешницу с колодой (см. tableSquash). Прочитать её целиком можно
+	// нажатием — оно показывает карту крупно и уже без проекции.
+	const height = width * cardAspectRatio * tableSquash;
 
 	// Рубашка сжимается к нулю, лицо из нуля разворачивается. Высота на середине
 	// чуть больше — так поворот читается объёмным, а не схлопыванием картинки.
@@ -47,8 +51,8 @@ const PanicCardView = observer(({panicCard}: {panicCard: IFormatPanicCard}) => {
 
 	const commonProps = {
 		anchor: 0.5,
-		x: tableCenterX(),
-		y: tableCenterY(),
+		x: tableCenterX() + place.x,
+		y: tableCenterY() + place.y,
 		height: cardHeight,
 		interactive: true,
 		buttonMode: true,
@@ -80,7 +84,13 @@ const PanicCard = observer(({controller}: IPanicCardProps) => {
 	const {panicCard} = controller;
 	if (!panicCard) return null;
 	// key — чтобы каждая новая паника монтировалась заново и переворачивалась.
-	return <PanicCardView key={panicCard.uniqueId || panicCard.id} panicCard={panicCard}/>;
+	return (
+		<PanicCardView
+			key={panicCard.uniqueId || panicCard.id}
+			panicCard={panicCard}
+			place={tableCardPoint(controller.playersList.length)}
+		/>
+	);
 });
 
 export default PanicCard;

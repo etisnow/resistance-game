@@ -5,7 +5,7 @@ import {Container, Sprite} from 'react-pixi-fiber';
 import GameController from 'client/controllers/gameController';
 import HandComponent from 'client/components/table/Hand/HandComponent';
 import {getWindowHeight, getWindowWidth, playerHandHeight, tableCenterX, tableCenterY} from 'client/helpers/window';
-import {playerRoomDiag, roomPlayerOrder, roomPlayerPoint} from 'client/helpers/roomHelpers';
+import {deckCardWidth, playerRoomDiag, roomPlayerOrder, roomPlayerPoint, tableCardPoint} from 'client/helpers/roomHelpers';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {ETurnState} from 'shared/enum/player';
 
@@ -50,8 +50,12 @@ const Hand = observer(({controller} : IHandProps) => {
 		controller.currentPlayerId ?? '',
 		controller.isFirstPersonTable && player.turnState !== ETurnState.dead,
 	);
-	// Колода лежит в центре стола и рисуется картой шириной с бейдж (см. Deck).
-	const deckStyle = {...toHandCoords({x: 0, y: 0}), angle: 0, width: badgeDiagonal};
+	// Колода лежит на столе (см. Deck) — оттуда карта и приезжает в руку.
+	const deckStyle = {
+		...toHandCoords(tableCardPoint(controller.playersList.length)),
+		angle: 0,
+		width: deckCardWidth(controller.playersList.length),
+	};
 	// Карта у чужого кружка: маленькая и без наклона. Приходящая вырастает из
 	// него, будто её оттуда достали, уходящая — сжимается в него до нуля, будто
 	// он её вобрал.
