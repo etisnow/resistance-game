@@ -255,6 +255,7 @@ const BurningPlayer = ({burn: {seq, playerId, x, y, fromX, fromY}, controller, b
 						isDoor={false}
 						isConnected={player.isConnected}
 						color={player.color}
+						avatar={player.avatar}
 						badgeWidth={size}
 						badgeHeight={size * badgeAspect}
 					/>

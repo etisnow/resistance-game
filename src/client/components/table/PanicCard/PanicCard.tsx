@@ -16,9 +16,9 @@ interface IPanicCardProps {
 }
 
 // resources — объектный литерал, у которого все карточные поля строковые
-// (нестроковый там только вложенный playerBadges, за которым мы не ходим).
+// (нестроковые там только playerBadges и avatars, за которыми мы не ходим).
 // Смотрим на него через строковый индекс, чтобы взять картинку по id карты.
-const {playerBadges: _playerBadges, ...cardImages} = resources;
+const {playerBadges: _playerBadges, avatars: _avatars, ...cardImages} = resources;
 const cardResources: Record<string, string | undefined> = cardImages;
 
 // Карта выходит на стол рубашкой вверх и тут же переворачивается лицом.

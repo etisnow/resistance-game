@@ -32,6 +32,10 @@ interface EllipseTextureProps {
 	texture: PIXI.Texture;
 	focus?: IFocus;
 	alpha?: number;
+	// Растянуть картинку под эллипс, а не вписать её «по большей стороне». Так
+	// рисуется столешница: это круг, увиденный из-за края стола, и его рисунок
+	// обязан сжаться вместе с ним (см. tableSquash), а не поехать краями за него.
+	stretch?: boolean;
 }
 
 const wholeTexture: IFocus = {x: 0, y: 0, width: 1, height: 1};
@@ -45,14 +49,14 @@ export const behavior = {
 		oldProps: EllipseTextureProps | undefined,
 		newProps: EllipseTextureProps,
 	) {
-		const { rx, ry, texture, focus = wholeTexture } = newProps;
+		const { rx, ry, texture, focus = wholeTexture, stretch = false } = newProps;
 		// Заливка текстурой заново собирает геометрию, а карты статусов висят на
 		// кружках всё время партии: пока размер и картинка те же, перерисовывать
 		// нечего (стол пересчитывается на любое обновление).
 		const oldFocus = oldProps && (oldProps.focus ?? wholeTexture);
 		if (oldProps
 			&& oldProps.rx === rx && oldProps.ry === ry && oldProps.texture === texture
-			&& oldFocus === focus) {
+			&& oldFocus === focus && (oldProps.stretch ?? false) === stretch) {
 			this.applyDisplayObjectProps(oldProps, newProps);
 			return;
 		}
@@ -64,13 +68,18 @@ export const behavior = {
 		const width = Math.max(1, texture.width);
 		const height = Math.max(1, texture.height);
 		// Масштаб — по кадру, а не по всей картинке: в эллипс должен влезть именно он.
-		const cover = Math.max((rx * 2) / (width * focus.width), (ry * 2) / (height * focus.height));
+		// По каждой оси свой, если картинку растягиваем, и общий (по большей
+		// стороне), если вписываем: тогда она заполняет эллипс, не перекашиваясь.
+		const byWidth = (rx * 2) / (width * focus.width);
+		const byHeight = (ry * 2) / (height * focus.height);
+		const scaleX = stretch ? byWidth : Math.max(byWidth, byHeight);
+		const scaleY = stretch ? byHeight : Math.max(byWidth, byHeight);
 		// И сдвиг такой, чтобы середина кадра пришлась на середину эллипса.
 		const matrix = new PIXI.Matrix()
-			.scale(cover, cover)
+			.scale(scaleX, scaleY)
 			.translate(
-				-(focus.x + focus.width / 2) * width * cover,
-				-(focus.y + focus.height / 2) * height * cover,
+				-(focus.x + focus.width / 2) * width * scaleX,
+				-(focus.y + focus.height / 2) * height * scaleY,
 			);
 
 		instance.beginTextureFill({ texture, matrix });

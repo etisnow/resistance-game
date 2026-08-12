@@ -37,6 +37,9 @@ import disconnected from "client/resources/images/disconnected.png";
 import glowEffect from "client/resources/images/gloweffect.png";
 import playerbadgeGlow from "client/resources/images/playerbadgeGlow.png";
 import noise from "client/resources/images/noise.jpg";
+// Столешница: круглый люк, увиденный сверху. В эллипс стола он не вписывается, а
+// растягивается — это тот же круг, только в проекции стола (см. TableSurface).
+import tableTop from "client/resources/images/table.jpg";
 import deckCounterBg from "client/resources/images/deckCounterBg.png";
 // Отпечаток пальца в тот же неоново-зелёный, что и ладонь на кнопке OKAY: им
 // «подписывают» выбранные карты в окне множественного выбора (см. FingerStamp
@@ -56,6 +59,18 @@ import playerBadge10 from "client/resources/images/playerBadges/10.png";
 import playerBadge11 from "client/resources/images/playerBadges/11.png";
 import playerBadgeThing from "client/resources/images/playerBadges/thing.png";
 import playerBadgeInfected from "client/resources/images/playerBadges/infected.png";
+
+// Лица игроков: ими залит кружок за столом (см. BadgeBody). Кадрированы под его
+// пропорции (badgeAspect), поэтому вписываются в него без подгонки. Раздаёт их
+// сервер на старте партии, по одной на человека (см. gameStarter).
+import avatar1 from "client/resources/images/avatars/1.jpg";
+import avatar2 from "client/resources/images/avatars/2.jpg";
+import avatar3 from "client/resources/images/avatars/3.jpg";
+import avatar4 from "client/resources/images/avatars/4.jpg";
+import avatar5 from "client/resources/images/avatars/5.jpg";
+import avatar6 from "client/resources/images/avatars/6.jpg";
+import avatar7 from "client/resources/images/avatars/7.jpg";
+import avatar8 from "client/resources/images/avatars/8.jpg";
 
 import cardAct from "client/resources/images/buttons/act.png";
 import cardDiscard from "client/resources/images/buttons/discard.png";
@@ -110,6 +125,7 @@ const resources = {
 	deckCounterBg,
 	fingerPrint,
 	noise,
+	tableTop,
 
 	cardAct,
 	cardDiscard,
@@ -138,7 +154,10 @@ const resources = {
 		'disconnected': disconnected,
 		'thing': playerBadgeThing,
 		'infected': playerBadgeInfected,
-	}
+	},
+
+	// Порядок важен: сервер присылает номер аватарки в этом списке.
+	avatars: [avatar1, avatar2, avatar3, avatar4, avatar5, avatar6, avatar7, avatar8],
 };
 
 export {resources};

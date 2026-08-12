@@ -7,6 +7,9 @@ export default class Player {
 	@observable state: EPlayerState = EPlayerState.dummy;
 	@observable nickname: string | null = null;
 	@observable color: string = '';
+	// Номер лица в resources.avatars: им залит кружок игрока за столом. Приходит
+	// с сервера на старте партии — до него кружок просто цветной.
+	@observable avatar: string = '';
 	@observable gameId: string | null = null;
 	@observable id: string = '';
 	@observable isHost: boolean = false;

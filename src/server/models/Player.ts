@@ -28,6 +28,9 @@ export class Player {
 	turnState: ETurnState = ETurnState.idle;
 	nickname: string = '';
 	color:string = '';
+	// Номер лица в списке аватарок (см. resources.avatars). Раздаётся на старте
+	// партии, по одному на человека — им и залит его кружок за столом.
+	avatar: string = '';
 	// Always assigned via register() before the player participates in a game.
 	game!: Game;
 	isYou: boolean = false;

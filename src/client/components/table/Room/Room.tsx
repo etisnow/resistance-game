@@ -576,12 +576,13 @@ const Room = observer(({controller, children} : IRoomProps) => {
 	const renderBadge = (seat: ISeat) => {
 		const player = players[seat.item];
 		if (!player || !player.id) return null;
-		const {nickname, color, state} = player;
+		const {nickname, color, avatar, state} = player;
 		return seatPlace(seat, (
 			<PlayerBadge
 				style={{width: badgeWidth, height: badgeHeight}}
 				nickname={nickname}
 				color={color}
+				avatar={avatar}
 				canBeSelected={canPlayerBeSelected(player)}
 				id={player.id}
 				isConnected={player.isConnected}

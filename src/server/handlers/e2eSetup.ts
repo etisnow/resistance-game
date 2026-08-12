@@ -3,6 +3,7 @@ import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
 import type {IGameSocket} from 'shared/interfaces/socket';
 import {fullDeckObject, instantiateCard} from 'shared/constant/cards';
+import {avatarsCount} from 'shared/constant/avatars';
 import {ICardAny, ICardEvent} from 'shared/interfaces/cards';
 import {ECardType} from 'shared/enum/cards';
 import {EPlayerState, ETurnState} from 'shared/enum/player';
@@ -149,6 +150,8 @@ export const applyE2ESetup = (gameServer: GameServer, game: Game, raw: IE2ESetup
 		const p = playerByNick(game, nick);
 		if (!p) return;
 		p.color = String(idx);
+		// Лицо — по месту за столом: сценарий должен быть повторим до картинки.
+		p.avatar = String(idx % avatarsCount);
 		orderedIds.push(p.id);
 	});
 	game.playersList = orderedIds;

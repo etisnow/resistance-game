@@ -28,13 +28,29 @@ h1 {
     position: relative;
     width:100%;
     height:100%;
-    background-image: url("../../resources/images/thing_bg.png");
-    background-repeat: no-repeat;
     justify-content: center;
     align-items: center;
+    // Из-под задника: он закрывает окно не целиком (см. RoomBackdrop), и в
+    // чёрный же уходят его собственные края.
     background-color: black;
-    background-position: center;
-    background-size: contain;
+    overflow: hidden;
+}
+
+// Сам задник — отдельным слоем, а не фоном обёртки: место ему считает
+// RoomBackdrop, чтобы круг на полу пришёлся ровно под стол.
+.nechto-backdrop {
+    position: absolute;
+    z-index: 0;
+    pointer-events: none;
+}
+
+// Всё остальное — поверх задника. Слой ему нужен явный: задник позиционирован, а
+// экраны лаунчера и лобби лежат обычными блоками в потоке, и такие по правилам
+// рисуются РАНЬШЕ любого позиционированного соседа — то есть под картинкой.
+// Работает и без position: дети обёртки — флекс-элементы, а им z-index доступен
+// сам по себе.
+.nechto-wrapper > *:not(.nechto-backdrop) {
+    z-index: 1;
 }
 
 

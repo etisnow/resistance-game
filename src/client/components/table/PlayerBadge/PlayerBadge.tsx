@@ -19,6 +19,7 @@ interface IPlayerBadgeProps {
 	id: string;
 	nickname: string | null;
 	color: string;
+	avatar: string;
 	canBeSelected: boolean;
 	isDoor: boolean;
 	onSelect: ((playerId: string) => void) | null;
@@ -262,13 +263,12 @@ export const badgeBodyWidth = (isDoor: boolean, width: number, height: number): 
 	isDoor ? height / cardAspectRatio : width;
 
 /**
- * Цвет кружка. Раньше это была картинка с запечённым в неё градиентом — свет в
- * ней был нарисован заранее и спорил со светом сферы, которая ложится сверху
- * (см. sphereShadeTexture). Теперь кружок залит сплошным цветом, а весь объём
- * даёт одна общая сфера.
+ * Цвет кружка — на случай, когда лица ещё нет: аватарку раздаёт сервер на старте
+ * партии (см. gameStarter), а до того игрок за столом уже сидит.
  *
- * Сами цвета — средние тона тех самых картинок: за столом игроки узнают друг
- * друга по цвету, и менять его не за чем.
+ * Раньше цвет был картинкой с запечённым в неё градиентом — свет в ней был
+ * нарисован заранее и спорил со светом сферы, которая ложится сверху (см.
+ * sphereShadeTexture). Сами цвета — средние тона тех самых картинок.
  *
  * Цвет — это порядковый номер игрока, поэтому на столе больше badgeColors
  * человек цвета начинают повторяться, но цвет есть у всех.
@@ -289,10 +289,21 @@ const disconnectedIconShare = 0.62;
 export const badgeColorOf = (color: string): number =>
 	badgeColors[Number(color) % badgeColors.length] ?? firstBadgeColor;
 
+// Лица игроков. Кадрированы под пропорции кружка (см. badgeAspect), поэтому в
+// него вписываются целиком — кадрировать их ещё и здесь, как карты статусов, не
+// приходится.
+const avatarTextures = map(resources.avatars, getPixiTexture);
+
+// Лицо игрока по номеру, присланному сервером. Пока номера нет (до старта партии)
+// или он не из этого списка — лица нет, и кружок остаётся цветным.
+const avatarTextureOf = (avatar: string): PIXI.Texture | undefined =>
+	avatar === '' ? undefined : avatarTextures[Number(avatar) % avatarTextures.length];
+
 interface IBadgeBodyProps {
 	isDoor: boolean;
 	isConnected: boolean;
 	color: string;
+	avatar: string;
 	badgeWidth: number;
 	badgeHeight: number;
 	// Нажатие по самому кружку: выбор цели или показ карты двери. Всегда
@@ -317,6 +328,7 @@ export const BadgeBody = ({
 	isDoor,
 	isConnected,
 	color,
+	avatar,
 	badgeWidth,
 	badgeHeight,
 	isInteractive = false,
@@ -336,16 +348,31 @@ export const BadgeBody = ({
 			/>
 		);
 	}
+	// Живой игрок сидит за столом своим лицом. Отключившийся — серым камнем со
+	// значком оборванного провода: то, что человека за столом нет, важнее того,
+	// как он выглядел.
+	const face = isConnected ? avatarTextureOf(avatar) : undefined;
 	return (
 		<React.Fragment>
-			<Ellipse
-				rx={badgeWidth / 2}
-				ry={badgeHeight / 2}
-				color={isConnected ? badgeColorOf(color) : disconnectedColor}
-				interactive={isInteractive}
-				buttonMode={isInteractive}
-				pointerdown={pointerdown}
-			/>
+			{face ? (
+				<EllipseTexture
+					rx={badgeWidth / 2}
+					ry={badgeHeight / 2}
+					texture={face}
+					interactive={isInteractive}
+					buttonMode={isInteractive}
+					pointerdown={pointerdown}
+				/>
+			) : (
+				<Ellipse
+					rx={badgeWidth / 2}
+					ry={badgeHeight / 2}
+					color={isConnected ? badgeColorOf(color) : disconnectedColor}
+					interactive={isInteractive}
+					buttonMode={isInteractive}
+					pointerdown={pointerdown}
+				/>
+			)}
 			{!isConnected && (
 				<Sprite
 					texture={disconnectedTexture}
@@ -376,6 +403,7 @@ const getMarkTexture = (mark: EPlayerMark | undefined): PIXI.Texture | undefined
 const PlayerBadge = ({
 		nickname,
 		color,
+		avatar,
 		canBeSelected = false,
 		onSelect = null,
 		id,
@@ -413,7 +441,6 @@ const PlayerBadge = ({
 	// кружок нечем залить.
 	if (!color && !isDoor) return null;
 	const bodyWidth = badgeBodyWidth(isDoor, style.width, style.height);
-	const hasStatusSkin = !!statusSkinOf({isConnected, isThing, isInfected, quarantine});
 	// На кружке у всех ник, включая свой: что кружок твой, говорит этикетка над
 	// ним (см. YouTag), а раньше вместо ника там стояло «ТЫ» — и собственное имя
 	// за столом было не найти.
@@ -438,6 +465,7 @@ const PlayerBadge = ({
 				isDoor={isDoor}
 				isConnected={isConnected}
 				color={color}
+				avatar={avatar}
 				badgeWidth={bodyWidth}
 				badgeHeight={style.height}
 				isInteractive={canBeSelected || isDoor}
@@ -454,13 +482,12 @@ const PlayerBadge = ({
 						quarantine={quarantine}
 					/>
 					<BadgeShade badgeWidth={bodyWidth} badgeHeight={style.height}/>
-					{/* Ник на подложке — у себя и у всякого, на ком лежит карта статуса:
-					    своего надо находить взглядом за любым столом, а по картинке
-					    карты белые буквы теряются. Остальным подложка ни к чему: кружок
-					    под ними ровный. */}
-					{isYou || hasStatusSkin
-						? <PlatedNickname text={nick} style={isYou ? youNicknameStyle : nicknameStyle}/>
-						: <Text text={nick} anchor={0.5} style={nicknameStyle}/>}
+					{/* Ник — на подложке у всех: под ним теперь лицо игрока (а у кого-то
+					    ещё и карта статуса поверх), и по картинке белые буквы теряются.
+					    Ровного кружка, по которому они читались сами по себе, больше нет.
+					    Свой при этом жирный: за абсолютным столом себя надо находить
+					    взглядом. */}
+					<PlatedNickname text={nick} style={isYou ? youNicknameStyle : nicknameStyle}/>
 					<Quarantine
 						quarantine={quarantine}
 						badgeWidth={style.width}
