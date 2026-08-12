@@ -7,6 +7,7 @@ import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
 
 import {EEventID} from 'shared/enum/cards';
+import {quarantineTurns} from 'shared/constant/cards';
 import {EGameLogType} from 'shared/enum/gameLogType';
 
 export const quarantineAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
@@ -35,7 +36,7 @@ export const quarantineSelect = ({game, player, selectedPlayerId} : {game: Game,
 	player.discardCard(game.turnContext.cardUniqueId);
 	const selectedPlayer = game.players[selectedPlayerId];
 	if (!selectedPlayer) return;
-	selectedPlayer.quarantine = 3;
+	selectedPlayer.quarantine = quarantineTurns;
 	// Don't let the counter tick on the turn-start that immediately follows
 	// applying the quarantine (e.g. when the next player gets quarantined).
 	selectedPlayer.quarantineFresh = true;

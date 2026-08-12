@@ -4,7 +4,7 @@ import * as PIXI from 'pixi.js';
 import {Text} from 'react-pixi-fiber';
 import {useSpring} from 'react-spring/universal';
 import {AnimatedPixi, getPixiTexture} from 'client/components/table/pixiInjected';
-import {formatNickname, getBadgeResource} from 'client/components/table/PlayerBadge/PlayerBadge';
+import {BadgeShade, formatNickname, getBadgeResource, StatusSkin} from 'client/components/table/PlayerBadge/PlayerBadge';
 import {EEventID} from 'shared/enum/cards';
 import GameController from 'client/controllers/gameController';
 import {burnMs} from 'client/helpers/burnTiming';
@@ -120,13 +120,12 @@ const BurningPlayer = ({burn: {seq, playerId, x, y, fromX, fromY}, controller, b
 	});
 	const player = controller.players[playerId];
 	// Роль сгоревшего мы могли и не знать — бейдж рисуем ровно тот, что стоял на
-	// столе, иначе на месте игрока вспыхнет чужой кружок.
+	// столе, иначе на месте игрока вспыхнет чужой кружок. Со статусом поверх (см.
+	// StatusSkin) он и горит: сгорает то, на что все смотрели.
 	const badgeResource = player && getBadgeResource({
 		isDoor: false,
 		isConnected: player.isConnected,
 		color: player.color,
-		isThing: player.isThing,
-		isInfected: player.isInfected,
 	});
 
 	const seed = seedOf(seq);
@@ -263,6 +262,17 @@ const BurningPlayer = ({burn: {seq, playerId, x, y, fromX, fromY}, controller, b
 						width={size}
 						height={size * badgeAspect}
 					/>
+					{player && (
+						<StatusSkin
+							badgeWidth={size}
+							badgeHeight={size * badgeAspect}
+							isConnected={player.isConnected}
+							isThing={player.isThing}
+							isInfected={player.isInfected}
+							quarantine={player.quarantine}
+						/>
+					)}
+					<BadgeShade badgeWidth={size} badgeHeight={size * badgeAspect}/>
 					<Text
 						text={player && player.isYou ? 'ТЫ' : (formatNickname(player ? player.nickname : null) ?? '')}
 						anchor={0.5}

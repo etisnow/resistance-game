@@ -5,6 +5,7 @@ import Circle from 'client/components/pixiPrimitives/Circle';
 import Arrow from 'client/components/pixiPrimitives/Arrow';
 import Fire from 'client/components/pixiPrimitives/Fire';
 import Dissolve from 'client/components/pixiPrimitives/Dissolve';
+import PerspectiveTexture from 'client/components/pixiPrimitives/PerspectiveTexture';
 
 
 Globals.injectApplyAnimatedValues(
@@ -38,6 +39,10 @@ const AnimatedPixi = {
 	// тикера у шейдеров нет.
 	Fire: animated(Fire),
 	Dissolve: animated(Dissolve),
+	// Лежащая на столе карта: её трапеция пересобирается на каждом кадре
+	// переворота паники — узлов в сетке немного, это дешевле, чем городить
+	// анимацию внутри самого меша.
+	PerspectiveTexture: animated(PerspectiveTexture),
 };
 
 

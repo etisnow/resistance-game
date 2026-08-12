@@ -4,14 +4,16 @@ import * as PIXI from 'pixi.js';
 import {Container, Sprite, Text} from 'react-pixi-fiber';
 import Circle from 'client/components/pixiPrimitives/Circle';
 import Ellipse from 'client/components/pixiPrimitives/Ellipse';
+import EllipseTexture from 'client/components/pixiPrimitives/EllipseTexture';
 import Plate from 'client/components/pixiPrimitives/Plate';
 import {tableSquash} from 'client/helpers/roomHelpers';
+import {sphereShadeTexture} from 'client/helpers/sphereShade';
 import {resources} from 'client/resources/resources';
 import {getPixiTexture} from 'client/components/table/pixiInjected';
 import {toggleCardHintFor} from 'client/components/hint/canvasHint';
 import {EPlayerMark} from 'shared/enum/playerMarks';
 import {EEventID} from 'shared/enum/cards';
-import {cardAspectRatio} from 'shared/constant/cards';
+import {cardAspectRatio, quarantineTurns} from 'shared/constant/cards';
 
 interface IPlayerBadgeProps {
 	id: string;
@@ -53,6 +55,9 @@ export const formatNickname = (nickname: string | null): string | null => {
 // Сами точки крошечные, поэтому область нажатия растягиваем на всю ширину бейджа
 // и делаем не тоньше пальца.
 const quarantineHitHeight = 30;
+// Точки сидят на «лбу» кружка — в долях его полувысоты вверх от середины. Ниже
+// им мешают подпись с пометкой, выше они сползают с самого кружка.
+const quarantineDotsLift = 0.58;
 
 interface IQuarantineProps {
 	quarantine: number;
@@ -65,11 +70,21 @@ interface IQuarantineProps {
 
 const Quarantine = ({quarantine, badgeWidth, badgeHeight, isInteractive}: IQuarantineProps) => {
 	const r = (badgeWidth / 2) * 0.05;
-	const yOffset = (badgeHeight / 2) * 0.45;
+	const yOffset = -(badgeHeight / 2) * quarantineDotsLift;
 	const xOffset = r * 4;
 	if (!quarantine) return null;
 	const hitWidth = Math.max(badgeWidth / 2, r * 4 * quarantine);
 	const hitArea = new PIXI.Rectangle(-hitWidth / 2, yOffset - quarantineHitHeight / 2, hitWidth, quarantineHitHeight);
+	// Плашка под точками: на «лбу» под ними теперь сама карта карантина (см.
+	// QuarantineSkin), и жёлтое по её пёстрой картинке не читается.
+	//
+	// Длина у неё всегда во весь карантин, а не по оставшимся точкам: это шкала,
+	// и убывать должны только точки на ней. Иначе с каждым ходом карантинного
+	// плашка сама укорачивалась бы — и то, сколько ему осталось, приходилось бы
+	// считать точки, а не видеть.
+	const scale = Math.max(quarantine, quarantineTurns);
+	const left = -xOffset - r;
+	const right = (scale - 1) * r * 4 - xOffset + r;
 	return (
 		<Container
 			interactive={isInteractive}
@@ -79,6 +94,14 @@ const Quarantine = ({quarantine, badgeWidth, badgeHeight, isInteractive}: IQuara
 				? toggleCardHintFor(EEventID.quarantine, event)
 				: null}
 		>
+			<Container x={(left + right) / 2} y={yOffset}>
+				<Plate
+					plateWidth={right - left + r * 3}
+					plateHeight={r * 5}
+					borderRadius={r * 2.5}
+					color={youPlateColor}
+				/>
+			</Container>
 			{ map(range(quarantine), (_q, index) => {
 				return <Circle key={index} xCoord={(index * r * 4) - xOffset } yCoord={yOffset} color={0xFFFF00} r={r}/>
 			})}
@@ -102,8 +125,8 @@ const youPlateRadiusShare = 0.5;
 // Ник на подложке. Подложку меряем по самим буквам, а не по кружку: ники бывают
 // от одной буквы до четырёх (см. formatNickname), и подложка на глаз то жала бы
 // длинный, то болталась вокруг короткого.
-const YouNickname = ({text}: {text: string}) => {
-	const {width, height} = PIXI.TextMetrics.measureText(text, youNicknameStyle);
+const PlatedNickname = ({text, style}: {text: string, style: PIXI.TextStyle}) => {
+	const {width, height} = PIXI.TextMetrics.measureText(text, style);
 	const plateHeight = height + youPlatePadY * 2;
 	return (
 		<Container>
@@ -113,10 +136,83 @@ const YouNickname = ({text}: {text: string}) => {
 				borderRadius={plateHeight * youPlateRadiusShare}
 				color={youPlateColor}
 			/>
-			<Text text={text} anchor={0.5} style={youNicknameStyle}/>
+			<Text text={text} anchor={0.5} style={style}/>
 		</Container>
 	);
 };
+
+/**
+ * Статус игрока виден по самому кружку: на него натянута та карта, которой его
+ * таким сделали. Раньше карантинный кружок просто гас до сорока процентов (и
+ * читался как отключившийся), а роль показывали отдельно нарисованные круглые
+ * бейджи — те же карты, но перерисованные заново и живущие своей жизнью.
+ *
+ * Карта вписана ровно в эллипс (см. EllipseTexture), поэтому она лежит НА
+ * игроке, а не прямоугольной наклейкой поверх стола вокруг него. В кадр берём не
+ * всю карту с заголовком и правилами (в кружок они всё равно не читаются), а
+ * только её иллюстрацию — доли размеров картинки, а не пиксели: карты могут
+ * перерисовать в другом разрешении.
+ *
+ * Кадры подобраны так, чтобы головы на всех кружках выходили примерно одного
+ * размера: нечто нарисовано во всю карту, а лицо на «Заражении» — небольшим
+ * пятном посреди волос, и одинаковыми долями карты они дали бы кружки с
+ * несопоставимым зумом.
+ */
+const statusSkins = {
+	thing: {texture: getPixiTexture(resources.thing), focus: {x: 0, y: 0.16, width: 1, height: 0.84}},
+	infected: {texture: getPixiTexture(resources.infect), focus: {x: 0.2, y: 0.32, width: 0.6, height: 0.49}},
+	quarantine: {texture: getPixiTexture(resources.quarantine), focus: {x: 0.09, y: 0.27, width: 0.68, height: 0.58}},
+};
+
+interface IStatusArgs {
+	isConnected: boolean;
+	isThing: boolean;
+	isInfected: boolean;
+	quarantine: number;
+}
+
+/**
+ * Какую карту натянуть на кружок. Роль важнее карантина: карантин пройдёт через
+ * три хода, а нечто останется нечто — и знающему о роли важнее видеть именно её.
+ * Отключившегося не закрываем ничем: то, что человека нет за столом, важнее
+ * всего остального, что можно о нём сказать.
+ */
+const statusSkinOf = ({isConnected, isThing, isInfected, quarantine}: IStatusArgs) => {
+	if (!isConnected) return null;
+	if (isThing) return statusSkins.thing;
+	if (isInfected) return statusSkins.infected;
+	if (quarantine > 0) return statusSkins.quarantine;
+	return null;
+};
+
+export const StatusSkin = ({badgeWidth, badgeHeight, ...status}: IStatusArgs & {badgeWidth: number, badgeHeight: number}) => {
+	const skin = statusSkinOf(status);
+	if (!skin) return null;
+	return (
+		<EllipseTexture
+			rx={badgeWidth / 2}
+			ry={badgeHeight / 2}
+			texture={skin.texture}
+			focus={skin.focus}
+		/>
+	);
+};
+
+/**
+ * Светотень поверх кружка — одна на всех: и на цветных бейджах, и на картах
+ * статусов. Свет у всех идёт с одной стороны (сверху слева), и край у всех
+ * одинаково уходит в темноту, а не режется по столу яркой границей.
+ * Накладывается последней из картинок: ник, точки карантина и пометка ложатся
+ * уже поверх неё.
+ */
+export const BadgeShade = ({badgeWidth, badgeHeight}: {badgeWidth: number, badgeHeight: number}) => (
+	<Sprite
+		texture={sphereShadeTexture()}
+		anchor={0.5}
+		width={badgeWidth}
+		height={badgeHeight}
+	/>
+);
 
 // Тень под игроком. Без неё кружок висит над столом, а не стоит у него: пол
 // (и столешница, на которую тень заходит у ближних мест) — это та же плоскость,
@@ -124,16 +220,20 @@ const YouNickname = ({text}: {text: string}) => {
 //
 // Двумя кольцами: снаружи пожиже, внутри плотнее — у одного сплошного эллипса
 // слишком резкий край, и он читается лужей, а не тенью.
+//
+// Шире самого кружка тень не растекается: за столом соседи стоят вплотную, и
+// лишний её край наползал бы на соседнее «яйцо». По той же причине Room рисует
+// все тени до всех кружков (см. renderShadow).
 const badgeShadows = [
-	{spread: 0.66, alpha: 0.3},
-	{spread: 0.46, alpha: 0.35},
+	{spread: 0.5, alpha: 0.3},
+	{spread: 0.35, alpha: 0.35},
 ];
 // Насколько тень приплюснута сверх проекции стола (она лежит, а не стоит) и где
 // она начинается — в долях высоты кружка от его середины.
 const shadowFlatten = 0.42;
 const shadowDrop = 0.44;
 
-const PlayerShadow = ({badgeWidth, badgeHeight}: {badgeWidth: number, badgeHeight: number}) => (
+export const PlayerShadow = ({badgeWidth, badgeHeight}: {badgeWidth: number, badgeHeight: number}) => (
 	<Container interactiveChildren={false}>
 		{map(badgeShadows, ({spread, alpha}) => (
 			<Ellipse
@@ -148,6 +248,18 @@ const PlayerShadow = ({badgeWidth, badgeHeight}: {badgeWidth: number, badgeHeigh
 	</Container>
 );
 
+/**
+ * Ширина того, чем занято место за столом. Дверь — не игрок, а сыгранная между
+ * соседями карта «Заколоченная дверь»: её и рисуем самой картой, прямоугольником
+ * и в карточных пропорциях, а не кружком в чужой шкуре. Высота у неё та же, что
+ * у кружков, — место за столом выглядит занятым ровно так же.
+ *
+ * Наружу — потому что тени рисует стол, отдельным проходом (см. Room), а ему
+ * тоже надо знать, чему он их подкладывает.
+ */
+export const badgeBodyWidth = (isDoor: boolean, width: number, height: number): number =>
+	isDoor ? height / cardAspectRatio : width;
+
 const playerBadgesByKey: Record<string, string | undefined> = resources.playerBadges;
 const colorBadgesCount = 11;
 
@@ -155,17 +267,16 @@ interface IBadgeResourceArgs {
 	isDoor: boolean;
 	isConnected: boolean;
 	color: string;
-	isThing: boolean;
-	isInfected: boolean;
 }
 
-export const getBadgeResource = ({isDoor, isConnected, color, isThing, isInfected}: IBadgeResourceArgs): string | undefined => {
+/**
+ * Картинка самого кружка. Роли здесь больше нет: нечто и заражённого показывает
+ * натянутая на кружок карта (см. StatusSkin) — та же, что игрок держит в руке, а
+ * не отдельно нарисованный круглый бейдж, живущий своей жизнью.
+ */
+export const getBadgeResource = ({isDoor, isConnected, color}: IBadgeResourceArgs): string | undefined => {
 	if (isDoor) return playerBadgesByKey['door'];
 	if (!isConnected) return playerBadgesByKey['disconnected'];
-	// Роль вместо цветного кружка — но только для того, кто её знает: сервер
-	// присылает isThing/isInfected нулём всем, кому знать не положено.
-	if (isThing) return playerBadgesByKey['thing'];
-	if (isInfected) return playerBadgesByKey['infected'];
 	// Бейджей всего colorBadgesCount, а цвет — это порядковый номер игрока,
 	// поэтому на столе больше 11 человек цвета начинают повторяться, но бейдж есть у всех.
 	return playerBadgesByKey[color] ?? playerBadgesByKey[String(Number(color) % colorBadgesCount)];
@@ -226,14 +337,11 @@ const PlayerBadge = ({
 	// проверка обязана быть ДО поиска текстуры: getPixiTexture кидает исключение,
 	// а бросок из рендера роняет весь <Stage> целиком (error boundary тут нет).
 	if (!color && !isDoor) return null;
-	const badgeResource = getBadgeResource({isDoor, isConnected, color, isThing, isInfected});
+	const badgeResource = getBadgeResource({isDoor, isConnected, color});
 	if (!badgeResource) return null;
-	// Дверь — не игрок, а сыгранная между соседями карта «Заколоченная дверь»:
-	// её и рисуем — самой картой, прямоугольником и в карточных пропорциях, а не
-	// кружком в чужой шкуре. Высоту ей оставляем ту же, что у кружков, чтобы
-	// место за столом выглядело занятым ровно так же.
 	const bodyTexture = isDoor ? doorCardTexture : getPixiTexture(badgeResource);
-	const bodyWidth = isDoor ? style.height / cardAspectRatio : style.width;
+	const bodyWidth = badgeBodyWidth(isDoor, style.width, style.height);
+	const hasStatusSkin = !!statusSkinOf({isConnected, isThing, isInfected, quarantine});
 	// На кружке у всех ник, включая свой: что кружок твой, говорит этикетка над
 	// ним (см. YouTag), а раньше вместо ника там стояло «ТЫ» — и собственное имя
 	// за столом было не найти.
@@ -243,7 +351,6 @@ const PlayerBadge = ({
 	const nick = formatNickname(nickname) ?? ''
 	return (
 		<Container pointerdown={markPlayer} buttonMode={true} interactive={true}>
-			<PlayerShadow badgeWidth={bodyWidth} badgeHeight={style.height}/>
 			{canBeSelected && (
 				<Sprite
 					texture={playerGlowTexture}
@@ -261,15 +368,27 @@ const PlayerBadge = ({
 				anchor={0.5}
 				width={bodyWidth}
 				height={style.height}
-				alpha={quarantine>0 ? 0.4 : 1}
 				interactive={canBeSelected || isDoor}
 				buttonMode={canBeSelected || isDoor}
 				pointerdown={onBadgePointerDown}
 			/>
 			{!isDoor && (
 				<React.Fragment>
-					{isYou
-						? <YouNickname text={nick}/>
+					<StatusSkin
+						badgeWidth={bodyWidth}
+						badgeHeight={style.height}
+						isConnected={isConnected}
+						isThing={isThing}
+						isInfected={isInfected}
+						quarantine={quarantine}
+					/>
+					<BadgeShade badgeWidth={bodyWidth} badgeHeight={style.height}/>
+					{/* Ник на подложке — у себя и у всякого, на ком лежит карта статуса:
+					    своего надо находить взглядом за любым столом, а по картинке
+					    карты белые буквы теряются. Остальным подложка ни к чему: кружок
+					    под ними ровный. */}
+					{isYou || hasStatusSkin
+						? <PlatedNickname text={nick} style={isYou ? youNicknameStyle : nicknameStyle}/>
 						: <Text text={nick} anchor={0.5} style={nicknameStyle}/>}
 					<Quarantine
 						quarantine={quarantine}
@@ -277,12 +396,16 @@ const PlayerBadge = ({
 						badgeHeight={style.height}
 						isInteractive={!canBeSelected}
 					/>
-					{/* Роль игрока — это сам бейдж: отдельных значков нечто/заражения нет. */}
+					{/* Роль игрока — это сам бейдж: отдельных значков нечто/заражения нет.
+					    Своя пометка сидит на макушке кружка и наполовину торчит за него:
+					    внутри её не отличить от рисунка на бейдже (а у карантинного там
+					    ещё и карта), да и разглядывать чужие пометки приходится по всему
+					    столу разом — по верхнему краю они читаются одним взглядом. */}
 					{(mark && mark !==EPlayerMark.none && !isRoleKnown) && (
 						<Sprite
 							texture={getMarkTexture(mark)}
 							anchor={0.5}
-							y={-style.height/4}
+							y={-style.height/2}
 							width={style.width * 0.3}
 							height={style.width * 0.3}
 						/>

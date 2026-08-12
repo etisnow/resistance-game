@@ -19,7 +19,7 @@ import {
 	unwrapAngle,
 } from 'client/helpers/roomHelpers';
 import GameController from 'client/controllers/gameController';
-import PlayerBadge from 'client/components/table/PlayerBadge/PlayerBadge';
+import PlayerBadge, {badgeBodyWidth, PlayerShadow} from 'client/components/table/PlayerBadge/PlayerBadge';
 import TableSurface from 'client/components/table/Room/TableSurface';
 import CardFlights from 'client/components/table/Room/CardFlight';
 import CardDraws from 'client/components/table/Room/CardDraw';
@@ -61,6 +61,14 @@ interface IBadgeLayout {
 	angle: number;
 	spread: number;
 	alpha: number;
+}
+
+// Место за столом, как его отдаёт useTransition: кто сидит, ключ перехода и его
+// анимируемые поля.
+interface ISeat {
+	item: string;
+	key: string;
+	props: IBadgeLayout;
 }
 
 // Насколько дальше своего места за столом уезжает кружок выбывшего: он уходит
@@ -539,41 +547,54 @@ const Room = observer(({controller, children} : IRoomProps) => {
 		return false;
 	}
 
-	// Кружок игрока на своём месте за столом. Точка считается из угла прямо в
-	// пружине: так пересадка идёт по дуге круга, а не по хорде через стол.
-	const renderBadge = ({item: playerId, key, props: {angle, spread, alpha}}:
-		{item: string, key: string, props: IBadgeLayout}) => {
-			const player = players[playerId];
-			if (!player || !player.id) return null;
-			// Горящего рисует его костёр — он же и покажет, что от кружка осталось.
-			if (burnedOut.current.has(playerId)) return null;
-			const {nickname, color, state} = player;
-			const canBeSelected = canPlayerBeSelected(player);
-			return (
-				<AnimatedPixi.Container
-					key={key}
-					x={interpolate([angle, spread], (deg: number, away: number) => rx * Math.cos(degToRag(deg)) * away)}
-					y={interpolate([angle, spread], (deg: number, away: number) => ry * Math.sin(degToRag(deg)) * away)}
-					alpha={alpha}
-				>
-					<PlayerBadge
-						style={{width: badgeWidth, height: badgeWidth * badgeAspect}}
-						nickname={nickname}
-						color={color}
-						canBeSelected={canBeSelected}
-						id={player.id}
-						isConnected={player.isConnected}
-						isYou={player.isYou}
-						isInfected={player.isInfected}
-						isThing={player.isThing}
-						quarantine={player.quarantine}
-						isDoor={state === EPlayerState.door}
-						onSelect={controller.selectPlayer}
-						onLongPress={controller.changePlayerMark}
-						mark={marks[player.id]}
-					/>
-				</AnimatedPixi.Container>
-			)
+	const badgeHeight = badgeWidth * badgeAspect;
+
+	// Место игрока за столом: точка считается из угла прямо в пружине, поэтому
+	// пересадка идёт по дуге круга, а не по хорде через стол.
+	const seatPlace = ({item: playerId, key, props: {angle, spread, alpha}}: ISeat, children: React.ReactNode) => (
+		<AnimatedPixi.Container
+			key={`${playerId}:${key}`}
+			x={interpolate([angle, spread], (deg: number, away: number) => rx * Math.cos(degToRag(deg)) * away)}
+			y={interpolate([angle, spread], (deg: number, away: number) => ry * Math.sin(degToRag(deg)) * away)}
+			alpha={alpha}
+		>
+			{children}
+		</AnimatedPixi.Container>
+	);
+
+	const renderShadow = (seat: ISeat) => {
+		const player = players[seat.item];
+		if (!player) return null;
+		return seatPlace(seat, (
+			<PlayerShadow
+				badgeWidth={badgeBodyWidth(player.state === EPlayerState.door, badgeWidth, badgeHeight)}
+				badgeHeight={badgeHeight}
+			/>
+		));
+	};
+
+	const renderBadge = (seat: ISeat) => {
+		const player = players[seat.item];
+		if (!player || !player.id) return null;
+		const {nickname, color, state} = player;
+		return seatPlace(seat, (
+			<PlayerBadge
+				style={{width: badgeWidth, height: badgeHeight}}
+				nickname={nickname}
+				color={color}
+				canBeSelected={canPlayerBeSelected(player)}
+				id={player.id}
+				isConnected={player.isConnected}
+				isYou={player.isYou}
+				isInfected={player.isInfected}
+				isThing={player.isThing}
+				quarantine={player.quarantine}
+				isDoor={state === EPlayerState.door}
+				onSelect={controller.selectPlayer}
+				onLongPress={controller.changePlayerMark}
+				mark={marks[player.id]}
+			/>
+		));
 	};
 
 	// Дальняя половина стола — та, что уходит за столешницу: её жильцов рисуют
@@ -583,25 +604,31 @@ const Room = observer(({controller, children} : IRoomProps) => {
 	// Делим по месту, к которому игрок едет, а не по тому, где он сейчас:
 	// пересаживающийся сразу становится «ближним» или «дальним» и обходит стол
 	// соответственно перед ним или за ним.
-	const farBadges: React.ReactNode[] = [];
-	const nearBadges: React.ReactNode[] = [];
-	each(transitions, (transition) => {
-		const badge = renderBadge(transition as {item: string, key: string, props: IBadgeLayout});
-		if (!badge) return;
-		(isFarSeat(angleOf(transition.item)) ? farBadges : nearBadges).push(badge);
-	});
+	//
+	// Горящего рисует его костёр — он же и покажет, что от кружка осталось.
+	const seatsOf = (isFar: boolean): ISeat[] => filter(
+		transitions as unknown as ISeat[],
+		({item}) => !!players[item] && !burnedOut.current.has(item) && isFarSeat(angleOf(item)) === isFar,
+	);
+	const farSeats = seatsOf(true);
+	const nearSeats = seatsOf(false);
 
 	return (
 		<Container>
 			<Container x={tableCenterX()} y={tableCenterY()}>
-				{farBadges}
+				{/* Тени всех — до кружков всех: по кругу соседи стоят вплотную и порой
+				    наезжают друг на друга, и тень, нарисованная вместе со своим
+				    хозяином, ложилась бы на соседа. */}
+				{map(farSeats, renderShadow)}
+				{map(farSeats, renderBadge)}
 				<TableSurface rx={surface.rx} ry={surface.ry} thickness={tableThickness(playersCount)}/>
 			</Container>
 			{/* Всё, что лежит на столешнице: колода и сработавшая паника (см. Table).
 			    Они уже в координатах экрана, поэтому идут без сдвига к центру. */}
 			{children}
 			<Container x={tableCenterX()} y={tableCenterY()}>
-				{nearBadges}
+				{map(nearSeats, renderShadow)}
+				{map(nearSeats, renderBadge)}
 				{/* Прицел — поверх кружков: он обводит цель, а не лежит под ней.
 				    Пока ход ни за кем не числится (партия ещё не началась или уже
 				    кончилась), наводить его не на кого. Сгоревшего он тоже не ждёт:

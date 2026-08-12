@@ -2,11 +2,13 @@ import React from 'react';
 import {observer} from "mobx-react-lite";
 import {cardAspectRatio} from 'shared/constant/cards';
 import GameController from 'client/controllers/gameController';
-import {deckCardWidth, tableCardPoint, tableSquash} from 'client/helpers/roomHelpers';
+import {deckCardWidth, tableCardPoint, tableCardTaper, tableSquash} from 'client/helpers/roomHelpers';
 import {ECardType} from 'shared/enum/cards';
 import {Container, Text} from 'react-pixi-fiber';
-import RoundedRect from 'client/components/pixiPrimitives/RoundedRect';
-import Card from 'client/components/table/Card/Card';
+import PerspectiveTexture from 'client/components/pixiPrimitives/PerspectiveTexture';
+import Trapezoid from 'client/components/pixiPrimitives/Trapezoid';
+import {getPixiTexture} from 'client/components/table/pixiInjected';
+import {resources} from 'client/resources/resources';
 import {tableCenterX, tableCenterY} from 'client/helpers/window';
 import {get, map, range} from 'lodash';
 import {ENotificationAction} from 'shared/enum/notifications';
@@ -32,6 +34,14 @@ const layerStepMin = 1.5;
 // Торцы карт: верхний слой почти как рубашка, нижний уходит в тень стола.
 const layerTopColor = {r: 0x2a, g: 0x26, b: 0x22};
 const layerBottomColor = {r: 0x08, g: 0x07, b: 0x06};
+
+const deckBacks = {
+	event: getPixiTexture(resources.eventBack),
+	panic: getPixiTexture(resources.panicBack),
+};
+const deckGlowTexture = getPixiTexture(resources.glowEffect);
+// Насколько подсветка «колоду можно взять» больше самой колоды.
+const glowShare = 1.2;
 
 // Цвет торца по глубине слоя: 0 — сразу под верхней картой, 1 — самый низ стопки.
 const layerColor = (depth: number): number => {
@@ -69,29 +79,39 @@ const Deck = observer(({controller}: IDeckProps) => {
 	const place = tableCardPoint(playersList.length);
 	return (
 		<Container x={tableCenterX() + place.x} y={tableCenterY() + place.y}>
-			{/* Толщина стопки: рисуем её до верхней карты, из-под которой она и видна. */}
+			{/* Толщина стопки: рисуем её до верхней карты, из-под которой она и видна.
+			    Торцы — той же трапеции, что и сама карта, иначе стопка расходится с
+			    ней краями. */}
 			{map(deckLayers(deck.count), ({depth, step}) => (
-				<RoundedRect
+				<Trapezoid
 					key={step}
-					fill={layerColor(depth)}
-					x={-width / 2}
-					y={-height / 2 + layerStep * step}
+					color={layerColor(depth)}
+					yCoord={layerStep * step}
 					width={width}
 					height={height}
-					borderRadius={layerStep * 2}
+					taper={tableCardTaper}
 				/>
 			))}
-			<Card
-				id={topCardType === ECardType.panic ? 'panicBack' : 'eventBack'}
-				canBeUsed={inCardPick}
-				onCardClick={inCardPick ? () => {controller.cardPick()} : null}
-				squash={tableSquash}
-				style={{
-					width,
-					x:0,
-					y:0,
-					angle: 0
-				}}
+			{/* Подсветка — той же трапецией, что и сама колода: прямоугольным ореолом
+			    она торчала бы углами мимо её краёв. */}
+			{inCardPick && (
+				<PerspectiveTexture
+					texture={deckGlowTexture}
+					width={width * glowShare}
+					height={height * glowShare}
+					taper={tableCardTaper}
+				/>
+			)}
+			{/* Верхняя карта колоды: лежит на столе, поэтому и нарисована лежащей —
+			    сжатой по проекции стола и суженной к дальнему краю. */}
+			<PerspectiveTexture
+				texture={topCardType === ECardType.panic ? deckBacks.panic : deckBacks.event}
+				width={width}
+				height={height}
+				taper={tableCardTaper}
+				interactive={inCardPick}
+				buttonMode={inCardPick}
+				pointerdown={inCardPick ? () => {controller.cardPick()} : undefined}
 			/>
 			{/* Сколько карт осталось — надпись на самой колоде, поэтому она лежит
 			    вместе с ней и живёт по её сжатой высоте. */}

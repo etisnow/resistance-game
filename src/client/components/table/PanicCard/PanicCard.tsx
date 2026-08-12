@@ -2,12 +2,12 @@ import React from 'react';
 import {observer} from "mobx-react-lite";
 import * as PIXI from 'pixi.js';
 import {Container} from 'react-pixi-fiber';
-import {useSpring} from 'react-spring/universal';
+import {interpolate, useSpring} from 'react-spring/universal';
 import GameController from 'client/controllers/gameController';
 import {AnimatedPixi, getPixiTexture} from 'client/components/table/pixiInjected';
 import {resources} from 'client/resources/resources';
 import {cardAspectRatio} from 'shared/constant/cards';
-import {tableCardPoint, tableSquash} from 'client/helpers/roomHelpers';
+import {tableCardPoint, tableCardTaper, tableSquash} from 'client/helpers/roomHelpers';
 import {panicCardWidth, tableCenterX, tableCenterY} from 'client/helpers/window';
 import {toggleCardHintFor} from 'client/components/hint/canvasHint';
 import type {IFormatPanicCard} from 'shared/interfaces/common';
@@ -25,6 +25,15 @@ const cardResources: Record<string, string | undefined> = cardImages;
 // Карта выходит на стол рубашкой вверх и тут же переворачивается лицом.
 const flipDelayMs = 220;
 const flipDurationMs = 480;
+// А перевернувшись — встаёт: лежащая трапеция распрямляется в стоячую карту,
+// разом теряя и сужение к дальнему краю, и сжатие по высоте (см. tableSquash и
+// tableCardTaper), и заодно подрастает. Пауза перед подъёмом — чтобы движения
+// не слились в одно: сначала все видят, ЧТО выпало, и только потом карта
+// поднимается.
+const risePauseMs = 140;
+const riseDurationMs = 520;
+// Во сколько раз вставшая карта крупнее лежавшей: её читают всем столом.
+const riseScale = 1.18;
 
 // Сама карта: монтируется на каждую новую панику, поэтому переворот играется
 // ровно один раз — на появлении.
@@ -37,23 +46,42 @@ const PanicCardView = observer(({panicCard, place}: {panicCard: IFormatPanicCard
 		config: {duration: flipDurationMs},
 	});
 
-	const width = panicCardWidth();
-	// Паника лежит на столе, а не стоит на нём: её высоту сжимает та же проекция,
-	// что и столешницу с колодой (см. tableSquash). Прочитать её целиком можно
-	// нажатием — оно показывает карту крупно и уже без проекции.
-	const height = width * cardAspectRatio * tableSquash;
+	// Подъём: 0 — карта лежит на столе в его проекции, 1 — стоит на нём прямо,
+	// лицом к смотрящему.
+	const {rise} = useSpring<{rise: number}>({
+		rise: 1,
+		from: {rise: 0},
+		delay: flipDelayMs + flipDurationMs + risePauseMs,
+		config: {duration: riseDurationMs},
+	});
+
+	const laidWidth = panicCardWidth();
+	// Габариты по ходу подъёма: карта растёт, сжатие по высоте сходит на нет, и
+	// сужение к дальнему краю распрямляется.
+	const widthAt = (r: number) => laidWidth * (1 + (riseScale - 1) * r);
+	const heightAt = (r: number) => widthAt(r) * cardAspectRatio * (tableSquash + (1 - tableSquash) * r);
+	const taperAt = (r: number) => tableCardTaper + (1 - tableCardTaper) * r;
 
 	// Рубашка сжимается к нулю, лицо из нуля разворачивается. Высота на середине
-	// чуть больше — так поворот читается объёмным, а не схлопыванием картинки.
-	const backWidth = flip.interpolate((v: number) => Math.max(0, Math.cos(Math.PI * v)) * width);
-	const faceWidth = flip.interpolate((v: number) => Math.max(0, -Math.cos(Math.PI * v)) * width);
-	const cardHeight = flip.interpolate((v: number) => height * (1 + 0.12 * Math.sin(Math.PI * v)));
+	// переворота чуть больше — так поворот читается объёмным, а не схлопыванием
+	// картинки.
+	const backWidth = interpolate([flip, rise], (v: number, r: number) =>
+		Math.max(0, Math.cos(Math.PI * v)) * widthAt(r));
+	const faceWidth = interpolate([flip, rise], (v: number, r: number) =>
+		Math.max(0, -Math.cos(Math.PI * v)) * widthAt(r));
+	const cardHeight = interpolate([flip, rise], (v: number, r: number) =>
+		heightAt(r) * (1 + 0.12 * Math.sin(Math.PI * v)));
+	const cardTaper = rise.interpolate((r: number) => taperAt(r));
+	// Встаёт карта с того места, где лежала: нижняя кромка остаётся на столе, а
+	// растёт она вверх. Иначе она не поднимается, а всплывает над столом.
+	const cardY = rise.interpolate((r: number) =>
+		tableCenterY() + place.y + (heightAt(0) - heightAt(r)) / 2);
 
 	const commonProps = {
-		anchor: 0.5,
 		x: tableCenterX() + place.x,
-		y: tableCenterY() + place.y,
+		y: cardY,
 		height: cardHeight,
+		taper: cardTaper,
 		interactive: true,
 		buttonMode: true,
 		// Нажатие показывает карту крупно — тем же окошком-подсказкой, что и дверь
@@ -63,12 +91,15 @@ const PanicCardView = observer(({panicCard, place}: {panicCard: IFormatPanicCard
 
 	return (
 		<Container>
-			<AnimatedPixi.Sprite
+			{/* Выпадает паника той же трапецией, что и колода под ней (иначе рядом с
+			    ней она бы разъехалась краями), а дальше распрямляется — и уже стоит
+			    на столе обычной картой, которую видно целиком. */}
+			<AnimatedPixi.PerspectiveTexture
 				{...commonProps}
 				texture={getPixiTexture(cardResources['panicBack'])}
 				width={backWidth}
 			/>
-			<AnimatedPixi.Sprite
+			<AnimatedPixi.PerspectiveTexture
 				{...commonProps}
 				texture={getPixiTexture(cardResources[panicCard.id])}
 				width={faceWidth}
