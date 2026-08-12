@@ -1,7 +1,7 @@
 import React from 'react';
 import {observer} from 'mobx-react-lite';
 import backdrop from 'client/resources/images/room_bg.jpg';
-import {getWindowHeight, getWindowWidth, tableCenterX, tableCenterY} from 'client/helpers/window';
+import {backdropAnchorY, getWindowHeight, getWindowWidth, tableCenterX} from 'client/helpers/window';
 
 /**
  * Задник: отсек станции, в котором стоит стол.
@@ -14,16 +14,24 @@ import {getWindowHeight, getWindowWidth, tableCenterX, tableCenterY} from 'clien
  * серединой, и стол оказывался сдвинут относительно круга.
  *
  * Поэтому картинку кладём отдельным слоем и считаем ей место сами: точку круга
- * на полу ставим ровно туда, где стоит центр стола. Двигается при этом задник,
- * а не стол — стол занимает то поле, которое ему оставляет интерфейс.
+ * на полу ставим ровно в середину свободного поля. Двигается при этом задник, а
+ * не стол — стол занимает то поле, которое ему оставляет интерфейс. Сам стол
+ * внутри комнаты ещё и приподнят (см. roomLift), и на задник этот подъём не
+ * распространяется: комната стоит на месте.
  */
 
 // Своя геометрия картинки: размер в пикселях и доля, на которой лежит середина
 // круга на полу. Меняется картинка — меняются и эти четыре числа.
+//
+// Середина снята по самим кольцам: у эллипса берутся крайние точки — левая с
+// правой дают середину по горизонтали, верхняя с нижней по вертикали. Все три
+// кольца сходятся на одном центре, и он заметно ниже середины картинки: пол
+// уходит вниз, а над ним ещё стоят стены. На глаз она получалась выше, и стол
+// оказывался поднят над нарисованным кругом.
 const imageWidth = 1672;
 const imageHeight = 941;
 const focusX = 0.5;
-const focusY = 0.6;
+const focusY = 0.669;
 
 // Масштаб: не мельче, чем нужно, чтобы закрыть окно по каждой из осей. До всех
 // четырёх краёв картинку ПОСЛЕ привязки к кругу не дотянуть: под столом на экране
@@ -51,7 +59,7 @@ export const RoomBackdrop = observer(() => {
 				width: shownWidth,
 				height: shownHeight,
 				left: tableCenterX() - focusX * shownWidth,
-				top: tableCenterY() - focusY * shownHeight,
+				top: backdropAnchorY() - focusY * shownHeight,
 			}}
 		/>
 	);

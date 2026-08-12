@@ -78,13 +78,14 @@ describe('геометрия стола', () => {
 				// эллипс ровно с той сплюснутостью, с какой нарисована столешница.
 				expect(ry / rx).toBeCloseTo(tableSquash, 6);
 
-				// Бейдж — палец, а не точка: 40 px это минимум для тача. Двенадцать
-				// игроков на маленьком экране — вырожденный случай: кольцо там всего
-				// в полторы сотни пикселей высотой, и крупнее их просто не разложить.
+				// Бейдж — палец, а не точка: 40 px это минимум для тача, и держится он
+				// на любом экране при любом столе.
 				const isTiny = Math.min(screen.width, screen.height) < 400;
-				expect(badge).toBeGreaterThanOrEqual(count > 10 && isTiny ? 34 : 40);
+				expect(badge).toBeGreaterThanOrEqual(40);
 
-				// Соседние бейджи не наезжают друг на друга шириной. Считаем по самой
+				// Соседние бейджи стоят почти вплотную, но не сливаются: у боков стола,
+				// где сплюснутый круг уходит вглубь, им позволено слегка заходить друг
+				// за друга — это и есть глубина (см. badgeGap). Считаем по самой
 				// рассадке, а не по формуле эллипса: ближние места ещё и стянуты к
 				// нижнему (см. nearSeatPull).
 				const seats = map(range(count), String);
@@ -93,7 +94,12 @@ describe('геометрия стола', () => {
 					const next = points[(index + 1) % count]!;
 					return Math.hypot(next.x - x, next.y - y);
 				});
-				expect(Math.min(...gaps)).toBeGreaterThanOrEqual(badge);
+				// Полный стол на крошечном экране — вырожденный случай: там кольцо всего
+				// в полторы сотни пикселей высотой, и десять человек по нему иначе как
+				// внахлёст не расставить. Кружок при этом остаётся кнопкой (см. выше), а
+				// перекрытие — глубиной.
+				const crowded = isTiny && count >= 10;
+				expect(Math.min(...gaps)).toBeGreaterThanOrEqual(badge * (crowded ? 0.5 : 1));
 
 				// Стол вместе с бейджами влезает в свободное поле. По вертикали бейдж
 				// занимает больше: он вытянут.
@@ -113,17 +119,25 @@ describe('геометрия стола', () => {
 				const surface = tableRadii(count);
 
 				// Столешница вписана в круг рассадки: игроки сидят вокруг неё, а не на
-				// ней. Сжата она слабее пола — она поднята над ним, и мы смотрим на неё
+				// ней. Лежит она положе пола — она поднята над ним, и смотрим мы на неё
 				// под более пологим углом (см. tableTopSquash).
 				expect(surface.ry / surface.rx).toBeCloseTo(tableTopSquash, 6);
 				expect(tableTopSquash).toBeLessThan(tableSquash);
 				expect(surface.rx).toBeLessThan(rx);
 
 				// Дальних она подрезает, но не съедает целиком: их кружки должны
-				// оставаться узнаваемыми.
-				const hidden = badge * badgeAspect / 2 - (ry - surface.ry);
+				// оставаться узнаваемыми. Считаем по ПОДНЯТОЙ крышке: стол стоит на
+				// полу, и дальнего он режет своим дальним краем, а тот выше середины
+				// комнаты ровно на высоту стола.
+				const hidden = badge * badgeAspect / 2 - (ry - surface.ry - tableLift(count));
 				expect(hidden).toBeGreaterThan(0);
 				expect(hidden).toBeLessThan(badge * badgeAspect * 0.45);
+
+				// И не отходит от ближних: край столешницы должен доставать им до груди,
+				// иначе они сидят не за столом, а поодаль от него.
+				const nearEdge = surface.ry - tableLift(count);
+				const nearChest = ry - (badge * badgeAspect) / 2;
+				expect(nearEdge).toBeGreaterThanOrEqual(nearChest - badge * 0.25);
 
 				// Колода лежит на столешнице, а не свисает с неё. Лежит — то есть в
 				// проекции столешницы: по вертикали она сжата тем же tableTopSquash.
