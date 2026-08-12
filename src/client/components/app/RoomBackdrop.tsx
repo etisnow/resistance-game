@@ -23,7 +23,7 @@ import {getWindowHeight, getWindowWidth, tableCenterX, tableCenterY} from 'clien
 const imageWidth = 1672;
 const imageHeight = 941;
 const focusX = 0.5;
-const focusY = 0.647;
+const focusY = 0.6;
 
 // Масштаб: не мельче, чем нужно, чтобы закрыть окно по каждой из осей. До всех
 // четырёх краёв картинку ПОСЛЕ привязки к кругу не дотянуть: под столом на экране
