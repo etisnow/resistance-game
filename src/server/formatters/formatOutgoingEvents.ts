@@ -141,6 +141,7 @@ const formatPlayer = (game: Game, viewer: Player) => (player: Player) => {
 		isHost: game.hostPlayerId === player.id,
 		isYou: player === viewer,
 		color: player.color,
+		avatar: player.avatar,
 		turnState: player.turnState,
 		isInfected: player.isThing ? null : (isViewerThing || isViewer ? player.isInfected : null),
 		isThing: isViewerThing || isViewerInfected ? player.isThing : null,

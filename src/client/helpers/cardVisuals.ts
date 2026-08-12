@@ -53,10 +53,10 @@ export const cardColor = (cardId: string | undefined): number => {
 	return cardColors[cardId] ?? tradeColor;
 };
 
-// resources — объектный литерал, где все карточные записи это string (единственная
-// вложенная не-строка, playerBadges, по id карты никогда не ищется). Смотрим на
-// него через строковый индекс, чтобы достать картинку по произвольному id.
-const {playerBadges: _playerBadges, ...cardImages} = resources;
+// resources — объектный литерал, где все карточные записи это string (не-строки
+// там только playerBadges и avatars, по id карты они никогда не ищутся). Смотрим
+// на него через строковый индекс, чтобы достать картинку по произвольному id.
+const {playerBadges: _playerBadges, avatars: _avatars, ...cardImages} = resources;
 const cardResources: Record<string, string | undefined> = cardImages;
 
 export const cardImage = (cardId: string | undefined): string | undefined =>

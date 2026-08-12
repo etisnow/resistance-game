@@ -3,12 +3,13 @@ import {filter, includes, map, reduce} from 'lodash';
 import * as PIXI from 'pixi.js';
 import {Text} from 'react-pixi-fiber';
 import {useSpring} from 'react-spring/universal';
-import {AnimatedPixi, getPixiTexture} from 'client/components/table/pixiInjected';
-import {formatNickname, getBadgeResource} from 'client/components/table/PlayerBadge/PlayerBadge';
+import {AnimatedPixi} from 'client/components/table/pixiInjected';
+import {BadgeBody, BadgeShade, formatNickname, StatusSkin} from 'client/components/table/PlayerBadge/PlayerBadge';
 import {EEventID} from 'shared/enum/cards';
 import {playFlamethrower} from 'client/helpers/sounds';
 import GameController from 'client/controllers/gameController';
 import {burnMs} from 'client/helpers/burnTiming';
+import {badgeAspect} from 'client/helpers/roomHelpers';
 
 // Сожжение огнемётом. Поджигатель поливает соседа струёй огня во всю ширину
 // стола, кружок жертвы чернеет, обугливается и прогорает, а на его месте стоит
@@ -119,15 +120,9 @@ const BurningPlayer = ({burn: {seq, playerId, x, y, fromX, fromY}, controller, b
 		config: {duration: burnMs},
 	});
 	const player = controller.players[playerId];
-	// Роль сгоревшего мы могли и не знать — бейдж рисуем ровно тот, что стоял на
-	// столе, иначе на месте игрока вспыхнет чужой кружок.
-	const badgeResource = player && getBadgeResource({
-		isDoor: false,
-		isConnected: player.isConnected,
-		color: player.color,
-		isThing: player.isThing,
-		isInfected: player.isInfected,
-	});
+	// Роль сгоревшего мы могли и не знать — кружок рисуем ровно тот, что стоял на
+	// столе, иначе на месте игрока вспыхнет чужой. Со статусом поверх (см.
+	// StatusSkin) он и горит: сгорает то, на что все смотрели.
 
 	const seed = seedOf(seq);
 	const size = badgeRadius * 2;
@@ -255,16 +250,27 @@ const BurningPlayer = ({burn: {seq, playerId, x, y, fromX, fromY}, controller, b
 				seed={seed + jetSeedShift}
 				mode={'jet'}
 			/>
-			{badgeResource && (
+			{player && (
 				<AnimatedPixi.Dissolve burn={burnProgress} char={charProgress} heat={heat} seed={seed} time={time}>
-					<AnimatedPixi.Sprite
-						texture={getPixiTexture(badgeResource)}
-						anchor={0.5}
-						width={size}
-						height={size}
+					<BadgeBody
+						isDoor={false}
+						isConnected={player.isConnected}
+						color={player.color}
+						avatar={player.avatar}
+						badgeWidth={size}
+						badgeHeight={size * badgeAspect}
 					/>
+					<StatusSkin
+						badgeWidth={size}
+						badgeHeight={size * badgeAspect}
+						isConnected={player.isConnected}
+						isThing={player.isThing}
+						isInfected={player.isInfected}
+						quarantine={player.quarantine}
+					/>
+					<BadgeShade badgeWidth={size} badgeHeight={size * badgeAspect}/>
 					<Text
-						text={player && player.isYou ? 'ТЫ' : (formatNickname(player ? player.nickname : null) ?? '')}
+						text={player.isYou ? 'ТЫ' : (formatNickname(player.nickname) ?? '')}
 						anchor={0.5}
 						style={{fontFamily: 'Arial', fontSize: 14, fill: 0xFFFFFF, align: 'center'}}
 					/>

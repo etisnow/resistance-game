@@ -1,6 +1,7 @@
 import {Game} from 'server/models/Game';
 import {fullDeckObject, instantiateCard, handCardsCount, thingCard} from 'shared/constant/cards';
-import {concat, each, range, reduce, clone} from 'lodash';
+import {concat, each, map, range, reduce, clone} from 'lodash';
+import {avatarsCount} from 'shared/constant/avatars';
 import {ICardAny, ICardEvent} from 'shared/interfaces/cards';
 import {shuffle} from 'server/helpers/util';
 import {gameServer} from 'server/server/GameServer';
@@ -82,11 +83,21 @@ export const gameStarter = (game: Game) => {
 
 	initialDeck = clone(game.deck);
 
+	// Лица раздаём вразнобой: список аватарок один и тот же, и без тасовки за
+	// каждым столом сидели бы одни и те же люди в одном и том же порядке.
+	// Игроков может оказаться больше, чем лиц, — тогда список идёт по второму
+	// кругу, но уже в другом порядке, и одинаковые лица расходятся по столу.
+	const avatarDeck = concat(
+		[],
+		...map(range(Math.ceil(playersCount / avatarsCount)), () => shuffle(range(avatarsCount), game.rng)),
+	);
+
 	each(playersIdsArray, (playerId, index) => {
 		const player = game.players[playerId];
 		if (!player) return;
 		initialDeck = concat([], clone(initialDeck), clone(player.hand))
 		player.color = index+''
+		player.avatar = avatarDeck[index] + ''
 	});
 
 };

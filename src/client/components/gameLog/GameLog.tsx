@@ -6,6 +6,7 @@ import cn from 'classnames';
 import {animateScroll} from 'react-scroll';
 import GameController from 'client/controllers/gameController';
 import {ENotificationAction} from 'shared/enum/notifications';
+import {EPlayerState, ETurnState} from 'shared/enum/player';
 import {EGameLogType} from 'shared/enum/gameLogType';
 import type {IGameLogEntry} from 'shared/interfaces/gameLog';
 import {renderCardMentions} from 'client/components/hint/CardHint';
@@ -75,6 +76,18 @@ const renderLogText = (text: string, highlights: INickHighlight[]) => {
 	});
 };
 
+// Живых игроков (без дверей и мертвецов) — столько строк лога и показываем.
+const getVisibleLogLimit = (controller: GameController) => {
+	let count = 0;
+	each(controller.players, (player) => {
+		if (!player) return;
+		if (player.state === EPlayerState.door) return;
+		if (player.turnState === ETurnState.dead) return;
+		count++;
+	});
+	return Math.max(count, 1);
+};
+
 const LogLine = ({entry, highlights}: {entry: IGameLogEntry, highlights: INickHighlight[]}) => {
 	const type = entry.type || EGameLogType.info;
 	return <div className={cn('logLine', `logLine--${type}`)}>
@@ -103,6 +116,7 @@ const GameLog = observer(({controller}: IGameLogProps) => {
 	    });
 	});
 	const highlights = getNickHighlights(controller);
+	const visibleLog = gameLog.slice(-getVisibleLogLimit(controller));
 	const lastEntry = gameLog.length ? gameLog[gameLog.length - 1] : undefined;
 	return <div style={{zIndex: getZIndex(controller)}} className={cn('gameLogWrapper', {isOpen})}>
 		<div className={'gameLogHeader'} onClick={controller.toggleGameLog}>
@@ -114,7 +128,7 @@ const GameLog = observer(({controller}: IGameLogProps) => {
 		</div>
 		{isOpen
 			? <div id="gameLog" className={'gameLogList'}>
-				{map(gameLog, (entry, index) => <LogLine key={index} entry={entry} highlights={highlights}/>)}
+				{map(visibleLog, (entry, index) => <LogLine key={index} entry={entry} highlights={highlights}/>)}
 			</div>
 			: null}
 	</div>;

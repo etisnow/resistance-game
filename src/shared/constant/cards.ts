@@ -6,6 +6,10 @@ import {ICardAny, ICardEvent, ICardPanic} from 'shared/interfaces/cards';
 export const cardAspectRatio = 1.46;
 export const cardWidthPercent = 25;
 
+// Сколько своих ходов игрок сидит на карантине. Общая, потому что по ней же
+// стол рисует шкалу оставшихся ходов на кружке (см. PlayerBadge).
+export const quarantineTurns = 3;
+
 const events: {[key: string]: ICardEvent} = {
   [EEventID.tenacity]: {
     type: ECardType.event,

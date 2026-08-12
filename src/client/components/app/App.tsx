@@ -4,6 +4,7 @@ import {observer} from 'mobx-react';
 import GameScreen from 'client/components/game/GameScreen';
 import Launcher from 'client/components/launcher/Launcher';
 import {LoadingScreen} from 'client/components/loading/LoadingScreen';
+import {RoomBackdrop} from 'client/components/app/RoomBackdrop';
 import {WebGLMessage} from 'client/components/webgl/WebGLMessage';
 import {EAppState} from 'shared/enum/common';
 import RootController from 'client/controllers/rootController';
@@ -40,6 +41,7 @@ class App extends React.Component<IAppProps> {
 	override render() {
 		return (
 			<div className="nechto-wrapper">
+				<RoomBackdrop/>
 				{this.renderContent()}
 			</div>
 		);

@@ -37,6 +37,11 @@ interface ICardProps {
 	// вытягивается невидимая ловушка наведения (см. ниже).
 	hoverPad?: number;
 	canBeUsed?: boolean;
+	// Во сколько раз карта сжата по вертикали. Лежащая на столе карта видна в той
+	// же проекции, что и сам стол (см. tableSquash), — иначе она стоит на нём
+	// торчком, как декорация. Карты в руке смотрящий держит перед собой, их
+	// проекция не касается: у них squash = 1.
+	squash?: number;
 	style: CardStyle;
 	// The `menu` renderer is only supplied by HandComponent, which always pairs it with
 	// an animated style; the static-style caller (Deck) never passes a menu.
@@ -58,14 +63,14 @@ const noop = () => {};
 const isAnimatedStyle = (style: CardStyle): style is AnimatedCardStyle =>
 	typeof (style.width as OpaqueInterpolation<number>)?.interpolate === 'function';
 
-// resources is an object literal whose card-image entries are all `string` (only the
-// unrelated nested `playerBadges` entry is non-string, and it is never looked up here).
+// resources is an object literal whose card-image entries are all `string` (the only
+// non-string entries, `playerBadges` and `avatars`, are never looked up here).
 // We view it through a string index signature so a card image can be looked up by an
 // arbitrary `id`, yielding `string | undefined` under noUncheckedIndexedAccess.
-const {playerBadges: _playerBadges, ...cardImages} = resources;
+const {playerBadges: _playerBadges, avatars: _avatars, ...cardImages} = resources;
 const cardResources: Record<string, string | undefined> = cardImages;
 
-const Card = observer(({id, menu, badge, onCardClick, onCardOver, onCardOut, hoverPad = 0, canBeUsed, style}: ICardProps) => {
+const Card = observer(({id, menu, badge, onCardClick, onCardOver, onCardOut, hoverPad = 0, canBeUsed, squash = 1, style}: ICardProps) => {
 	const card = fulldeck[id] || (id === EEventID.thing ? thingCard : null);
 	const cardTexture = getPixiTexture(cardResources[id]);
 	const glowTexture = getPixiTexture(cardResources['glowEffect']);
@@ -74,9 +79,9 @@ const Card = observer(({id, menu, badge, onCardClick, onCardOver, onCardOut, hov
 		return null;
 	}
 	const cardGlowWidth = isAnimatedStyle(style) ? style.width.interpolate(w => w * 1.15) : style.width * 1.15
-	const cardGlowHeight = isAnimatedStyle(style) ? style.width.interpolate(w => w * cardAspectRatio * 1.1) : style.width * cardAspectRatio * 1.1
+	const cardGlowHeight = isAnimatedStyle(style) ? style.width.interpolate(w => w * cardAspectRatio * 1.1 * squash) : style.width * cardAspectRatio * 1.1 * squash
 	const cardWidth = isAnimatedStyle(style) ? style.width.interpolate(w => w) : style.width
-	const cardHeight = isAnimatedStyle(style) ? style.width.interpolate(w => w * cardAspectRatio) : style.width * cardAspectRatio
+	const cardHeight = isAnimatedStyle(style) ? style.width.interpolate(w => w * cardAspectRatio * squash) : style.width * cardAspectRatio * squash
 
 	// Ловушка наведения: невидимый спрайт по размеру карты, вытянутый вниз (вдоль
 	// собственной оси карты, поэтому наклонённым картам веера тоже подходит).

@@ -35,12 +35,18 @@ const Table = observer(({controller} : ITableProps) => {
 				<ActionTimer controller={controller}/>
 				<StageBoundary>
 					<TableStage>
-						<Deck controller={controller} />
-						{/* Сразу над колодой, но ПОД всем остальным: паника лежит на
-						    столе, а не поверх интерфейса — бейджи, рука и её меню
-						    остаются доступными (в цепной реакции ими и ходят). */}
-						<PanicCard controller={controller} />
-						<Room controller={controller} />
+						{/* Стол рисуется слоями по глубине: сначала дальняя половина
+						    игроков, потом столешница (она их и подрезает), потом всё,
+						    что на ней лежит, и только потом ближние игроки. Колода с
+						    паникой лежат на столешнице, поэтому идут детьми Room —
+						    ровно в этот промежуток. */}
+						<Room controller={controller}>
+							<Deck controller={controller} />
+							{/* Сразу над колодой, но ПОД всем остальным: паника лежит на
+							    столе, а не поверх интерфейса — бейджи, рука и её меню
+							    остаются доступными (в цепной реакции ими и ходят). */}
+							<PanicCard controller={controller} />
+						</Room>
 						<Hand controller={controller} />
 						<ActionCanceler controller={controller} />
 						<Notifier controller={controller} />

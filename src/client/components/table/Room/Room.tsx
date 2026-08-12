@@ -2,10 +2,26 @@ import React from 'react';
 import {clamp, clone, each, filter, includes, map} from 'lodash';
 import './styles.scss';
 import {observer} from "mobx-react-lite";
-import {config, useSpring, useTransition} from 'react-spring/universal';
-import {degToRag, playerRoomDiag, roomPlayerOrder, roomPlayerPoint} from 'client/helpers/roomHelpers';
+import {config, interpolate, useSpring, useTransition} from 'react-spring/universal';
+import {
+	badgeAspect,
+	deckCardWidth,
+	degToRag,
+	isFarSeat,
+	playerRoomDiag,
+	roomPlayerAngle,
+	roomPlayerOrder,
+	roomPlayerPoint,
+	roomRadii,
+	tableCardPoint,
+	tableLift,
+	tableRadii,
+	tableThickness,
+	unwrapAngle,
+} from 'client/helpers/roomHelpers';
 import GameController from 'client/controllers/gameController';
-import PlayerBadge from 'client/components/table/PlayerBadge/PlayerBadge';
+import PlayerBadge, {badgeBodyWidth, PlayerShadow} from 'client/components/table/PlayerBadge/PlayerBadge';
+import TableSurface from 'client/components/table/Room/TableSurface';
 import CardFlights from 'client/components/table/Room/CardFlight';
 import CardDraws from 'client/components/table/Room/CardDraw';
 import CardEffects from 'client/components/table/Room/CardEffect';
@@ -28,7 +44,11 @@ import type {IFormatTradeContext} from 'shared/interfaces/common';
 import type Player from 'client/models/Player';
 
 interface IRoomProps {
-	controller: GameController
+	controller: GameController;
+	// Что лежит НА столе: колода и сработавшая паника. Приходят детьми, потому
+	// что стол рисуется слоями по глубине — дальние игроки, столешница, всё
+	// лежащее на ней, ближние игроки, — и вставить их надо ровно в середину.
+	children?: React.ReactNode;
 }
 
 interface IPoint {
@@ -36,9 +56,20 @@ interface IPoint {
 	y: number;
 }
 
-// Кружок игрока: место за столом и прозрачность (ею гаснет уходящий).
-interface IBadgeLayout extends IPoint {
+// Кружок игрока: угол его места за столом, удаление от центра (им кружок
+// вырастает из стола и им же уходит выбывший) и прозрачность.
+interface IBadgeLayout {
+	angle: number;
+	spread: number;
 	alpha: number;
+}
+
+// Место за столом, как его отдаёт useTransition: кто сидит, ключ перехода и его
+// анимируемые поля.
+interface ISeat {
+	item: string;
+	key: string;
+	props: IBadgeLayout;
 }
 
 // Насколько дальше своего места за столом уезжает кружок выбывшего: он уходит
@@ -379,7 +410,7 @@ const useArrows = (tradeContext: IFormatTradeContext[]) => {
 	];
 };
 
-const Room = observer(({controller} : IRoomProps) => {
+const Room = observer(({controller, children} : IRoomProps) => {
 
 	const { currentPlayer, currentPlayerId } = controller;
 	const { playersList, players, turnPlayerId } = controller;
@@ -463,30 +494,43 @@ const Room = observer(({controller} : IRoomProps) => {
 		return map(filter(around, (id): id is string => !!id && id !== playerId), positionOf);
 	};
 
+	// Углы мест, а не координаты: пересаженный игрок должен обойти стол ПО кругу,
+	// а не проехать сквозь столешницу по прямой. Пружина ведёт угол, точку из него
+	// считает интерполяция ниже.
+	//
+	// Прежний угол помним: «размотать» новый (352° → 368°, а не → 8° назад через
+	// весь стол) можно только относительно него. Заодно он же — угол уходящего,
+	// которого в рассадке уже нет.
+	const lastAngles = React.useRef<Record<string, number>>({});
+	const seatAngle = (playerId: string): number => {
+		const deg = unwrapAngle(roomPlayerAngle(playerId, newPlayerList), lastAngles.current[playerId]);
+		lastAngles.current[playerId] = deg;
+		return deg;
+	};
+	const angleOf = (playerId: string): number =>
+		lastAngles.current[playerId] ?? roomPlayerAngle(playerId, newPlayerList);
+
 	const transitions = useTransition<string, IBadgeLayout>(newPlayerList, playerId => playerId, {
-		x: 0,
-		y: 0,
+		angle: 90,
+		spread: 1,
 		alpha: 1,
-		from: {
-			x: 0, y: 0, alpha: 1
-		},
-		enter: playerId => {
-			return {...getPositionFromPlayerList({players, playerId, playerList: newPlayerList}), alpha: 1};
-		},
-		update: playerId => {
-			return {...getPositionFromPlayerList({players, playerId, playerList: newPlayerList}), alpha: 1};
-		},
+		// Севший за стол вырастает из его середины.
+		from: (playerId: string) => ({angle: seatAngle(playerId), spread: 0, alpha: 1}),
+		enter: (playerId: string) => ({angle: seatAngle(playerId), spread: 1, alpha: 1}),
+		update: (playerId: string) => ({angle: seatAngle(playerId), spread: 1, alpha: 1}),
 		// Выбывший встаёт и уходит из-за стола: его кружок отъезжает со своего
 		// места наружу и там гаснет. В центр стола ему нельзя — там колода, и
 		// уход выглядел бы как ещё один ход, а не как «игрока больше нет».
-		leave: playerId => {
-			const {x, y} = positionOf(playerId);
-			return {x: x * leaveShare, y: y * leaveShare, alpha: 0};
-		},
+		leave: (playerId: string) => ({angle: angleOf(playerId), spread: leaveShare, alpha: 0}),
 	});
 
-	const badgeDiagonal = playerRoomDiag(playersCount);
-	const badgeRadius = badgeDiagonal/2;
+	const badgeWidth = playerRoomDiag(playersCount);
+	const badgeRadius = badgeWidth/2;
+	// Круг рассадки и сама столешница. Полуоси берём один раз на рендер: пружина
+	// гонит по ним точку каждый кадр, а меняются они только вместе с окном — на
+	// него стол пересчитывается целиком (см. viewport).
+	const {rx, ry} = roomRadii(playersCount);
+	const surface = tableRadii(playersCount);
 	const arrows = useArrows(tradeContext);
 
 	// От сгоревшего не остаётся и кружка: когда костёр догорит, игрок уйдёт из
@@ -504,94 +548,151 @@ const Room = observer(({controller} : IRoomProps) => {
 		return false;
 	}
 
+	const badgeHeight = badgeWidth * badgeAspect;
+
+	// Место игрока за столом: точка считается из угла прямо в пружине, поэтому
+	// пересадка идёт по дуге круга, а не по хорде через стол.
+	const seatPlace = ({item: playerId, key, props: {angle, spread, alpha}}: ISeat, children: React.ReactNode) => (
+		<AnimatedPixi.Container
+			key={`${playerId}:${key}`}
+			x={interpolate([angle, spread], (deg: number, away: number) => rx * Math.cos(degToRag(deg)) * away)}
+			y={interpolate([angle, spread], (deg: number, away: number) => ry * Math.sin(degToRag(deg)) * away)}
+			alpha={alpha}
+		>
+			{children}
+		</AnimatedPixi.Container>
+	);
+
+	const renderShadow = (seat: ISeat) => {
+		const player = players[seat.item];
+		if (!player) return null;
+		return seatPlace(seat, (
+			<PlayerShadow
+				badgeWidth={badgeBodyWidth(player.state === EPlayerState.door, badgeWidth, badgeHeight)}
+				badgeHeight={badgeHeight}
+			/>
+		));
+	};
+
+	const renderBadge = (seat: ISeat) => {
+		const player = players[seat.item];
+		if (!player || !player.id) return null;
+		const {nickname, color, avatar, state} = player;
+		return seatPlace(seat, (
+			<PlayerBadge
+				style={{width: badgeWidth, height: badgeHeight}}
+				nickname={nickname}
+				color={color}
+				avatar={avatar}
+				canBeSelected={canPlayerBeSelected(player)}
+				id={player.id}
+				isConnected={player.isConnected}
+				isYou={player.isYou}
+				isInfected={player.isInfected}
+				isThing={player.isThing}
+				quarantine={player.quarantine}
+				isDoor={state === EPlayerState.door}
+				onSelect={controller.selectPlayer}
+				onLongPress={controller.changePlayerMark}
+				mark={marks[player.id]}
+			/>
+		));
+	};
+
+	// Дальняя половина стола — та, что уходит за столешницу: её жильцов рисуют
+	// ДО стола, и он подрезает их по грудь. Ближних — после, они стоят перед
+	// столом. На этом (вместе со сплюснутой проекцией) и держится объём.
+	//
+	// Делим по месту, к которому игрок едет, а не по тому, где он сейчас:
+	// пересаживающийся сразу становится «ближним» или «дальним» и обходит стол
+	// соответственно перед ним или за ним.
+	//
+	// Горящего рисует его костёр — он же и покажет, что от кружка осталось.
+	const seatsOf = (isFar: boolean): ISeat[] => filter(
+		transitions as unknown as ISeat[],
+		({item}) => !!players[item] && !burnedOut.current.has(item) && isFarSeat(angleOf(item)) === isFar,
+	);
+	const farSeats = seatsOf(true);
+	const nearSeats = seatsOf(false);
+
 	return (
-		<Container x={tableCenterX()} y={tableCenterY()}>
-			{map(transitions, ({item: playerId, key, props:{x, y, alpha} }) => {
-				const player = players[playerId];
-				if (!player || !player.id) return null;
-				// Горящего рисует его костёр — он же и покажет, что от кружка осталось.
-				if (burnedOut.current.has(playerId)) return null;
-				const {nickname, color, state} = player;
-				const canBeSelected = canPlayerBeSelected(player);
-				return (
-					<AnimatedPixi.Container
-						key={key}
-						x={x}
-						y={y}
-						alpha={alpha}
-					>
-						<PlayerBadge
-							style={{width:badgeDiagonal, height:badgeDiagonal}}
-							nickname={nickname}
-							color={color}
-							canBeSelected={canBeSelected}
-							id={player.id}
-							isConnected={player.isConnected}
-							isYou={player.isYou}
-							isInfected={player.isInfected}
-							isThing={player.isThing}
-							quarantine={player.quarantine}
-							isDoor={state === EPlayerState.door}
-							onSelect={controller.selectPlayer}
-							onLongPress={controller.changePlayerMark}
-							mark={marks[player.id]}
-						/>
-					</AnimatedPixi.Container>
-				)
-			})}
-			{/* Прицел — поверх кружков: он обводит цель, а не лежит под ней.
-			    Пока ход ни за кем не числится (партия ещё не началась или уже
-			    кончилась), наводить его не на кого. Сгоревшего он тоже не ждёт:
-			    ход уйдёт дальше, и прицел уедет за ним. */}
-			{turnPlayerId && players[turnPlayerId] && !burnedOut.current.has(turnPlayerId) && (
-				<TurnReticle
-					{...positionOf(turnPlayerId)}
-					badgeRadius={badgeRadius}
-					playerId={turnPlayerId}
+		<Container>
+			<Container x={tableCenterX()} y={tableCenterY()}>
+				{/* Тени всех — до кружков всех: по кругу соседи стоят вплотную и порой
+				    наезжают друг на друга, и тень, нарисованная вместе со своим
+				    хозяином, ложилась бы на соседа. */}
+				{map(farSeats, renderShadow)}
+				{map(farSeats, renderBadge)}
+				{/* Стол стоит в середине комнаты — там же, где круг на полу задника
+				    (см. RoomBackdrop). Свою высоту он отмеряет сам: столешницу
+				    поднимает, тень оставляет на полу. */}
+				<TableSurface
+					rx={surface.rx}
+					ry={surface.ry}
+					thickness={tableThickness(playersCount)}
+					lift={tableLift(playersCount)}
 				/>
-			)}
-			{map(arrows, ({context, isLive}) => (
-				<TradeArrow
-					key={arrowKey(context)}
-					item={context}
-					target={lineAnimation({context, newPlayerList, badgeRadius, players})}
-					badgeRadius={badgeRadius}
-					isLive={isLive}
+			</Container>
+			{/* Всё, что лежит на столешнице: колода и сработавшая паника (см. Table).
+			    Они уже в координатах экрана, поэтому идут без сдвига к центру. */}
+			{children}
+			<Container x={tableCenterX()} y={tableCenterY()}>
+				{map(nearSeats, renderShadow)}
+				{map(nearSeats, renderBadge)}
+				{/* Прицел — поверх кружков: он обводит цель, а не лежит под ней.
+				    Пока ход ни за кем не числится (партия ещё не началась или уже
+				    кончилась), наводить его не на кого. Сгоревшего он тоже не ждёт:
+				    ход уйдёт дальше, и прицел уедет за ним. */}
+				{turnPlayerId && players[turnPlayerId] && !burnedOut.current.has(turnPlayerId) && (
+					<TurnReticle
+						{...positionOf(turnPlayerId)}
+						badgeRadius={badgeRadius}
+						playerId={turnPlayerId}
+					/>
+				)}
+				{map(arrows, ({context, isLive}) => (
+					<TradeArrow
+						key={arrowKey(context)}
+						item={context}
+						target={lineAnimation({context, newPlayerList, badgeRadius, players})}
+						badgeRadius={badgeRadius}
+						isLive={isLive}
+					/>
+				))}
+				<CardFlights
+					controller={controller}
+					getPosition={positionOf}
+					cardWidth={badgeWidth * 0.42}
 				/>
-			))}
-			<CardFlights
-				controller={controller}
-				getPosition={positionOf}
-				cardWidth={badgeDiagonal * 0.42}
-			/>
-			{/* Взятие карты из колоды: колода лежит в центре стола, то есть в начале
-			    координат этого контейнера. Ширина карты в колоде — та же
-			    badgeDiagonal, что и у Deck. */}
-			<CardDraws
-				controller={controller}
-				getPosition={positionOf}
-				deckCardWidth={badgeDiagonal}
-				badgeRadius={badgeRadius}
-			/>
-			<CardEffects
-				controller={controller}
-				getPosition={positionOf}
-				badgeRadius={badgeRadius}
-			/>
-			{/* Рикошет — поверх карты применения: она висит ровно в точке удара и
-			    работает зеркалом, от которого пламя уходит прочь. */}
-			<Deflections
-				deflects={deflects}
-				badgeRadius={badgeRadius}
-			/>
-			{/* Костры — поверх всего: сожжение видно даже сквозь стрелки и летящие карты. */}
-			<BurningPlayers
-				burns={burns}
-				controller={controller}
-				badgeRadius={badgeRadius}
-				dim={dimRect}
-				glintsOf={glintsOf}
-			/>
+				{/* Взятие карты из колоды: она лежит на столе, в тех же координатах,
+				    что и сам этот контейнер, и той же ширины, что у Deck. */}
+				<CardDraws
+					controller={controller}
+					getPosition={positionOf}
+					deckPoint={tableCardPoint(playersCount)}
+					deckCardWidth={deckCardWidth(playersCount)}
+					badgeRadius={badgeRadius}
+				/>
+				<CardEffects
+					controller={controller}
+					getPosition={positionOf}
+					badgeRadius={badgeRadius}
+				/>
+				{/* Рикошет — поверх карты применения: она висит ровно в точке удара и
+				    работает зеркалом, от которого пламя уходит прочь. */}
+				<Deflections
+					deflects={deflects}
+					badgeRadius={badgeRadius}
+				/>
+				{/* Костры — поверх всего: сожжение видно даже сквозь стрелки и летящие карты. */}
+				<BurningPlayers
+					burns={burns}
+					controller={controller}
+					badgeRadius={badgeRadius}
+					dim={dimRect}
+					glintsOf={glintsOf}
+				/>
+			</Container>
 		</Container>
 	)
 });
