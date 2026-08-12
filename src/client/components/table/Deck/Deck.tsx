@@ -43,6 +43,13 @@ const deckGlowTexture = getPixiTexture(resources.glowEffect);
 // Насколько подсветка «колоду можно взять» больше самой колоды.
 const glowShare = 1.2;
 
+// react-pixi-fiber присваивает обработчик прямо в свойство объекта и снять его
+// не умеет: prop со значением undefined он только сопровождает варнингом
+// «ignoring prop», оставляя прежний колбэк. Поэтому обработчик передаём всегда
+// определённым, а «колоду брать нельзя» — это пустой вызов (тот же приём, что и
+// в Card).
+const noop = () => {};
+
 // Цвет торца по глубине слоя: 0 — сразу под верхней картой, 1 — самый низ стопки.
 const layerColor = (depth: number): number => {
 	const mix = (from: number, to: number) => Math.round(from + (to - from) * depth);
@@ -111,7 +118,7 @@ const Deck = observer(({controller}: IDeckProps) => {
 				taper={tableCardTaper}
 				interactive={inCardPick}
 				buttonMode={inCardPick}
-				pointerdown={inCardPick ? () => {controller.cardPick()} : undefined}
+				pointerdown={inCardPick ? () => {controller.cardPick()} : noop}
 			/>
 			{/* Сколько карт осталось — надпись на самой колоде, поэтому она лежит
 			    вместе с ней и живёт по её сжатой высоте. */}

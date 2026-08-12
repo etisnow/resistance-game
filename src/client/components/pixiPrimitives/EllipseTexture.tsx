@@ -46,6 +46,16 @@ export const behavior = {
 		newProps: EllipseTextureProps,
 	) {
 		const { rx, ry, texture, focus = wholeTexture } = newProps;
+		// Заливка текстурой заново собирает геометрию, а карты статусов висят на
+		// кружках всё время партии: пока размер и картинка те же, перерисовывать
+		// нечего (стол пересчитывается на любое обновление).
+		const oldFocus = oldProps && (oldProps.focus ?? wholeTexture);
+		if (oldProps
+			&& oldProps.rx === rx && oldProps.ry === ry && oldProps.texture === texture
+			&& oldFocus === focus) {
+			this.applyDisplayObjectProps(oldProps, newProps);
+			return;
+		}
 		if (typeof oldProps !== "undefined") {
 			instance.clear();
 		}

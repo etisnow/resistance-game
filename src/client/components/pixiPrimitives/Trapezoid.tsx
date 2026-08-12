@@ -26,20 +26,28 @@ export const behavior = {
 		newProps: TrapezoidProps,
 	) {
 		const { width, height, taper, color, yCoord = 0 } = newProps;
-		if (typeof oldProps !== "undefined") {
-			instance.clear();
+		// Как и у прочих фигур стола: пока трапеция та же, собирать её заново на
+		// каждый рендер колоды незачем.
+		const isSameShape = oldProps
+			&& oldProps.width === width && oldProps.height === height
+			&& oldProps.taper === taper && oldProps.color === color
+			&& (oldProps.yCoord ?? 0) === yCoord;
+		if (!isSameShape) {
+			if (typeof oldProps !== "undefined") {
+				instance.clear();
+			}
+			const { near, far } = perspectiveEdges(width, taper);
+			const top = yCoord - height / 2;
+			const bottom = yCoord + height / 2;
+			instance.beginFill(color);
+			instance.drawPolygon([
+				-far / 2, top,
+				far / 2, top,
+				near / 2, bottom,
+				-near / 2, bottom,
+			]);
+			instance.endFill();
 		}
-		const { near, far } = perspectiveEdges(width, taper);
-		const top = yCoord - height / 2;
-		const bottom = yCoord + height / 2;
-		instance.beginFill(color);
-		instance.drawPolygon([
-			-far / 2, top,
-			far / 2, top,
-			near / 2, bottom,
-			-near / 2, bottom,
-		]);
-		instance.endFill();
 
 		// Свои пропсы дальше не пускаем: width и height у любого DisplayObject —
 		// это масштаб, и pixi растянул бы ими уже нарисованную фигуру ещё раз.

@@ -24,12 +24,20 @@ export const behavior = {
     newProps: EllipseProps,
   ) {
     const { xCoord = 0, yCoord = 0, rx, ry, color } = newProps;
-    if (typeof oldProps !== "undefined") {
-      instance.clear();
+    // Перерисовываем, только если фигура и правда изменилась: эллипсы висят на
+    // каждом кружке игрока (тени, карта статуса), а стол пересчитывается на любой
+    // мелочи — заново собирать их геометрию на каждый такой рендер незачем.
+    const isSameShape = oldProps
+      && oldProps.rx === rx && oldProps.ry === ry && oldProps.color === color
+      && (oldProps.xCoord ?? 0) === xCoord && (oldProps.yCoord ?? 0) === yCoord;
+    if (!isSameShape) {
+      if (typeof oldProps !== "undefined") {
+        instance.clear();
+      }
+      instance.beginFill(color);
+      instance.drawEllipse(xCoord, yCoord, Math.max(0, rx), Math.max(0, ry));
+      instance.endFill();
     }
-    instance.beginFill(color);
-    instance.drawEllipse(xCoord, yCoord, Math.max(0, rx), Math.max(0, ry));
-    instance.endFill();
 
     this.applyDisplayObjectProps(oldProps, newProps);
   },
