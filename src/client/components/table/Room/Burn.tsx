@@ -6,6 +6,7 @@ import {useSpring} from 'react-spring/universal';
 import {AnimatedPixi, getPixiTexture} from 'client/components/table/pixiInjected';
 import {formatNickname, getBadgeResource} from 'client/components/table/PlayerBadge/PlayerBadge';
 import {EEventID} from 'shared/enum/cards';
+import {playFlamethrower} from 'client/helpers/sounds';
 import GameController from 'client/controllers/gameController';
 import {burnMs} from 'client/helpers/burnTiming';
 
@@ -367,6 +368,11 @@ export const useBurns = (
 			seq > lastSeq.current && cardId === EEventID.flamethrower && !!targetPlayerId);
 		lastSeq.current = latestSeq;
 		if (!fresh.length) return;
+
+		// Рёв огнемёта заводим здесь же, вместе с пружиной костра: звук расписан по
+		// тем же burnMs / jetPart / burnDelay, что и картинка (см.
+		// scripts/genFlamethrowerSound.ts), и разъезжаться им нельзя.
+		playFlamethrower();
 
 		const started = map(fresh, ({seq, playerId: offensePlayerId, targetPlayerId}): IBurn => {
 			const playerId = targetPlayerId ?? '';

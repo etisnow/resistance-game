@@ -21,6 +21,7 @@ import type {
 } from 'client/controllers/socketTypes';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {ETurnContextType} from 'shared/enum/turnContextType';
+import {playDiscard, playGameEnd, playPanic, stopMusic} from 'client/helpers/sounds';
 import type {IGameLogEntry} from 'shared/interfaces/gameLog';
 
 // Вид стола — настройка игрока, а не игры: её спрашивают один раз и помнят.
@@ -190,6 +191,10 @@ export default class GameController {
 	};
 
 	cardAction = (actionType: EPlayerActionType, cardUniqueId: string) => {
+		// Сброс слышит только сбросивший, и звучит он сразу по нажатию: на столе у
+		// сброса нет ни анимации, ни события — что именно ушло в отбой, соседям
+		// знать не положено (в логе просто «сбросил карту»).
+		if (actionType === EPlayerActionType.cardDiscard) playDiscard();
 		// Кому я отдаю карту, знаю только я сам — и знаю прямо сейчас, до всякого
 		// ответа сервера. По его обновлениям это не восстановить: карта уходит из
 		// руки раньше, чем в лог ложится строка о состоявшемся обмене (сервер
@@ -301,6 +306,10 @@ export default class GameController {
 		if (!notification) return;
 		this.pendingGameEnd = null;
 		this.isGameOver = true;
+		// Звук развязки — здесь, а не при получении уведомления: конец игры ждёт,
+		// пока догорит костёр (см. gameEndHoldMs), и злодейский хохот посреди
+		// пожара звучал бы победой раньше времени. Следом за ним встаёт тема.
+		if (notification.type === ENotificationAction.gameEnd) playGameEnd(notification.isThingWin);
 		// Обновлений стола после конца игры не будет, поэтому снять карту паники
 		// сервер уже не попросит — снимаем сами, как только выйдет её выдержка.
 		this.isPanicOnServer = false;
@@ -371,6 +380,7 @@ export default class GameController {
 		this.isPanicOnServer = !!panicCard;
 		if (panicCard && isNewPanic) {
 			this.panicCard = panicCard;
+			playPanic();
 			this.isPanicHoldOver = false;
 			if (this.panicHoldTimer) clearTimeout(this.panicHoldTimer);
 			this.panicHoldTimer = setTimeout(this.releasePanicCard, this.panicCardMinMs);
@@ -562,6 +572,9 @@ export default class GameController {
 
 	backToLauncher = () => {
 		this.socket.sendToServer(EClientEventType.leaveGame, {})
+		// Тема играет по кругу и сама не кончится — со стола уходят, значит ей
+		// больше не над чем звучать.
+		stopMusic();
 		// Чистим экранное состояние стола: иначе следующая игра открывается с чужими
 		// уведомлениями и старым индикатором действия.
 		this.isMenuOpen = false;

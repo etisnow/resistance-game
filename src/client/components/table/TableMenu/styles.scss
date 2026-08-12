@@ -65,6 +65,88 @@
 		gap: 10px;
 		text-align: left;
 	}
+
+	// Пункт-ползунок выглядит так же, как переключатель: обе настройки живут
+	// прямо в меню и ничего не открывают. Но это не кнопка, а div — нажатия по
+	// ползунку внутри кнопки браузер отдал бы кнопке.
+	&.slider {
+		@include buttons.button(buttons.$button-muted-top, buttons.$button-muted-bottom);
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		text-align: left;
+		cursor: default;
+	}
+}
+
+.tableMenuSliderLabel {
+	flex-shrink: 0;
+}
+
+// Число справа: ширина фиксированная, иначе ползунок дёргается при переходе
+// через 9, 99 и обратно.
+.tableMenuSliderValue {
+	flex-shrink: 0;
+	width: 26px;
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+	color: #ffffffb3;
+}
+
+// Дорожка и бегунок рисуются вручную: у нативного ползунка вид свой в каждом
+// браузере, и рядом с кнопками меню он выглядит деталью из чужого интерфейса.
+.tableMenuSliderInput {
+	flex-grow: 1;
+	min-width: 0;
+	height: 18px;
+	margin: 0;
+	background: transparent;
+	appearance: none;
+	-webkit-appearance: none;
+	cursor: pointer;
+
+	&:focus {
+		outline: none;
+	}
+
+	@mixin track {
+		height: 4px;
+		border-radius: 2px;
+		background: #00000080;
+		box-shadow: inset 0 1px 3px black;
+	}
+
+	// Бегунок того же цвета, что включённый тумблер: в меню это один и тот же
+	// «настройка стоит вот здесь».
+	@mixin thumb {
+		width: 14px;
+		height: 14px;
+		border: 0;
+		border-radius: 50%;
+		background: #6c920e;
+		box-shadow: 0 1px 3px black;
+		appearance: none;
+		-webkit-appearance: none;
+	}
+
+	&::-webkit-slider-runnable-track {
+		@include track;
+	}
+
+	&::-moz-range-track {
+		@include track;
+	}
+
+	&::-webkit-slider-thumb {
+		@include thumb;
+		// Вебкиту бегунок надо самому поднять на середину дорожки: он считает его
+		// положение от её верхнего края.
+		margin-top: -5px;
+	}
+
+	&::-moz-range-thumb {
+		@include thumb;
+	}
 }
 
 .tableMenuToggle {

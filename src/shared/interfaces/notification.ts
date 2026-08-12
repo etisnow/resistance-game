@@ -11,6 +11,10 @@ interface INotificationActionInfo {
 interface INotificationActionGameEnd {
 	type: ENotificationAction.gameEnd
 	menu : {text: string, action: string}[]
+	// Чей верх. Отдельным полем, а не по тексту сообщения: текст — фраза для
+	// игрока, и переписать её должно быть можно, не сломав ничего, что от исхода
+	// зависит (сейчас — звук развязки, см. releaseGameEnd).
+	isThingWin: boolean
 }
 export interface INotificationActionDecision {
 	type: ENotificationAction.actionDecision,

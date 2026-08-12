@@ -69,13 +69,20 @@ export const positionswapFinish = ({game, player, action}: {game:Game, player:Pl
 	if (!game.turnContext || game.turnContext.type !== ETurnContextType.positionswap) {
 		throw new Error('Смена места произошла без контекста positionswap');
 	}
-	const {offensePlayer, defensePlayer} = game.turnContext;
+	// cardId забираем до того, как контекст обнулится: местами меняют две разные
+	// карты («Меняемся местами!» и «Сматывай удочки!»), и на столе всплыть должна
+	// та, которой сходили.
+	const {offensePlayer, defensePlayer, cardId} = game.turnContext;
 	game.turnContext = null;
 	if (!defensePlayer) return;
 
 	const leaveMeAloneCard = find(player.hand, {id:EEventID.leaveMeAlone});
 	if (action === 'swap' || !leaveMeAloneCard) {
 		game.addLog(`Игроки ${offensePlayer.nickname} и ${defensePlayer.nickname} меняются местами`, EGameLogType.card);
+		// Событие применения — здесь, где места действительно поменялись, а не при
+		// розыгрыше карты: до ответа соседа обмен могут отменить сам ходящий или
+		// «Мне и здесь неплохо» (у отказа своё событие, ниже).
+		game.addCardEffect({cardId, player: offensePlayer, target: defensePlayer});
 		game.swapPlayers(offensePlayer.id, defensePlayer.id);
 		offensePlayer.changeTurnState(ETurnState.inOffenseTrade);
 		return;

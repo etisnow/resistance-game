@@ -5,6 +5,7 @@ import {useSpring} from 'react-spring/universal';
 import {ETurnContextType} from 'shared/enum/turnContextType';
 import {EGameLogType} from 'shared/enum/gameLogType';
 import Card from 'client/components/table/Card/Card';
+import {playPaper} from 'client/helpers/sounds';
 import GameController from 'client/controllers/gameController';
 import type {IFormatTradeContext} from 'shared/interfaces/common';
 
@@ -156,7 +157,13 @@ const CardFlights = observer(({controller, getPosition, cardWidth}: ICardFlights
 		const isTradeDone = some(gameLog.slice(logLengthBefore.current), ({type}) => type === EGameLogType.trade);
 
 		const started: IFlight[] = [];
+		// Сколько карт поехало по столу в этом обновлении — считая и те, что рисует
+		// не стол, а рука. По ним звучит шелест: у обмена две части, и обе должны
+		// звучать у всех, включая самих участников, — а участнику его собственную
+		// карту стол не рисует и до started дело не доходит.
+		let moves = 0;
 		const addFlight = (giverId: string, receiverId: string, bend: number, cardId?: string) => {
+			moves++;
 			// Свой конец пути рисует не стол, а рука: карта, которая достаётся мне,
 			// въезжает прямо в веер, а отданная вылетает из своего гнезда — одним
 			// движением, без дубля от кружка (см. GameController.markCardMoves).
@@ -217,6 +224,12 @@ const CardFlights = observer(({controller, getPosition, cardWidth}: ICardFlights
 		}
 
 		remember();
+
+		// Шелест — на сам полёт карты, а не на карту, которая его вызвала: так
+		// звучат и обмен, и отказ с возвратом карты, и цепная реакция. Первый проход
+		// сюда не доходит (см. isFirstRun), так что вошедшему в середину партии
+		// чужие давние передачи не шелестят.
+		if (moves) playPaper();
 
 		if (!started.length) return;
 		setFlights(current => [...current, ...started].slice(-maxFlights));

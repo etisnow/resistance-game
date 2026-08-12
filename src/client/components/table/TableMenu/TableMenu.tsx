@@ -4,6 +4,7 @@ import {observer} from 'mobx-react-lite';
 import GameController from 'client/controllers/gameController';
 import {ENotificationAction} from 'shared/enum/notifications';
 import CardsCatalog from 'client/components/table/TableMenu/CardsCatalog';
+import {getSoundVolume, playPaper, setSoundVolume} from 'client/helpers/sounds';
 
 interface ITableMenuProps {
 	controller: GameController;
@@ -21,6 +22,15 @@ const isBlockingOverlayShown = (controller: GameController): boolean => {
 const TableMenu = observer(({controller}: ITableMenuProps) => {
 	const [isExitConfirm, setExitConfirm] = React.useState(false);
 	const [isCardsOpen, setCardsOpen] = React.useState(false);
+	// Громкость живёт не в контроллере, а в самих звуках (см. sounds): её читают
+	// на каждый play, и наблюдать за ней некому, кроме этого ползунка.
+	const [volume, setVolume] = React.useState(getSoundVolume);
+
+	const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const value = Number(event.target.value) / 100;
+		setVolume(value);
+		setSoundVolume(value);
+	};
 
 	const closeMenu = () => {
 		setExitConfirm(false);
@@ -77,6 +87,25 @@ const TableMenu = observer(({controller}: ITableMenuProps) => {
 					Стол от первого лица
 					<span className={'tableMenuToggle' + (controller.isFirstPersonTable ? ' on' : '')}/>
 				</button>
+				{/* Громкость. Не кнопка: ползунок ловит нажатия сам, и меню от них
+				    закрываться не должно. Отпустив его, игрок слышит шелест карты —
+				    иначе выставлять уровень пришлось бы вслепую, дожидаясь
+				    следующего события за столом. */}
+				<div className={'tableMenuItem slider'}>
+					<span className={'tableMenuSliderLabel'}>Звук</span>
+					<input
+						type={'range'}
+						className={'tableMenuSliderInput'}
+						min={0}
+						max={100}
+						step={1}
+						value={Math.round(volume * 100)}
+						onChange={handleVolumeChange}
+						onPointerUp={() => playPaper()}
+						onKeyUp={() => playPaper()}
+					/>
+					<span className={'tableMenuSliderValue'}>{Math.round(volume * 100)}</span>
+				</div>
 				<button className={'tableMenuItem'} onClick={closeMenu}>
 					{controller.isGameOver ? 'Остаться и почитать лог' : 'Вернуться к игре'}
 				</button>

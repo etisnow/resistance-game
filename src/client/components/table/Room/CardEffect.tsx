@@ -10,6 +10,20 @@ import * as PIXI from 'pixi.js';
 import {cardHintStore} from 'client/components/hint/cardHintStore';
 import {displayObjectAnchor} from 'client/components/hint/canvasHint';
 import GameController from 'client/controllers/gameController';
+import {
+	playAnalysis,
+	playAxe,
+	playBarricade,
+	playLookaround,
+	playMove,
+	playNegative,
+	playNoFire,
+	playQuarantine,
+	playSeduction,
+	playSuspicion,
+	playTenacity,
+	playWhiskey,
+} from 'client/helpers/sounds';
 import {EEventID} from 'shared/enum/cards';
 
 // Разовые применения карт — подсмотр «Подозрением», отказ «Нет уж спасибо»,
@@ -30,6 +44,30 @@ const maxShown = 4;
 const cardShare = 1.7;
 const riseShare = 0.35;
 const offsetShare = 0.6;
+
+// Звук на применение карты. Повторный вызов в том же обновлении безвреден: у
+// каждого звука свой throttle (см. sounds), и внахлёст он сам себя не пустит.
+const cardSounds: Record<string, (() => void) | undefined> = {
+	[EEventID.barricade]: playBarricade,
+	[EEventID.noFire]: playNoFire,
+	[EEventID.tenacity]: playTenacity,
+	[EEventID.suspicion]: playSuspicion,
+	[EEventID.analysis]: playAnalysis,
+	[EEventID.lookaround]: playLookaround,
+	[EEventID.whiskey]: playWhiskey,
+	[EEventID.axe]: playAxe,
+	[EEventID.quarantine]: playQuarantine,
+	[EEventID.seduction]: playSeduction,
+	// Обе карты пересаживают игроков — звук у них общий.
+	[EEventID.positionswap]: playMove,
+	[EEventID.reelFishingRods]: playMove,
+	// Все отказы звучат одинаково: с чужой картой в этот момент делают одно и то
+	// же — не дают ей сработать.
+	[EEventID.noThanks]: playNegative,
+	[EEventID.fear]: playNegative,
+	[EEventID.miss]: playNegative,
+	[EEventID.leaveMeAlone]: playNegative,
+};
 
 interface IPoint {
 	x: number;
@@ -144,6 +182,13 @@ const CardEffects = observer(({controller, getPosition, badgeRadius}: ICardEffec
 		const fresh = filter(cardEffects, ({seq, cardId}) => seq > lastSeq.current && cardId !== EEventID.flamethrower);
 		lastSeq.current = latestSeq;
 		if (!fresh.length) return;
+
+		// Свои звуки у тех карт, у которых есть что услышать. Привязаны они к
+		// применению карты, а не к его последствиям: стучат молотком и звенят
+		// железом именно сейчас, а новое место в рассадке или уцелевший игрок —
+		// это уже итог. Сожжение огнемётом сюда не попадает: у него и картинка, и
+		// звук свои (см. Burn).
+		fresh.forEach(({cardId}) => cardSounds[cardId]?.());
 
 		const started = map(fresh, ({seq, cardId, playerId, targetPlayerId}): IEffect => {
 			const from = getPosition(playerId);
