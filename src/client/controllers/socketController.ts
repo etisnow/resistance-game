@@ -6,6 +6,7 @@ import {EServerEventType} from 'shared/enum/enumServerEvents';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {EAsyncState} from 'shared/enum/async';
+import {stopMusic} from 'client/helpers/sounds';
 import { connect } from 'socket.io-client';
 import type {
 	ICommonErrorPayload,
@@ -50,6 +51,10 @@ function handleGlobalEvents(socket: Socket, root: RootController) {
 	// стола успевает отрисоваться на лобби-данных, где у игроков ещё нет цветов.
 	// Состояние игры приходит в updateGame — там же, где и цвета.
 	socket.on(EServerEventType.gameStarted, () => {
+		// Начинается новая партия — тема прошлой замолкает. Обычно её снимает выход
+		// в лобби, но со стола можно и не уходить: игру начнут заново, пока итог
+		// прошлой ещё на экране.
+		stopMusic();
 		root.state = EAppState.game;
 	});
 

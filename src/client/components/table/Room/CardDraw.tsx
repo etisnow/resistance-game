@@ -4,6 +4,7 @@ import {observer} from 'mobx-react-lite';
 import {useSpring} from 'react-spring/universal';
 import {AnimatedPixi} from 'client/components/table/pixiInjected';
 import Card from 'client/components/table/Card/Card';
+import {playPaper} from 'client/helpers/sounds';
 import GameController from 'client/controllers/gameController';
 
 // Взятие карты из колоды — со стороны. Карта уходит из колоды рубашкой и
@@ -118,13 +119,22 @@ const CardDraws = observer(({controller, getPosition, deckCardWidth, badgeRadius
 			return;
 		}
 
-		// Своё взятие здесь не показываем: своя карта въезжает в руку сама.
-		const fresh = filter(cardDraws, ({seq, playerId}) => seq > lastSeq.current && playerId !== currentPlayerId);
+		const fresh = filter(cardDraws, ({seq}) => seq > lastSeq.current);
 		lastSeq.current = latestSeq;
 		if (!fresh.length) return;
 
+		// Шелест — на любое взятие, в том числе своё: свою карту рисует не стол, а
+		// рука (она въезжает в веер прямо из колоды), но слышно её должно быть так
+		// же, как чужую.
+		playPaper();
+
+		// А вот показываем здесь только чужие взятия: своя карта въезжает в руку
+		// сама, и дубль от колоды к кружку был бы вторым движением той же карты.
+		const drawnByOthers = filter(fresh, ({playerId}) => playerId !== currentPlayerId);
+		if (!drawnByOthers.length) return;
+
 		const started: IDrawFlight[] = [];
-		fresh.forEach(({playerId, count}) => {
+		drawnByOthers.forEach(({playerId, count}) => {
 			for (let index = 0; index < count; index++) {
 				const spread = count > 1 ? (index - (count - 1) / 2) * arcSpread : 0;
 				started.push({

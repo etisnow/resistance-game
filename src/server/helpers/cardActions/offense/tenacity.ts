@@ -8,6 +8,7 @@ import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
 import {formatCards} from 'server/helpers/cardHelpers';
 import {EGameLogType} from 'shared/enum/gameLogType';
+import {EEventID} from 'shared/enum/cards';
 
 
 export const tenacityAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
@@ -24,6 +25,16 @@ export const tenacityAct = ({card, game, player} : {card:ICardEvent, game: Game,
 	if (card.uniqueId) {
 		player.discardCard(card.uniqueId);
 	}
+	// Событие применения — как у прочих карт: до него «Упорство» отыгрывалось
+	// молча и невидимо, стол знал о нём только из лога. По этому событию карта
+	// всплывает над кружком игрока и звучит затвор. Цели у карты нет: игрок
+	// упорствует сам с собой.
+	//
+	// Здесь, а не в tenacitySelect: карту разыгрывают сейчас — она уже ушла из
+	// руки, и стол должен увидеть и услышать это сразу. Выбор одной из трёх — дело
+	// самого игрока и остальных не касается; к моменту выбора звук опоздал бы ровно
+	// на то время, что игрок разглядывает карты.
+	game.addCardEffect({cardId: EEventID.tenacity, player});
     player.notify(formatPlayerNotification({
       player: player,
       notification: {

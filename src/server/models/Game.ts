@@ -35,6 +35,10 @@ import {MatchRecorder} from 'server/analytics/recorder';
 import {submitMatch} from 'server/analytics/track';
 import {EAnalyticsDeathCause} from 'shared/analytics/contract';
 
+// Партия кончается двумя исходами, и различает их сообщение, с которым позвали
+// end. Держим строку одну на всех: по ней считается и текст развязки, и её звук.
+const thingLostMessage = 'Нечто проиграло';
+
 // Сколько последних применений карт держим для клиента: он показывает только
 // то, что случилось с прошлого обновления, но переподключившемуся полезно
 // увидеть хвост, а не пустоту.
@@ -142,7 +146,7 @@ export class Game {
     // последнем кадре стола сожжённое Нечто остаётся сидеть живым — с рукой, в
     // списке игроков и на своём месте, — и стол так и застывает с ним.
     if (player.isThing) {
-      return this.end('Нечто проиграло');
+      return this.end(thingLostMessage);
     }
 
     const alivePlayers = filter(clone(this.playersList), pId => !!this.players[pId]?.isAlive());
@@ -153,7 +157,7 @@ export class Game {
     }
 
     if (alivePlayers.length === 1) {
-      return this.end('Нечто проиграло');
+      return this.end(thingLostMessage);
     }
   }
 
@@ -257,13 +261,18 @@ export class Game {
   end = (lastMessage: string) => {
     const thingPlayer = find(this.players, {isThing:true});
 
-    const conditionText = lastMessage === 'Нечто проиграло' ? 'не справился' : 'справился';
+    // Исход партии различается этой строкой (см. killPlayer и checkThingWin).
+    // Наружу он уходит уже отдельным полем, а не текстом: по нему клиент выбирает
+    // звук развязки.
+    const isThingWin = lastMessage !== thingLostMessage;
+    const conditionText = isThingWin ? 'справился' : 'не справился';
 
     if (thingPlayer) {
       this.notifyAllPlayers(formatPlayerNotification({
         player: thingPlayer,
         notification: {
           type: ENotificationAction.gameEnd,
+          isThingWin,
           menu: [{
             action: 'exit',
             text: 'Выход',

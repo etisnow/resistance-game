@@ -6,6 +6,7 @@ import {ETurnContextType} from 'shared/enum/turnContextType';
 import {ICardEvent} from 'shared/interfaces/cards';
 import {ETurnState} from 'shared/enum/player';
 import {EGameLogType} from 'shared/enum/gameLogType';
+import {EEventID} from 'shared/enum/cards';
 
 export const seductionAct = ({card, game, player} : {card:ICardEvent, game: Game, player: Player}) => {
 	player.changeTurnState(ETurnState.inCardActionProgress);
@@ -33,8 +34,12 @@ export const seductionSelect = ({game, player, selectedPlayerId} : {game: Game, 
 	switch (game.turnContext.type) {
 		case ETurnContextType.seduction:
 		case ETurnContextType.friendshipSeduction:
-			if (game.turnContext.type === ETurnContextType.seduction) {
-				player.discardCard(game.turnContext.cardUniqueId);
+			// Тем же выбором игрока приходит и «Давай дружить?»: карта там другая
+			// (паника), и выдавать её за «Соблазн» нельзя. Держим сам контекст, а не
+			// флаг: по нему тип сужается, и ниже видно поля именно «Соблазна».
+			const seductionContext = game.turnContext.type === ETurnContextType.seduction ? game.turnContext : null;
+			if (seductionContext) {
+				player.discardCard(seductionContext.cardUniqueId);
 			}
 			const playerToTrade = game.players[selectedPlayerId];
 			if (!playerToTrade) return;
@@ -51,6 +56,11 @@ export const seductionSelect = ({game, player, selectedPlayerId} : {game: Game, 
 				defenseCard: null,
 			};
 		    game.addLog(`Игроки ${player.nickname} и ${playerToTrade.nickname} меняются картами`, EGameLogType.trade);
+			// Событие применения — здесь, а не в seductionAct: до выбора игрока карту
+			// можно отменить (см. isPlayerCanCancel), и на столе прозвучал бы и
+			// всплыл «Соблазн», которого не было. Так же поступают топор, анализ,
+			// карантин и подозрение — все прицельные карты.
+			if (seductionContext) game.addCardEffect({cardId: EEventID.seduction, player, target: playerToTrade});
 			//playerToTrade.changeTurnState(ETurnState.inDefenseTrade);
 			player.changeTurnState(ETurnState.inOffenseTrade)
 	}

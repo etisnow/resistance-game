@@ -103,8 +103,9 @@ export class Player {
 
 	processTimer(turnState: ETurnState) {
 		const {game} = this;
+		const isChainReaction = !!game.turnContext && game.turnContext.type === ETurnContextType.chainReaction;
 		let timerNotification: { text: string; seconds: number } | null = null;
-		if (game.turnContext && game.turnContext.type === ETurnContextType.chainReaction) {
+		if (isChainReaction) {
 			timerNotification = { text: `${this.nickname} все передают карту по кругу`, seconds: 30 };
 		} else {
 			switch (turnState) {
@@ -123,7 +124,17 @@ export class Player {
 			}
 		}
 		if (!timerNotification) return;
-		this.notify(formatSoundNotification());
+		// Гонг зовёт игрока к столу, а не отсчитывает этапы хода. Раньше он звучал
+		// на каждом этапе, где заводится таймер, то есть трижды за свой ход: взять
+		// карту, сыграть, обменяться. Но на втором и третьем игрок уже за столом и
+		// сам только что нажал кнопку — гонг там звенит в ответ на его же действие.
+		//
+		// Остаются те случаи, когда очередь доходит до игрока неожиданно для него:
+		// начало собственного хода, защита от чужой карты и цепная реакция.
+		const callsToTable = isChainReaction
+			|| turnState === ETurnState.inCardPick
+			|| turnState === ETurnState.inDefenseTrade;
+		if (callsToTable) this.notify(formatSoundNotification());
 		// playerId — чей это таймер: рассылка идёт всем, а клиент по нему понимает,
 		// свой ли ход отсчитывается (в заголовке вкладки показываем только свой).
 		this.game.notifyAllPlayers(formatTimerNotification({...timerNotification, playerId: this.id}));

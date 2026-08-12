@@ -2,19 +2,7 @@ import {computed, observable} from 'mobx';
 import SocketController from 'client/controllers/socketController';
 import RootController from 'client/controllers/rootController';
 import type {ITimerPayload} from 'client/controllers/socketTypes';
-import UIfx from 'uifx'
-import bellAudio from '../resources/sound/beep.mp3'
-
-// Sound is non-critical — never let it break app startup.
-let bell: UIfx | null = null;
-try {
-  bell = new UIfx(bellAudio, {
-    volume: 0.2, // number between 0.0 ~ 1.0
-    throttleMs: 100,
-  });
-} catch (e) {
-  console.warn('Sound init failed', e);
-}
+import {playBell} from 'client/helpers/sounds';
 
 export default class TimerController {
 
@@ -42,9 +30,7 @@ export default class TimerController {
 		this.socket = root.socketController;
 	}
 
-	playSound = () => {
-		if (bell) bell.play();
-	};
+	playSound = playBell;
 	clearTimers = () => {
 		if (this.timer) clearInterval(this.timer);
 		this.text = 'Игра завершена';
