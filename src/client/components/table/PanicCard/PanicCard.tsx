@@ -7,7 +7,7 @@ import {AnimatedPixi, getPixiTexture} from 'client/components/table/pixiInjected
 import {resources} from 'client/resources/resources';
 import {cardAspectRatio} from 'shared/constant/cards';
 import {tableCardPoint, tableCardTaper, tableSquash} from 'client/helpers/roomHelpers';
-import {getWindowHeight, getWindowWidth, panicCardWidth, tableCenterX, tableCenterY} from 'client/helpers/window';
+import {panicCardWidth, tableCenterX, tableCenterY} from 'client/helpers/window';
 import {toggleCardHintFor} from 'client/components/hint/canvasHint';
 import type {IFormatPanicCard} from 'shared/interfaces/common';
 
@@ -34,24 +34,19 @@ const riseDurationMs = 520;
 // Во сколько раз вставшая карта крупнее лежавшей: её читают всем столом.
 const riseScale = 1.18;
 
-// Отработав, паника уходит со стола в сброс: её отбрасывают вправо вниз, за
-// край экрана, с переворотом через угол. Раньше она просто пропадала — событие
-// кончалось, и карта исчезала посреди стола без всякого движения.
-const tossMs = 380;
-// Куда её уносит — в долях окна от места, где она стояла.
-const tossXShare = 0.95;
-const tossYShare = 0.4;
-// На сколько она при этом закручивается и до какой доли своего размера успевает
-// уменьшиться: улетая, карта разом и удаляется, и тает.
-const tossAngle = 42;
-const tossShrink = 0.45;
+// Отработав, паника растворяется: приподнимается над столом и одновременно
+// тает. Раньше она просто пропадала — событие кончалось, и карта исчезала
+// посреди стола без всякого движения.
+const tossMs = 460;
+// На сколько она успевает подняться, в долях собственной высоты.
+const tossLiftShare = 0.5;
 
 // Сама карта: монтируется на каждую новую панику, поэтому переворот играется
 // ровно один раз — на появлении.
 interface IPanicCardViewProps {
 	panicCard: IFormatPanicCard;
 	place: {x: number, y: number};
-	// Событие карты кончилось: пора уходить в сброс.
+	// Событие карты кончилось: пора растворяться.
 	isLeaving: boolean;
 }
 
@@ -83,34 +78,30 @@ const PanicCardView = observer(({panicCard, place, isLeaving}: IPanicCardViewPro
 	// Рубашка сжимается к нулю, лицо из нуля разворачивается. Высота на середине
 	// переворота чуть больше — так поворот читается объёмным, а не схлопыванием
 	// картинки.
-	// Бросок в сброс: пока событие идёт — ноль, кончилось — единица.
+	const backWidth = interpolate([flip, rise], (v: number, r: number) =>
+		Math.max(0, Math.cos(Math.PI * v)) * widthAt(r));
+	const faceWidth = interpolate([flip, rise], (v: number, r: number) =>
+		Math.max(0, -Math.cos(Math.PI * v)) * widthAt(r));
+	const cardHeight = interpolate([flip, rise], (v: number, r: number) =>
+		heightAt(r) * (1 + 0.12 * Math.sin(Math.PI * v)));
+	const cardTaper = rise.interpolate((r: number) => taperAt(r));
+
+	// Растворение: пока событие идёт — ноль, кончилось — единица.
 	const {toss} = useSpring<{toss: number}>({
 		toss: isLeaving ? 1 : 0,
 		config: {duration: tossMs},
 	});
-	// Улетая, карта уменьшается — будто её отбросили от себя вглубь стола.
-	const shrinkAt = (t: number) => 1 - (1 - tossShrink) * t;
-
-	const backWidth = interpolate([flip, rise, toss], (v: number, r: number, t: number) =>
-		Math.max(0, Math.cos(Math.PI * v)) * widthAt(r) * shrinkAt(t));
-	const faceWidth = interpolate([flip, rise, toss], (v: number, r: number, t: number) =>
-		Math.max(0, -Math.cos(Math.PI * v)) * widthAt(r) * shrinkAt(t));
-	const cardHeight = interpolate([flip, rise, toss], (v: number, r: number, t: number) =>
-		heightAt(r) * (1 + 0.12 * Math.sin(Math.PI * v)) * shrinkAt(t));
-	const cardTaper = rise.interpolate((r: number) => taperAt(r));
 
 	// Встаёт карта с того места, где лежала: нижняя кромка остаётся на столе, а
-	// растёт она вверх. Иначе она не поднимается, а всплывает над столом. А уходя
-	// — улетает от него же.
-	const cardX = toss.interpolate((t: number) =>
-		tableCenterX() + place.x + getWindowWidth() * tossXShare * t);
+	// растёт она вверх. Иначе она не поднимается, а всплывает над столом. Уходя,
+	// она приподнимается над ним ещё немного — и на этом тает.
 	const cardY = interpolate([rise, toss], (r: number, t: number) =>
-		tableCenterY() + place.y + (heightAt(0) - heightAt(r)) / 2 + getWindowHeight() * tossYShare * t);
+		tableCenterY() + place.y + (heightAt(0) - heightAt(r)) / 2 - heightAt(1) * tossLiftShare * t);
 
 	const cardProps = {
 		height: cardHeight,
 		taper: cardTaper,
-		// Улетающую карту не нажимают: она уже не на столе.
+		// Растворяющуюся карту не нажимают: её на столе уже нет.
 		interactive: !isLeaving,
 		buttonMode: !isLeaving,
 		// Нажатие показывает карту крупно — тем же окошком-подсказкой, что и дверь
@@ -119,15 +110,14 @@ const PanicCardView = observer(({panicCard, place, isLeaving}: IPanicCardViewPro
 	};
 
 	return (
-		// Позиция, поворот и прозрачность — на контейнере: улетает карта целиком, а
+		// Место и прозрачность — на контейнере: поднимается и тает карта целиком, а
 		// не двумя своими сторонами по отдельности.
 		<AnimatedPixi.Container
-			x={cardX}
+			x={tableCenterX() + place.x}
 			y={cardY}
-			angle={toss.interpolate((t: number) => tossAngle * t)}
-			// Гаснет она не сразу и не в конце разом, а по всему пути — к концу
-			// быстрее: так карта именно улетает, а не мигает напоследок.
-			alpha={toss.interpolate((t: number) => 1 - t * t)}
+			// Тает она со сглаженными концами: у линейной прозрачности видно, как
+			// она включается и обрывается.
+			alpha={toss.interpolate((t: number) => 1 - t * t * (3 - 2 * t))}
 		>
 			{/* Выпадает паника той же трапецией, что и колода под ней (иначе рядом с
 			    ней она бы разъехалась краями), а дальше распрямляется — и уже стоит
@@ -151,13 +141,13 @@ const PanicCardView = observer(({panicCard, place, isLeaving}: IPanicCardViewPro
 // с паникой больше нет: пока карта здесь, колода закрыта.
 const PanicCard = observer(({controller}: IPanicCardProps) => {
 	const {panicCard} = controller;
-	// Отработавшую карту держим на столе ещё на время броска: событие кончилось,
-	// но карте надо успеть улететь в сброс.
+	// Отработавшую карту держим на столе ещё на время растворения: событие
+	// кончилось, но карте надо успеть с него уйти.
 	//
 	// Держим её прямо здесь, в рендере, а не в состоянии по эффекту: на первом же
 	// рендере без паники компонент снялся бы с дерева и вернулся бы уже новым —
-	// с пружинами, начатыми заново, и с броском, который к первому своему кадру
-	// уже кончился. Карта просто исчезала бы, только другим путём.
+	// с пружинами, начатыми заново, и с растворением, которое к первому же своему
+	// кадру уже кончилось. Карта просто исчезала бы, только другим путём.
 	const shown = React.useRef<IFormatPanicCard | null>(null);
 	const [, redraw] = React.useReducer((tick: number) => tick + 1, 0);
 	const tossTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
