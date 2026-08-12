@@ -104,4 +104,45 @@ test.describe.serial('Карта паники на столе', () => {
 		await session.waitFor('Bob', (s) => !s.panicCard, HOLD_MS + 5_000);
 		await session.waitFor('Bob', (s) => Object.keys(s.hand).length === handSize + 1);
 	});
+
+	// Вставшая паника занимает середину стола во весь рост и закрывает дальние
+	// места — а выбрать там могут попросить именно того, кто за ней. Поэтому её
+	// можно смахнуть: нажатие показывает карту крупно, со всем текстом, и тем же
+	// движением сгоняет её со стола. Это единственный тест, который жмёт по
+	// самому канвасу: проверяется как раз попадание по карте и то, что она с
+	// экрана уходит.
+	test('нажатие по панике открывает её крупно и сгоняет со стола', async () => {
+		await session.arrange({
+			players: NICKS,
+			turn: 'Alice',
+			turnState: 'inCardPick',
+			hands: {Alice: fill([], 4)},
+			deck: ['oneTwo', 'analysis', 'analysis', 'analysis'],
+		});
+
+		const page = session.page('Alice');
+		await page.setViewportSize({width: 1280, height: 900});
+		await session.cardPick('Alice');
+		await session.waitFor('Alice', (s) => s.panicCard?.id === 'oneTwo');
+		// Карте надо встать со стола: переворот, пауза и подъём (см. PanicCard).
+		await page.waitForTimeout(2500);
+
+		// Жмём в середину стоящей карты. Пока она там, нажатие достаётся ей.
+		await page.mouse.click(640, 250);
+		await expect(page.locator('img[data-card-hint="oneTwo"]')).toBeVisible({timeout: 5_000});
+
+		// Со стола она при этом ушла — растворилась (tossMs) и больше не мешает.
+		// Партии это не касается: у сервера паника всё та же, событие идёт, и
+		// «раз-два» всё так же ждёт от игрока выбора места.
+		await page.waitForTimeout(1_000);
+		const pending = await session.snapshot('Alice');
+		expect(pending.panicCard?.id).toBe('oneTwo');
+		expect(pending.currentAction?.type).toBe('playerSelect');
+
+		// А выбрать теперь есть кого: карта больше не стоит перед дальними местами.
+		const target = pending.currentAction?.playersToSelect?.[0];
+		expect(target).toBeTruthy();
+		await session.selectId('Alice', target!);
+		await session.waitFor('Alice', (s) => !s.panicCard, HOLD_MS + 5_000);
+	});
 });

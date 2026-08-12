@@ -48,9 +48,11 @@ interface IPanicCardViewProps {
 	place: {x: number, y: number};
 	// Событие карты кончилось: пора растворяться.
 	isLeaving: boolean;
+	// Нажатие по карте: показать её крупно и смахнуть со стола.
+	onDismiss: (event: PIXI.interaction.InteractionEvent) => void;
 }
 
-const PanicCardView = observer(({panicCard, place, isLeaving}: IPanicCardViewProps) => {
+const PanicCardView = observer(({panicCard, place, isLeaving, onDismiss}: IPanicCardViewProps) => {
 	// Полуоборот вокруг вертикальной оси: 0 — рубашка, 1 — лицо.
 	const {flip} = useSpring<{flip: number}>({
 		flip: 1,
@@ -104,9 +106,8 @@ const PanicCardView = observer(({panicCard, place, isLeaving}: IPanicCardViewPro
 		// Растворяющуюся карту не нажимают: её на столе уже нет.
 		interactive: !isLeaving,
 		buttonMode: !isLeaving,
-		// Нажатие показывает карту крупно — тем же окошком-подсказкой, что и дверь
-		// с карантином на столе.
-		pointerdown: (event: PIXI.interaction.InteractionEvent) => toggleCardHintFor(panicCard.id, event),
+		// Нажатие показывает карту крупно и убирает её со стола (см. onDismiss).
+		pointerdown: onDismiss,
 	};
 
 	return (
@@ -139,6 +140,10 @@ const PanicCardView = observer(({panicCard, place, isLeaving}: IPanicCardViewPro
 // Сработавшая паника лежит крупно в центре стола всё время своего события (и не
 // меньше выдержки на чтение — см. gameController.syncPanicCard). Отдельного окна
 // с паникой больше нет: пока карта здесь, колода закрыта.
+// Чем карта отличается от предыдущей: у сыгранной паники есть свой uniqueId, у
+// мгновенной (её никто не держал в руке) — только id.
+const panicKey = (card: IFormatPanicCard): string => card.uniqueId || card.id;
+
 const PanicCard = observer(({controller}: IPanicCardProps) => {
 	const {panicCard} = controller;
 	// Отработавшую карту держим на столе ещё на время растворения: событие
@@ -149,14 +154,25 @@ const PanicCard = observer(({controller}: IPanicCardProps) => {
 	// с пружинами, начатыми заново, и с растворением, которое к первому же своему
 	// кадру уже кончилось. Карта просто исчезала бы, только другим путём.
 	const shown = React.useRef<IFormatPanicCard | null>(null);
+	// Какую карту смотрящий уже смахнул со стола. Стоячая паника занимает
+	// середину стола во весь рост и закрывает собой дальние места — а выбрать там
+	// могут попросить именно того, кто за ней. Поэтому её можно снять: нажатие
+	// показывает карту крупно, со всем её текстом, и тем же движением сгоняет её
+	// со стола.
+	//
+	// Смахивание — дело зрителя, а не партии: у остальных карта остаётся на месте,
+	// и колода всё так же закрыта, пока паника не отработает (см. Deck).
+	const dismissed = React.useRef<string | null>(null);
 	const [, redraw] = React.useReducer((tick: number) => tick + 1, 0);
 	const tossTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-	if (panicCard) shown.current = panicCard;
-	const card = panicCard ?? shown.current;
+
+	const isDismissed = !!panicCard && dismissed.current === panicKey(panicCard);
+	if (panicCard && !isDismissed) shown.current = panicCard;
+	const card = shown.current;
 
 	React.useEffect(() => {
 		// Новая паника выходит на стол сама и старую с него сгоняет.
-		if (panicCard) {
+		if (panicCard && !isDismissed) {
 			if (tossTimer.current) clearTimeout(tossTimer.current);
 			tossTimer.current = null;
 			return;
@@ -167,19 +183,27 @@ const PanicCard = observer(({controller}: IPanicCardProps) => {
 			shown.current = null;
 			redraw();
 		}, tossMs);
-	}, [panicCard]);
+	}, [panicCard, isDismissed]);
 	React.useEffect(() => () => {
 		if (tossTimer.current) clearTimeout(tossTimer.current);
 	}, []);
 
 	if (!card) return null;
+	// Нажали по карте: показываем её крупно тем же окошком, что и дверь с
+	// карантином на столе, — и запускаем ей уход.
+	const dismiss = (event: PIXI.interaction.InteractionEvent) => {
+		toggleCardHintFor(card.id, event);
+		dismissed.current = panicKey(card);
+		redraw();
+	};
 	// key — чтобы каждая новая паника монтировалась заново и переворачивалась.
 	return (
 		<PanicCardView
-			key={card.uniqueId || card.id}
+			key={panicKey(card)}
 			panicCard={card}
 			place={tableCardPoint(controller.playersList.length)}
-			isLeaving={!panicCard}
+			isLeaving={!panicCard || isDismissed}
+			onDismiss={dismiss}
 		/>
 	);
 });
