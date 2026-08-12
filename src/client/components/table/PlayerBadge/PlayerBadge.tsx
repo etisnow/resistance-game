@@ -39,6 +39,7 @@ interface IPlayerBadgeProps {
 const playerGlowTexture = getPixiTexture(resources.playerbadgeGlow);
 // Дверь на месте игрока — это сама карта «Заколоченная дверь» (см. ниже).
 const doorCardTexture = getPixiTexture(resources.barricade);
+const disconnectedTexture = getPixiTexture(resources.playerBadges['disconnected']);
 /*Marks*/
 const playerStatusQuestion = getPixiTexture(resources.playerStatusQuestion);
 const playerStatusThing = getPixiTexture(resources.playerStatusThing);
@@ -260,27 +261,102 @@ export const PlayerShadow = ({badgeWidth, badgeHeight}: {badgeWidth: number, bad
 export const badgeBodyWidth = (isDoor: boolean, width: number, height: number): number =>
 	isDoor ? height / cardAspectRatio : width;
 
-const playerBadgesByKey: Record<string, string | undefined> = resources.playerBadges;
-const colorBadgesCount = 11;
+/**
+ * Цвет кружка. Раньше это была картинка с запечённым в неё градиентом — свет в
+ * ней был нарисован заранее и спорил со светом сферы, которая ложится сверху
+ * (см. sphereShadeTexture). Теперь кружок залит сплошным цветом, а весь объём
+ * даёт одна общая сфера.
+ *
+ * Сами цвета — средние тона тех самых картинок: за столом игроки узнают друг
+ * друга по цвету, и менять его не за чем.
+ *
+ * Цвет — это порядковый номер игрока, поэтому на столе больше badgeColors
+ * человек цвета начинают повторяться, но цвет есть у всех.
+ */
+const firstBadgeColor = 0x99693E;
+const badgeColors = [
+	firstBadgeColor, 0x998E3E, 0x99AD3E, 0x7DB13E, 0x51B14F, 0x51B185,
+	0x518C86, 0x586986, 0x7D6986, 0x996979, 0x996963,
+];
+// Отключившийся сидит серым камнем: цвет ему больше не нужен — важно, что
+// человека за столом нет.
+const disconnectedColor = 0x3B3833;
+// Во сколько раз значок оборванного провода меньше самого кружка.
+const disconnectedIconShare = 0.62;
 
-interface IBadgeResourceArgs {
+// Цвет приходит числом в строке, но приходит он с сервера: на мусор в нём
+// отвечаем первым цветом, а не чёрной дырой на месте игрока.
+export const badgeColorOf = (color: string): number =>
+	badgeColors[Number(color) % badgeColors.length] ?? firstBadgeColor;
+
+interface IBadgeBodyProps {
 	isDoor: boolean;
 	isConnected: boolean;
 	color: string;
+	badgeWidth: number;
+	badgeHeight: number;
+	// Нажатие по самому кружку: выбор цели или показ карты двери. Всегда
+	// определённое — prop со значением undefined react-pixi-fiber не применяет, а
+	// печатает «ignoring prop» на каждый рендер (см. Card).
+	isInteractive?: boolean;
+	pointerdown?: (event: PIXI.interaction.InteractionEvent) => void;
 }
 
+const noop = () => {};
+
 /**
- * Картинка самого кружка. Роли здесь больше нет: нечто и заражённого показывает
- * натянутая на кружок карта (см. StatusSkin) — та же, что игрок держит в руке, а
- * не отдельно нарисованный круглый бейдж, живущий своей жизнью.
+ * Само тело кружка — то, на что ложатся карта статуса и сфера. Роли здесь нет:
+ * нечто и заражённого показывает натянутая карта (см. StatusSkin) — та же, что
+ * игрок держит в руке, а не отдельно нарисованный круглый бейдж, живущий своей
+ * жизнью.
+ *
+ * Наружу — потому что горящий игрок (см. Burn) сгорает ровно тем же кружком,
+ * каким сидел за столом.
  */
-export const getBadgeResource = ({isDoor, isConnected, color}: IBadgeResourceArgs): string | undefined => {
-	if (isDoor) return playerBadgesByKey['door'];
-	if (!isConnected) return playerBadgesByKey['disconnected'];
-	// Бейджей всего colorBadgesCount, а цвет — это порядковый номер игрока,
-	// поэтому на столе больше 11 человек цвета начинают повторяться, но бейдж есть у всех.
-	return playerBadgesByKey[color] ?? playerBadgesByKey[String(Number(color) % colorBadgesCount)];
-}
+export const BadgeBody = ({
+	isDoor,
+	isConnected,
+	color,
+	badgeWidth,
+	badgeHeight,
+	isInteractive = false,
+	pointerdown = noop,
+}: IBadgeBodyProps) => {
+	// Дверь — не игрок, а лежащая на месте соседей карта: она и рисуется картой.
+	if (isDoor) {
+		return (
+			<Sprite
+				texture={doorCardTexture}
+				anchor={0.5}
+				width={badgeWidth}
+				height={badgeHeight}
+				interactive={isInteractive}
+				buttonMode={isInteractive}
+				pointerdown={pointerdown}
+			/>
+		);
+	}
+	return (
+		<React.Fragment>
+			<Ellipse
+				rx={badgeWidth / 2}
+				ry={badgeHeight / 2}
+				color={isConnected ? badgeColorOf(color) : disconnectedColor}
+				interactive={isInteractive}
+				buttonMode={isInteractive}
+				pointerdown={pointerdown}
+			/>
+			{!isConnected && (
+				<Sprite
+					texture={disconnectedTexture}
+					anchor={0.5}
+					width={badgeWidth * disconnectedIconShare}
+					height={badgeWidth * disconnectedIconShare}
+				/>
+			)}
+		</React.Fragment>
+	);
+};
 
 const getMarkTexture = (mark: EPlayerMark | undefined): PIXI.Texture | undefined => {
 	switch (mark) {
@@ -333,13 +409,9 @@ const PlayerBadge = ({
 		if (isDoor) toggleCardHintFor(EEventID.barricade, event);
 	};
 
-	// NOTE: цвет приходит только после gameStarter (до старта он ''), поэтому
-	// проверка обязана быть ДО поиска текстуры: getPixiTexture кидает исключение,
-	// а бросок из рендера роняет весь <Stage> целиком (error boundary тут нет).
+	// NOTE: цвет приходит только после gameStarter (до старта он ''), а без него
+	// кружок нечем залить.
 	if (!color && !isDoor) return null;
-	const badgeResource = getBadgeResource({isDoor, isConnected, color});
-	if (!badgeResource) return null;
-	const bodyTexture = isDoor ? doorCardTexture : getPixiTexture(badgeResource);
 	const bodyWidth = badgeBodyWidth(isDoor, style.width, style.height);
 	const hasStatusSkin = !!statusSkinOf({isConnected, isThing, isInfected, quarantine});
 	// На кружке у всех ник, включая свой: что кружок твой, говорит этикетка над
@@ -361,15 +433,14 @@ const PlayerBadge = ({
 			)}
 
 			{/* Кружок игрока — эллипс, а не круг: он стоит за столом, который мы
-			    видим из-за его края, и вытянут по вертикали (см. badgeAspect).
-			    Картинка бейджа круглая, растягивает её сам спрайт. */}
-			<Sprite
-				texture={bodyTexture}
-				anchor={0.5}
-				width={bodyWidth}
-				height={style.height}
-				interactive={canBeSelected || isDoor}
-				buttonMode={canBeSelected || isDoor}
+			    видим из-за его края, и вытянут по вертикали (см. badgeAspect). */}
+			<BadgeBody
+				isDoor={isDoor}
+				isConnected={isConnected}
+				color={color}
+				badgeWidth={bodyWidth}
+				badgeHeight={style.height}
+				isInteractive={canBeSelected || isDoor}
 				pointerdown={onBadgePointerDown}
 			/>
 			{!isDoor && (
