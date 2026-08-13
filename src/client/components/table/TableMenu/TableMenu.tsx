@@ -4,11 +4,41 @@ import {observer} from 'mobx-react-lite';
 import GameController from 'client/controllers/gameController';
 import {ENotificationAction} from 'shared/enum/notifications';
 import CardsCatalog from 'client/components/table/TableMenu/CardsCatalog';
-import {getSoundVolume, playPaper, setSoundVolume} from 'client/helpers/sounds';
+import {playPaper} from 'client/helpers/sounds';
 
 interface ITableMenuProps {
 	controller: GameController;
 }
+
+interface IVolumeSliderProps {
+	label: string;
+	value: number;
+	onChange: (value: number) => void;
+	/** Чем отозваться, когда ползунок отпустили. Музыке не нужно — она уже играет. */
+	onRelease?: () => void;
+}
+
+/**
+ * Пункт-ползунок. Не кнопка: ползунок ловит нажатия сам, и меню от них
+ * закрываться не должно.
+ */
+const VolumeSlider = ({label, value, onChange, onRelease}: IVolumeSliderProps) => (
+	<div className={'tableMenuItem slider'}>
+		<span className={'tableMenuSliderLabel'}>{label}</span>
+		<input
+			type={'range'}
+			className={'tableMenuSliderInput'}
+			min={0}
+			max={100}
+			step={1}
+			value={Math.round(value * 100)}
+			onChange={(event) => onChange(Number(event.target.value) / 100)}
+			onPointerUp={onRelease}
+			onKeyUp={onRelease}
+		/>
+		<span className={'tableMenuSliderValue'}>{Math.round(value * 100)}</span>
+	</div>
+);
 
 // Пока ActionInteracter показывает свой полноэкранный оверлей (решение по ходу
 // или итог игры), кнопка меню только мешает — прячем её, она вернётся сразу
@@ -22,15 +52,10 @@ const isBlockingOverlayShown = (controller: GameController): boolean => {
 const TableMenu = observer(({controller}: ITableMenuProps) => {
 	const [isExitConfirm, setExitConfirm] = React.useState(false);
 	const [isCardsOpen, setCardsOpen] = React.useState(false);
-	// Громкость живёт не в контроллере, а в самих звуках (см. sounds): её читают
-	// на каждый play, и наблюдать за ней некому, кроме этого ползунка.
-	const [volume, setVolume] = React.useState(getSoundVolume);
-
-	const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-		const value = Number(event.target.value) / 100;
-		setVolume(value);
-		setSoundVolume(value);
-	};
+	// Громкости своего состояния здесь не заводят: настройка глобальная и
+	// переживает меню, так что живёт она в SoundController, а меню её только
+	// рисует и двигает.
+	const sound = controller.root.soundController;
 
 	const closeMenu = () => {
 		setExitConfirm(false);
@@ -87,25 +112,24 @@ const TableMenu = observer(({controller}: ITableMenuProps) => {
 					Стол от первого лица
 					<span className={'tableMenuToggle' + (controller.isFirstPersonTable ? ' on' : '')}/>
 				</button>
-				{/* Громкость. Не кнопка: ползунок ловит нажатия сам, и меню от них
-				    закрываться не должно. Отпустив его, игрок слышит шелест карты —
-				    иначе выставлять уровень пришлось бы вслепую, дожидаясь
-				    следующего события за столом. */}
-				<div className={'tableMenuItem slider'}>
-					<span className={'tableMenuSliderLabel'}>Звук</span>
-					<input
-						type={'range'}
-						className={'tableMenuSliderInput'}
-						min={0}
-						max={100}
-						step={1}
-						value={Math.round(volume * 100)}
-						onChange={handleVolumeChange}
-						onPointerUp={() => playPaper()}
-						onKeyUp={() => playPaper()}
-					/>
-					<span className={'tableMenuSliderValue'}>{Math.round(volume * 100)}</span>
-				</div>
+				{/* Звуки стола. Отпустив ползунок, игрок слышит шелест карты — иначе
+				    выставлять уровень пришлось бы вслепую, дожидаясь следующего
+				    события за столом. */}
+				<VolumeSlider
+					label={'Звуки'}
+					value={sound.volume}
+					onChange={sound.setVolume}
+					onRelease={() => playPaper()}
+				/>
+				{/* Музыка — своим ползунком: тема играет фоном и подолгу, и убавляют
+				    её отдельно от звуков, а не вместе с ними. Отдельного отклика на
+				    отпускание нет: когда тема играет, ползунок слышно на лету, а когда
+				    не играет — отвечать нечем. */}
+				<VolumeSlider
+					label={'Музыка'}
+					value={sound.musicVolume}
+					onChange={sound.setMusicVolume}
+				/>
 				<button className={'tableMenuItem'} onClick={closeMenu}>
 					{controller.isGameOver ? 'Остаться и почитать лог' : 'Вернуться к игре'}
 				</button>

@@ -28,29 +28,17 @@ import {setPilotFlameVolume, startPilotFlame as ignitePilotFlame, stopPilotFlame
 // catch ниже, и звука в игре просто нет — молча, как было с гонгом хода.
 const UIfx = (UIfxImport as unknown as {default?: typeof UIfxImport}).default ?? UIfxImport;
 
-// Общая громкость — настройка игрока, а не игры: её ставят один раз и помнят.
-// Локальное хранилище, а не localforage (им хранится ник): читать надо
-// синхронно, ещё до первого звука, иначе первый же гонг прозвучит на громкости
-// по умолчанию — и как раз он звучит раньше, чем игрок доберётся до меню.
-const volumeKey = 'soundVolume';
-
-const loadVolume = (): number => {
-	try {
-		const stored = window.localStorage.getItem(volumeKey);
-		const saved = Number(stored);
-		// Ничего не сохранено, мусор или NaN — играем на максимуме: пришедший в
-		// игру впервые должен услышать её такой, какой она задумана, а убавить он
-		// всегда успеет.
-		if (stored === null) return 1;
-		return Number.isFinite(saved) && saved >= 0 && saved <= 1 ? saved : 1;
-	} catch {
-		// Приватный режим и запрет на хранилище: играть это не мешает, громкость
-		// просто не переживёт перезаход.
-		return 1;
-	}
-};
-
-let masterVolume = loadVolume();
+// Ползунки игрока. Владеет ими SoundController — он их и хранит, и отдаёт
+// столу; здесь лежит только последнее, что он сюда положил.
+//
+// Копия, а не чтение из mobx: play() зовут из середины анимации и по многу раз
+// за ход, и ходить за громкостью в наблюдаемое состояние оттуда незачем — сам
+// звук на него не реагирует, он берёт уровень один раз, в момент запуска.
+//
+// Единица до первого applySoundVolume — не «по умолчанию громко», а «контроллер
+// ещё не сказал»: он говорит в своём конструкторе, до первого звука в игре.
+let soundLevel = 1;
+let musicLevel = 1;
 
 // Весь набор оказался громче нужного: выровнен он между собой верно, а вот
 // уровнем целиком садится на уши — за партию звуков много, и слушать их час
@@ -62,22 +50,32 @@ let masterVolume = loadVolume();
 const masterGain = 0.6;
 
 /** Итоговая громкость звука: своя доля, ползунок игрока и общий множитель. */
-const mix = (volume: number): number => Math.min(1, Math.max(0, volume * masterVolume * masterGain));
+const mix = (volume: number): number => Math.min(1, Math.max(0, volume * soundLevel * masterGain));
 
-export const getSoundVolume = (): number => masterVolume;
+/**
+ * То же для музыки, но от своего ползунка. Общий множитель тот же: он срезает
+ * уровень всей игры разом, и музыка из него не выделена — иначе, убавив набор,
+ * мы бы ровно на столько же выпятили тему над ним.
+ */
+const mixMusic = (): number => Math.min(1, Math.max(0, musicBaseVolume * musicLevel * masterGain));
 
-/** 0 — полная тишина, 1 — как задумано. Промежуточное — доля от задуманного. */
-export const setSoundVolume = (value: number): void => {
-	masterVolume = Math.min(1, Math.max(0, value));
-	// Звуки берут громкость в момент запуска, а музыка и запальник уже играют —
-	// им ползунок должен отзываться сразу, иначе крутить его под них бессмысленно.
-	if (music) music.volume = mix(musicVolume);
+/**
+ * Звуки стола встали на новый уровень. 0 — полная тишина, 1 — как задумано.
+ *
+ * Зовёт это только SoundController: здесь уровень не хранят и не сохраняют, а
+ * доносят до тех, кто уже звучит. Сами звуки берут его в момент запуска, а вот
+ * запальник огнемёта горит долго — не скажи ему, и ползунок под него было бы
+ * бессмысленно крутить.
+ */
+export const applySoundVolume = (value: number): void => {
+	soundLevel = value;
 	setPilotFlameVolume(mix(pilotFlameVolume));
-	try {
-		window.localStorage.setItem(volumeKey, String(masterVolume));
-	} catch {
-		// см. loadVolume
-	}
+};
+
+/** То же для музыки: тема, в отличие от звуков, уже играет — ей отзываемся сразу. */
+export const applyMusicVolume = (value: number): void => {
+	musicLevel = value;
+	if (music) music.volume = mixMusic();
 };
 
 // Звук — дело неглавное: если браузер не дал завести Audio (а он не даёт,
@@ -263,9 +261,10 @@ const playThingLose = createEndSound(thingLoseAudio, 1);
 
 /**
  * Тема «Нечто» после развязки, по кругу. Собственная громкость низкая: это фон
- * под разбор партии и чтение лога, а не номер.
+ * под разбор партии и чтение лога, а не номер. Это уровень записи в сведении, а
+ * не то, что крутит игрок: его ползунок — множитель поверх (см. mixMusic).
  */
-const musicVolume = 0.45;
+const musicBaseVolume = 0.45;
 let music: HTMLAudioElement | null = null;
 
 /**
@@ -280,7 +279,7 @@ export const startMusic = (): void => {
 			music = new Audio(musicAudio);
 			music.loop = true;
 		}
-		music.volume = mix(musicVolume);
+		music.volume = mixMusic();
 		music.play().catch(() => undefined);
 	} catch (e) {
 		console.warn('Music start failed', e);
