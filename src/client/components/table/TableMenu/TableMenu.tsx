@@ -4,13 +4,7 @@ import {observer} from 'mobx-react-lite';
 import GameController from 'client/controllers/gameController';
 import {ENotificationAction} from 'shared/enum/notifications';
 import CardsCatalog from 'client/components/table/TableMenu/CardsCatalog';
-import {
-	getMusicVolume,
-	getSoundVolume,
-	playPaper,
-	setMusicVolume,
-	setSoundVolume,
-} from 'client/helpers/sounds';
+import {playPaper} from 'client/helpers/sounds';
 
 interface ITableMenuProps {
 	controller: GameController;
@@ -58,20 +52,10 @@ const isBlockingOverlayShown = (controller: GameController): boolean => {
 const TableMenu = observer(({controller}: ITableMenuProps) => {
 	const [isExitConfirm, setExitConfirm] = React.useState(false);
 	const [isCardsOpen, setCardsOpen] = React.useState(false);
-	// Громкость живёт не в контроллере, а в самих звуках (см. sounds): её читают
-	// на каждый play, и наблюдать за ней некому, кроме этих ползунков.
-	const [volume, setVolume] = React.useState(getSoundVolume);
-	const [musicVolume, setMusicVolumeState] = React.useState(getMusicVolume);
-
-	const handleVolumeChange = (value: number) => {
-		setVolume(value);
-		setSoundVolume(value);
-	};
-
-	const handleMusicVolumeChange = (value: number) => {
-		setMusicVolumeState(value);
-		setMusicVolume(value);
-	};
+	// Громкости своего состояния здесь не заводят: настройка глобальная и
+	// переживает меню, так что живёт она в SoundController, а меню её только
+	// рисует и двигает.
+	const sound = controller.root.soundController;
 
 	const closeMenu = () => {
 		setExitConfirm(false);
@@ -133,8 +117,8 @@ const TableMenu = observer(({controller}: ITableMenuProps) => {
 				    события за столом. */}
 				<VolumeSlider
 					label={'Звуки'}
-					value={volume}
-					onChange={handleVolumeChange}
+					value={sound.volume}
+					onChange={sound.setVolume}
 					onRelease={() => playPaper()}
 				/>
 				{/* Музыка — своим ползунком: тема играет фоном и подолгу, и убавляют
@@ -143,8 +127,8 @@ const TableMenu = observer(({controller}: ITableMenuProps) => {
 				    не играет — отвечать нечем. */}
 				<VolumeSlider
 					label={'Музыка'}
-					value={musicVolume}
-					onChange={handleMusicVolumeChange}
+					value={sound.musicVolume}
+					onChange={sound.setMusicVolume}
 				/>
 				<button className={'tableMenuItem'} onClick={closeMenu}>
 					{controller.isGameOver ? 'Остаться и почитать лог' : 'Вернуться к игре'}
