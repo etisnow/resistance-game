@@ -22,7 +22,8 @@ const SOUND = join(ROOT, 'src/client/resources/sound');
 const imports: {from: string; to: string}[] = [
 	{from: 'shotgun-pump-action_mkv5cgv_.mp3', to: 'tenacity.mp3'},
 	{from: 'hmm.mp3', to: 'suspicion.mp3'},
-	{from: 'jidkost-nabiraetsya-s-puzyirkami.mp3', to: 'analysis.mp3'},
+	// Анализа здесь нет: его запись слишком тихая для стола, и усиливает её
+	// отдельный скрипт — см. amplifyRawSounds.
 	{from: 'opening-a-bottle-of-wine.mp3', to: 'whiskey.mp3'},
 	// Один отказ на три защитные карты: «Нет уж, спасибо!», «Страх» и «Мимо!» — в
 	// игре это одно и то же движение, отбиться от чужой карты.
@@ -36,7 +37,8 @@ const imports: {from: string; to: string}[] = [
 	// Шелест бумаги: им звучит любое движение карты — и обмен между игроками, и
 	// взятие из колоды.
 	{from: 'paper.mp3', to: 'paper.mp3'},
-	{from: 'panic.mp3', to: 'panic.mp3'},
+	// Паника здесь не значится: у её записи с четвёртой секунды и до конца тянется
+	// шумовая полка, и режет её отдельный скрипт — см. cutPanicSound.
 	{from: 'throw-paper.mp3', to: 'discard.mp3'},
 	// Развязка партии: чей верх, тот и звучит.
 	{from: 'evil-laugh.mp3', to: 'thingWin.mp3'},
