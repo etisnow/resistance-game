@@ -17,10 +17,10 @@ import panicAudio from 'client/resources/sound/panic.mp3';
 import discardAudio from 'client/resources/sound/discard.mp3';
 import thingWinAudio from 'client/resources/sound/thingWin.mp3';
 import thingLoseAudio from 'client/resources/sound/thingLose.mp3';
-import musicAudio from 'client/resources/sound/nechto.mp3';
 import lookaroundThunderAudio from 'client/resources/sound/lookaroundThunder.mp3';
 import lookaroundTurnAudio from 'client/resources/sound/lookaroundTurn.mp3';
 import {setPilotFlameVolume, startPilotFlame as ignitePilotFlame, stopPilotFlame} from 'client/helpers/pilotFlame';
+import {setMusicVolume, startMusic as igniteMusic, stopMusic} from 'client/helpers/music';
 
 // uifx собран как UMD, и сборщики разворачивают его по-разному: vite кладёт в
 // default весь module.exports, а сам класс — внутрь, в .default. Без этой
@@ -75,7 +75,7 @@ export const applySoundVolume = (value: number): void => {
 /** То же для музыки: тема, в отличие от звуков, уже играет — ей отзываемся сразу. */
 export const applyMusicVolume = (value: number): void => {
 	musicLevel = value;
-	if (music) music.volume = mixMusic();
+	setMusicVolume(mixMusic());
 };
 
 // Звук — дело неглавное: если браузер не дал завести Audio (а он не даёт,
@@ -260,41 +260,24 @@ const playThingWin = createEndSound(thingWinAudio, 0.55);
 const playThingLose = createEndSound(thingLoseAudio, 1);
 
 /**
- * Тема «Нечто» после развязки, по кругу. Собственная громкость низкая: это фон
- * под разбор партии и чтение лога, а не номер. Это уровень записи в сведении, а
- * не то, что крутит игрок: его ползунок — множитель поверх (см. mixMusic).
+ * Тема «Нечто». Звучит везде, где партии нет: с открытия игры, в лобби, за столом
+ * до начала — и снова после развязки, пока не начнут следующую. Собственная
+ * громкость низкая: это фон под выбор игры и разбор партии, а не номер.
+ *
+ * Одна на все темы: они сжаты одним прогоном и сведены между собой (см.
+ * scripts/packMusic.ts), и разводить их по уровням значило бы слышать смену.
+ *
+ * Это уровень записи в сведении, а не то, что крутит игрок: его ползунок —
+ * множитель поверх (см. mixMusic). Сама музыка, её ротация и петля живут в
+ * helpers/music — сюда от неё приходит только громкость.
  */
 const musicBaseVolume = 0.45;
-let music: HTMLAudioElement | null = null;
+
+export const startMusic = (): void => igniteMusic(mixMusic());
+export {stopMusic};
 
 /**
- * Трек весит под мегабайт — на порядок больше любого звука события, и грузить
- * его вместе с ними на старте партии незачем: он звучит один раз, в самом конце,
- * а до конца доигрывают не все. Поэтому элемент заводится только здесь, в момент
- * первого запуска: до этого от файла в игре есть только его адрес.
- */
-export const startMusic = (): void => {
-	try {
-		if (!music) {
-			music = new Audio(musicAudio);
-			music.loop = true;
-		}
-		music.volume = mixMusic();
-		music.play().catch(() => undefined);
-	} catch (e) {
-		console.warn('Music start failed', e);
-	}
-};
-
-/** Партия закрыта — музыке играть не над чем. */
-export const stopMusic = (): void => {
-	if (!music) return;
-	music.pause();
-	music.currentTime = 0;
-};
-
-/**
- * Развязка: сперва её звук, следом — тема по кругу. Именно следом, а не вместе:
+ * Развязка: сперва её звук, следом — новая тема в петле. Именно следом, а не вместе:
  * хохот и вопль сами по себе громкие, и музыка под ними всё равно не слышна.
  */
 export const playGameEnd = (isThingWin: boolean): void => {
