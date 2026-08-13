@@ -28,15 +28,21 @@ import {setPilotFlameVolume, startPilotFlame as ignitePilotFlame, stopPilotFlame
 // catch ниже, и звука в игре просто нет — молча, как было с гонгом хода.
 const UIfx = (UIfxImport as unknown as {default?: typeof UIfxImport}).default ?? UIfxImport;
 
-// Общая громкость — настройка игрока, а не игры: её ставят один раз и помнят.
+// Громкость — настройка игрока, а не игры: её ставят один раз и помнят.
 // Локальное хранилище, а не localforage (им хранится ник): читать надо
 // синхронно, ещё до первого звука, иначе первый же гонг прозвучит на громкости
 // по умолчанию — и как раз он звучит раньше, чем игрок доберётся до меню.
+//
+// Ползунка два, и они независимы: звуки за столом и музыка — это разные вещи, и
+// чаще всего убавить хотят вторую, не трогая первую (или наоборот — сесть под
+// тему и приглушить возню с картами). Общего ползунка над ними нет: их всего
+// два, и «выключить всё» — это два движения, а не одно.
 const volumeKey = 'soundVolume';
+const musicVolumeKey = 'musicVolume';
 
-const loadVolume = (): number => {
+const loadVolume = (key: string): number => {
 	try {
-		const stored = window.localStorage.getItem(volumeKey);
+		const stored = window.localStorage.getItem(key);
 		const saved = Number(stored);
 		// Ничего не сохранено, мусор или NaN — играем на максимуме: пришедший в
 		// игру впервые должен услышать её такой, какой она задумана, а убавить он
@@ -50,7 +56,16 @@ const loadVolume = (): number => {
 	}
 };
 
-let masterVolume = loadVolume();
+const saveVolume = (key: string, value: number): void => {
+	try {
+		window.localStorage.setItem(key, String(value));
+	} catch {
+		// см. loadVolume
+	}
+};
+
+let masterVolume = loadVolume(volumeKey);
+let musicLevel = loadVolume(musicVolumeKey);
 
 // Весь набор оказался громче нужного: выровнен он между собой верно, а вот
 // уровнем целиком садится на уши — за партию звуков много, и слушать их час
@@ -64,20 +79,31 @@ const masterGain = 0.6;
 /** Итоговая громкость звука: своя доля, ползунок игрока и общий множитель. */
 const mix = (volume: number): number => Math.min(1, Math.max(0, volume * masterVolume * masterGain));
 
+/**
+ * То же для музыки, но от своего ползунка. Общий множитель тот же: он срезает
+ * уровень всей игры разом, и музыка из него не выделена — иначе, убавив набор,
+ * мы бы ровно на столько же выпятили тему над ним.
+ */
+const mixMusic = (): number => Math.min(1, Math.max(0, musicBaseVolume * musicLevel * masterGain));
+
 export const getSoundVolume = (): number => masterVolume;
 
 /** 0 — полная тишина, 1 — как задумано. Промежуточное — доля от задуманного. */
 export const setSoundVolume = (value: number): void => {
 	masterVolume = Math.min(1, Math.max(0, value));
-	// Звуки берут громкость в момент запуска, а музыка и запальник уже играют —
-	// им ползунок должен отзываться сразу, иначе крутить его под них бессмысленно.
-	if (music) music.volume = mix(musicVolume);
+	// Звуки берут громкость в момент запуска, а запальник уже горит — ему ползунок
+	// должен отзываться сразу, иначе крутить его под запальник бессмысленно.
 	setPilotFlameVolume(mix(pilotFlameVolume));
-	try {
-		window.localStorage.setItem(volumeKey, String(masterVolume));
-	} catch {
-		// см. loadVolume
-	}
+	saveVolume(volumeKey, masterVolume);
+};
+
+export const getMusicVolume = (): number => musicLevel;
+
+/** Тема, в отличие от звуков, уже играет — ползунок отзывается ей на лету. */
+export const setMusicVolume = (value: number): void => {
+	musicLevel = Math.min(1, Math.max(0, value));
+	if (music) music.volume = mixMusic();
+	saveVolume(musicVolumeKey, musicLevel);
 };
 
 // Звук — дело неглавное: если браузер не дал завести Audio (а он не даёт,
@@ -263,9 +289,10 @@ const playThingLose = createEndSound(thingLoseAudio, 1);
 
 /**
  * Тема «Нечто» после развязки, по кругу. Собственная громкость низкая: это фон
- * под разбор партии и чтение лога, а не номер.
+ * под разбор партии и чтение лога, а не номер. Это уровень записи в сведении, а
+ * не то, что крутит игрок: его ползунок — множитель поверх (см. mixMusic).
  */
-const musicVolume = 0.45;
+const musicBaseVolume = 0.45;
 let music: HTMLAudioElement | null = null;
 
 /**
@@ -280,7 +307,7 @@ export const startMusic = (): void => {
 			music = new Audio(musicAudio);
 			music.loop = true;
 		}
-		music.volume = mix(musicVolume);
+		music.volume = mixMusic();
 		music.play().catch(() => undefined);
 	} catch (e) {
 		console.warn('Music start failed', e);
