@@ -21,7 +21,7 @@ import type {
 } from 'client/controllers/socketTypes';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import {playDiscard, playGameEnd, playPanic, stopMusic} from 'client/helpers/sounds';
+import {playDiscard, playGameEnd, playMove, playPanic, startPilotFlame, stopMusic, stopPilotFlame} from 'client/helpers/sounds';
 import type {IGameLogEntry} from 'shared/interfaces/gameLog';
 
 // Вид стола — настройка игрока, а не игры: её спрашивают один раз и помнят.
@@ -356,6 +356,9 @@ export default class GameController {
 
 	selectPlayer = (playerId: string ) => {
 		this.playersToSelect = [];
+		// Запальник здесь не гасим, хотя целиться мне уже некуда: он горит для всего
+		// стола и гаснуть должен у всех разом — по обновлению, а не на полобновления
+		// раньше у одного меня.
 		this.socket.sendToServer(EClientEventType.playerAction, {actionType: EPlayerActionType.playerSelect, selectedPlayerId: playerId});
 	};
 
@@ -536,12 +539,14 @@ export default class GameController {
 		this.updateHand(hand);
 		this.updateHandActions(handActions);
 		this.hostPlayerId = hostPlayerId;
+		this.syncSeating(playersList);
 		this.playersList = playersList;
 		this.turnPlayerId = turnPlayerId;
 		this.deck = deck;
 		this.isPlayerCanCancel = isPlayerCanCancel;
 		this.currentPlayerId = currentPlayer.id;
 		this.tradeContext = tradeContext;
+		this.syncAiming(tradeContext ?? null);
 		this.cardEffects = cardEffects;
 		this.cardDraws = cardDraws;
 		this.syncPanicCard(panicCard);
@@ -551,6 +556,45 @@ export default class GameController {
 		this.state = state;
 		this.gameLog = gameLog;
 		this.syncGameEnd(this.takeBurnStarted(cardEffects));
+	};
+
+	// Пересадка звучит там, где игроки действительно меняются местами, — а не там,
+	// где разыграна карта. Причина в том, что пересаживает не только рука:
+	// «Меняемся местами!» и «Сматывай удочки!» ходят с руки, а «Раз, два...» и
+	// «И это вы называете вечеринкой?» приходят паникой из колоды — своей карты на
+	// столе у них нет, и звук им взять больше неоткуда. За столом же во всех этих
+	// случаях происходит одно и то же, и слышаться это должно одинаково.
+	//
+	// Признак пересадки — тот же состав в другом порядке. Именно оба условия:
+	// список меняется и когда игрок выбыл или вышел, но это не пересадка, и
+	// звучать ей незачем.
+	syncSeating = (playersList: string[]) => {
+		const seated = this.playersList;
+		// Стол ещё не собран (первое обновление) или партия только началась: то, что
+		// рассадка отличается от лобби, — не пересадка, а раздача мест.
+		if (this.state !== EGameState.sarted || seated.length !== playersList.length) return;
+		if (difference(seated, playersList).length) return;
+		if (every(playersList, (playerId, index) => playerId === seated[index])) return;
+		playMove();
+	};
+
+	// Огнемёт на изготове: пока кто-то за столом выбирает, кого сжечь, у ствола
+	// горит запальник (см. helpers/pilotFlame). Слышат его все — это звук стола, а
+	// не подсказка целящемуся: огнемёт достали при всех, и ждать выстрела всем.
+	//
+	// Признак — контекст хода, а не вопрос игрока: вопрос сервер шлёт одному
+	// целящемуся, а контекст приходит в обновлении всем. Прицеливание в нём — это
+	// сожжение без цели: цель появится, когда её выберут, и запальник погаснет.
+	//
+	// Смотрим на каждое обновление, а не только на его начало: тем же контекстом
+	// видно и что прицеливание кончилось — выбрали, отменили или сервер закрыл его
+	// сам. Пришедший в игру заново (перезагрузил вкладку) получает контекст в
+	// первом же обновлении, и запальник у него зазвучит там же, где звучал.
+	syncAiming = (tradeContext: IFormatTradeContext[] | null) => {
+		const isAiming = some(tradeContext, ({type, cardId, defensePlayerId}) =>
+			type === ETurnContextType.burn && cardId === EEventID.flamethrower && !defensePlayerId);
+		if (isAiming) startPilotFlame();
+		else stopPilotFlame();
 	};
 
 	// Занялся ли в этом обновлении костёр — тем же признаком, каким его поджигает
@@ -573,8 +617,10 @@ export default class GameController {
 	backToLauncher = () => {
 		this.socket.sendToServer(EClientEventType.leaveGame, {})
 		// Тема играет по кругу и сама не кончится — со стола уходят, значит ей
-		// больше не над чем звучать.
+		// больше не над чем звучать. Запальник — тем более: обновлений, по которым
+		// он гаснет сам, для этого стола больше не будет.
 		stopMusic();
+		stopPilotFlame();
 		// Чистим экранное состояние стола: иначе следующая игра открывается с чужими
 		// уведомлениями и старым индикатором действия.
 		this.isMenuOpen = false;

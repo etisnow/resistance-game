@@ -15,7 +15,6 @@ import {
 	playAxe,
 	playBarricade,
 	playLookaround,
-	playMove,
 	playNegative,
 	playNoFire,
 	playQuarantine,
@@ -58,9 +57,9 @@ const cardSounds: Record<string, (() => void) | undefined> = {
 	[EEventID.axe]: playAxe,
 	[EEventID.quarantine]: playQuarantine,
 	[EEventID.seduction]: playSeduction,
-	// Обе карты пересаживают игроков — звук у них общий.
-	[EEventID.positionswap]: playMove,
-	[EEventID.reelFishingRods]: playMove,
+	// Пересадки («Меняемся местами!», «Сматывай удочки!») здесь нет: местами
+	// меняют и паники, у которых своей карты на столе не всплывает, поэтому звук
+	// пересадки взят от самой смены мест — см. gameController.syncSeating.
 	// Все отказы звучат одинаково: с чужой картой в этот момент делают одно и то
 	// же — не дают ей сработать.
 	[EEventID.noThanks]: playNegative,

@@ -20,6 +20,7 @@ import thingLoseAudio from 'client/resources/sound/thingLose.mp3';
 import musicAudio from 'client/resources/sound/nechto.mp3';
 import lookaroundThunderAudio from 'client/resources/sound/lookaroundThunder.mp3';
 import lookaroundTurnAudio from 'client/resources/sound/lookaroundTurn.mp3';
+import {setPilotFlameVolume, startPilotFlame as ignitePilotFlame, stopPilotFlame} from 'client/helpers/pilotFlame';
 
 // uifx собран как UMD, и сборщики разворачивают его по-разному: vite кладёт в
 // default весь module.exports, а сам класс — внутрь, в .default. Без этой
@@ -51,14 +52,27 @@ const loadVolume = (): number => {
 
 let masterVolume = loadVolume();
 
+// Весь набор оказался громче нужного: выровнен он между собой верно, а вот
+// уровнем целиком садится на уши — за партию звуков много, и слушать их час
+// подряд на прежней громкости тяжело. Поэтому общий множитель, а не правка
+// долей у каждого звука: доли выверены друг относительно друга по замерам (см.
+// ниже), и трогать их — значит ломать баланс ради одного лишь уровня.
+//
+// 0.6 — это −40% от прежнего, примерно −4.4 дБ.
+const masterGain = 0.6;
+
+/** Итоговая громкость звука: своя доля, ползунок игрока и общий множитель. */
+const mix = (volume: number): number => Math.min(1, Math.max(0, volume * masterVolume * masterGain));
+
 export const getSoundVolume = (): number => masterVolume;
 
 /** 0 — полная тишина, 1 — как задумано. Промежуточное — доля от задуманного. */
 export const setSoundVolume = (value: number): void => {
 	masterVolume = Math.min(1, Math.max(0, value));
-	// Звуки берут громкость в момент запуска, а музыка уже играет — ей ползунок
-	// должен отзываться сразу, иначе крутить его под музыку бессмысленно.
-	if (music) music.volume = Math.min(1, Math.max(0, musicVolume * masterVolume));
+	// Звуки берут громкость в момент запуска, а музыка и запальник уже играют —
+	// им ползунок должен отзываться сразу, иначе крутить его под них бессмысленно.
+	if (music) music.volume = mix(musicVolume);
+	setPilotFlameVolume(mix(pilotFlameVolume));
 	try {
 		window.localStorage.setItem(volumeKey, String(masterVolume));
 	} catch {
@@ -90,7 +104,7 @@ export const setSoundVolume = (value: number): void => {
 const createSound = (file: string, volume: number, throttleMs: number): (() => void) => {
 	try {
 		const sound = new UIfx(file, {volume, throttleMs});
-		return () => sound.play(volume * masterVolume);
+		return () => sound.play(mix(volume));
 	} catch (e) {
 		console.warn('Sound init failed', e);
 		return () => undefined;
@@ -111,7 +125,20 @@ export const playBell = createSound(bellAudio, 0.75, 100);
  * Throttle во всю длину струи: если сожжение прилетело двумя событиями разом,
  * два одинаковых рёва внахлёст дают только кашу.
  */
-export const playFlamethrower = createSound(flamethrowerAudio, 0.5, 2600);
+export const playFlamethrower = createSound(flamethrowerAudio, 0.65, 2600);
+
+/**
+ * Огнемёт на изготове: пока за столом выбирают, кого сжечь, у ствола горит
+ * запальник (см. client/helpers/pilotFlame — звук считается на месте, файла у
+ * него нет). Слышат его все: огнемёт достали при всех, и ждать выстрела всем.
+ *
+ * Громкость фоновая — это не событие, а то, что стоит за спиной у выбора: около
+ * двух десятков децибел ниже обычной карты. Услышать запальник должно быть
+ * можно, но горит он долго, и заметным ему быть нечего.
+ */
+const pilotFlameVolume = 0.21;
+export const startPilotFlame = (): void => ignitePilotFlame(mix(pilotFlameVolume));
+export {stopPilotFlame};
 
 /**
  * Заколачивание двери: три удара молотком, нарезка из записи (см.
@@ -135,11 +162,18 @@ export const playNoFire = createSound(noFireAudio, 0.55, 1200);
 // Обе записи взяты готовыми (см. scripts/importRawSounds.ts), поэтому здесь у них
 // только громкость: подгонять её приходится на слух, записи сведены не под нашу
 // игру и друг с другом по уровню не сходятся.
-export const playTenacity = createSound(tenacityAudio, 0.9, 1000);
+// Затвор по замеру идёт вровень с прочими картами, а на слух — громче них:
+// звук резкий и весь в щелчке, а щелчок пробивается сильнее, чем показывает
+// уровень. Поэтому доля ниже замеренной ровни, на пару децибел.
+export const playTenacity = createSound(tenacityAudio, 0.7, 1000);
 export const playSuspicion = createSound(suspicionAudio, 0.8, 1600);
 // «Анализ» — набирают пробирку. «Виски» — откупоривают бутылку.
+//
+// Единица у анализа не значит «громко»: запись самая тихая в наборе, и громче
+// единицы отсюда не сделать. Ей не хватало уровня даже так, поэтому усилена она
+// в самом файле — см. scripts/amplifyRawSounds.ts.
 export const playAnalysis = createSound(analysisAudio, 1, 2000);
-export const playWhiskey = createSound(whiskeyAudio, 0.65, 800);
+export const playWhiskey = createSound(whiskeyAudio, 0.85, 800);
 
 // «Топор» — удар. «Карантин» — застёгивают молнию.
 export const playAxe = createSound(axeAudio, 0.7, 1400);
@@ -191,9 +225,10 @@ export const playNegative = createSound(negativeAudio, 1, 1300);
 //
 // Приглушены обе, и сильнее, чем нужно было бы поодиночке: они звучат вместе, а
 // два звука одного уровня дают на слух примерно на три децибела больше каждого
-// из них.
-const playThunder = createSound(lookaroundThunderAudio, 0.75, 3000);
-const playTurn = createSound(lookaroundTurnAudio, 0.5, 3000);
+// из них. Доли двигаем только вместе: порознь они разваливают пару — гром должен
+// оставаться ударом, а разворот из-под него не вылезать.
+const playThunder = createSound(lookaroundThunderAudio, 0.525, 3000);
+const playTurn = createSound(lookaroundTurnAudio, 0.35, 3000);
 /**
  * Развязка партии. Своим элементом, а не через uifx: нужно знать, когда звук
  * кончился — следом встаёт музыка, — а uifx наружу ни элемента, ни события конца
@@ -209,7 +244,7 @@ const createEndSound = (file: string, volume: number): ((onEnded: () => void) =>
 	}
 	return (onEnded: () => void) => {
 		if (!sound) return onEnded();
-		sound.volume = Math.min(1, Math.max(0, volume * masterVolume));
+		sound.volume = mix(volume);
 		// Партия может кончиться и второй раз, в следующей игре, — тем же элементом.
 		sound.currentTime = 0;
 		sound.onended = onEnded;
@@ -245,7 +280,7 @@ export const startMusic = (): void => {
 			music = new Audio(musicAudio);
 			music.loop = true;
 		}
-		music.volume = Math.min(1, Math.max(0, musicVolume * masterVolume));
+		music.volume = mix(musicVolume);
 		music.play().catch(() => undefined);
 	} catch (e) {
 		console.warn('Music start failed', e);
