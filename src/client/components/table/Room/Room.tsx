@@ -19,6 +19,7 @@ import {
 	tableThickness,
 	unwrapAngle,
 } from 'client/helpers/roomHelpers';
+import {arrowPath} from 'client/helpers/arrowPath';
 import GameController from 'client/controllers/gameController';
 import PlayerBadge, {badgeBodyWidth, PlayerShadow} from 'client/components/table/PlayerBadge/PlayerBadge';
 import TableSurface from 'client/components/table/Room/TableSurface';
@@ -113,13 +114,6 @@ interface IArrowShape {
 	arrowColor: number;
 }
 
-const getCirclePoint = (radius: number, deg: number, centerX: number, centerY: number): IPoint => {
-	const currentRad = degToRag(deg);
-	const x = radius*Math.cos(currentRad) + centerX;
-	const y = radius*Math.sin(currentRad) + centerY;
-	return {x,y};
-}
-
 // Место игрока за столом (координаты относительно центра — его подставляет
 // контейнер). Сама геометрия круга живёт в roomHelpers: по ней же рука считает,
 // откуда прилетает и куда улетает карта обмена.
@@ -127,18 +121,6 @@ const getPositionFromPlayerList = ({players, playerId, playerList}: {players: IP
 	const player = players[playerId];
 	if (!player) return {x: 0, y:0};
 	return roomPlayerPoint(playerId, playerList);
-}
-
-
-const midpoint = (x1: number, y1: number, x2: number, y2: number): IPoint => {
-	return {
-		x: (x1+x2) /2,
-		y: (y1+y2) /2
-	}
-}
-
-const getDistanceBetweenPoints = (x1: number, y1: number, x2: number, y2: number): number => {
-	return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
 }
 
 // Значок действия на стрелке: он читается издалека лучше, чем миниатюра карты.
@@ -172,48 +154,44 @@ interface ILineAnimationArgs {
 	newPlayerList: string[];
 	badgeRadius: number;
 	players: IPlayersMap;
+	// Полуоси круга рассадки: по ним идёт обходная дуга (см. arrowPath).
+	seatRadii: {rx: number; ry: number};
 }
 
-const lineAnimation = ({context, newPlayerList, badgeRadius, players}: ILineAnimationArgs): IArrowShape => {
+// Соседи ли по кругу: между ними никто не сидит. Только таких стрелка может
+// обходить дугой — под не соседями промежуток занят третьим игроком.
+const isNeighbourSeats = (playerList: string[], a: string, b: string): boolean => {
+	const count = playerList.length;
+	const from = playerList.indexOf(a);
+	const to = playerList.indexOf(b);
+	if (from < 0 || to < 0 || from === to || count < 2) return false;
+	const step = Math.abs(from - to);
+	return step === 1 || step === count - 1;
+};
+
+const lineAnimation = ({context, newPlayerList, badgeRadius, players, seatRadii}: ILineAnimationArgs): IArrowShape => {
 	const {offensePlayerId, defensePlayerId} = context;
-	const biggerBadgeRad = badgeRadius + 5;
+	const offenseId = offensePlayerId ?? '';
+	const defenseId = defensePlayerId ?? '';
 
-	const {x:ax,y:ay} = getPositionFromPlayerList({players, playerId: offensePlayerId ?? '', playerList: newPlayerList});
-	const {x:bx,y:by} = getPositionFromPlayerList({players, playerId: defensePlayerId ?? '', playerList: newPlayerList});
+	const from = getPositionFromPlayerList({players, playerId: offenseId, playerList: newPlayerList});
+	const to = getPositionFromPlayerList({players, playerId: defenseId, playerList: newPlayerList});
 
-	var angleBetweenPointsDeg = Math.atan2(by - ay, bx - ax) * 180 / Math.PI;
-
-
-	const APlayerDegree = angleBetweenPointsDeg;
-	const BPlayerDegree = angleBetweenPointsDeg - 180;
-
-	const {y:newAY,x:newAX} = getCirclePoint(biggerBadgeRad, APlayerDegree, ax, ay);
-	const {y:arrowY,x:arrowX} = getCirclePoint(biggerBadgeRad, BPlayerDegree, bx, by);
-	const distanceBetweenArrow = getDistanceBetweenPoints(newAX,newAY,arrowX,arrowY);
-	const arrowHeight = clamp(distanceBetweenArrow * 0.35, 3, 15);
-	const {y:newBY,x:newBX} = getCirclePoint(biggerBadgeRad + arrowHeight, BPlayerDegree, bx, by);
-
-	const {x: midX, y:midY} = midpoint(newAX, newAY, newBX, newBY);
-
-	const {x: offsettedMid1X, y: offsettedMid1Y} = getCirclePoint(biggerBadgeRad/4, angleBetweenPointsDeg - 90, midX, midY);
-	const {x: offsettedMid2X, y: offsettedMid2Y} = getCirclePoint(biggerBadgeRad/4, angleBetweenPointsDeg + 90, midX, midY);
-
+	// Сама геометрия пути живёт в helpers/arrowPath: там же она и проверяется —
+	// стол в тесте не поднять, а расходиться этим двум расчётам нельзя.
+	const path = arrowPath({
+		from,
+		to,
+		fromAngle: roomPlayerAngle(offenseId, newPlayerList),
+		toAngle: roomPlayerAngle(defenseId, newPlayerList),
+		isNeighbours: isNeighbourSeats(newPlayerList, offenseId, defenseId),
+		badgeRadius,
+		seatRadii,
+		iconRadius: badgeRadius * tradeIconShare,
+	});
 
 	return {
-		ax:newAX,
-		ay:newAY,
-		bx: newBX,
-		by: newBY,
-		mid1X: offsettedMid1X,
-		mid1Y: offsettedMid1Y,
-		mid2X: offsettedMid2X,
-		mid2Y: offsettedMid2Y,
-		arrowX: arrowX,
-		arrowY: arrowY,
-		arrowRotation: angleBetweenPointsDeg + 90,
-		arrowHeight: arrowHeight,
-		midX: midX,
-		midY: midY,
+		...path,
 		iconSize: badgeRadius * arrowIconShare,
 		arrowColor: getArrowColor(context),
 	}
@@ -654,7 +632,7 @@ const Room = observer(({controller, children} : IRoomProps) => {
 					<TradeArrow
 						key={arrowKey(context)}
 						item={context}
-						target={lineAnimation({context, newPlayerList, badgeRadius, players})}
+						target={lineAnimation({context, newPlayerList, badgeRadius, players, seatRadii: {rx, ry}})}
 						badgeRadius={badgeRadius}
 						isLive={isLive}
 					/>
