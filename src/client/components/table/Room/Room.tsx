@@ -2,7 +2,7 @@ import React from 'react';
 import {clamp, clone, each, filter, includes, map} from 'lodash';
 import './styles.scss';
 import {observer} from "mobx-react-lite";
-import {config, interpolate, useSpring, useTransition} from 'react-spring/universal';
+import {interpolate, useSpring, useTransition} from 'react-spring/universal';
 import {
 	badgeAspect,
 	deckCardWidth,
@@ -81,8 +81,10 @@ const leaveShare = 2.2;
 // бейджа. Карта не должна съедать саму стрелку: соседи по столу сидят близко.
 const arrowIconShare = 0.55;
 // Значок обмена: радиус кружка в долях радиуса бейджа, цвет подложки и шрифты,
-// в которых у эмодзи есть цветной глиф.
-const tradeIconShare = 0.42;
+// в которых у эмодзи есть цветной глиф. Значок мелкий нарочно: он висит на
+// стрелке между двумя кружками, и крупный сам становится третьим лицом за
+// столом — стрелки из-за него не видно.
+const tradeIconShare = 0.25;
 const tradeIconBackground = 0x14110c;
 // Взаимные действия карту на стрелке не показывают: у обмена она вообще скрыта,
 // а смена мест — это не «применили карту к игроку», а договорённость. Поэтому у
@@ -154,8 +156,6 @@ interface ILineAnimationArgs {
 	newPlayerList: string[];
 	badgeRadius: number;
 	players: IPlayersMap;
-	// Полуоси круга рассадки: по ним идёт обходная дуга (см. arrowPath).
-	seatRadii: {rx: number; ry: number};
 }
 
 // Соседи ли по кругу: между ними никто не сидит. Только таких стрелка может
@@ -169,7 +169,7 @@ const isNeighbourSeats = (playerList: string[], a: string, b: string): boolean =
 	return step === 1 || step === count - 1;
 };
 
-const lineAnimation = ({context, newPlayerList, badgeRadius, players, seatRadii}: ILineAnimationArgs): IArrowShape => {
+const lineAnimation = ({context, newPlayerList, badgeRadius, players}: ILineAnimationArgs): IArrowShape => {
 	const {offensePlayerId, defensePlayerId} = context;
 	const offenseId = offensePlayerId ?? '';
 	const defenseId = defensePlayerId ?? '';
@@ -182,11 +182,8 @@ const lineAnimation = ({context, newPlayerList, badgeRadius, players, seatRadii}
 	const path = arrowPath({
 		from,
 		to,
-		fromAngle: roomPlayerAngle(offenseId, newPlayerList),
-		toAngle: roomPlayerAngle(defenseId, newPlayerList),
 		isNeighbours: isNeighbourSeats(newPlayerList, offenseId, defenseId),
 		badgeRadius,
-		seatRadii,
 		iconRadius: badgeRadius * tradeIconShare,
 	});
 
@@ -632,7 +629,7 @@ const Room = observer(({controller, children} : IRoomProps) => {
 					<TradeArrow
 						key={arrowKey(context)}
 						item={context}
-						target={lineAnimation({context, newPlayerList, badgeRadius, players, seatRadii: {rx, ry}})}
+						target={lineAnimation({context, newPlayerList, badgeRadius, players})}
 						badgeRadius={badgeRadius}
 						isLive={isLive}
 					/>
