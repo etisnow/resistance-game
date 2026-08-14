@@ -11,6 +11,7 @@ import {sphereShadeTexture} from 'client/helpers/sphereShade';
 import {resources} from 'client/resources/resources';
 import {getPixiTexture} from 'client/components/table/pixiInjected';
 import {toggleCardHintFor} from 'client/components/hint/canvasHint';
+import {tradeColor} from 'client/helpers/cardVisuals';
 import {EPlayerMark} from 'shared/enum/playerMarks';
 import {EEventID} from 'shared/enum/cards';
 import {cardAspectRatio, quarantineTurns} from 'shared/constant/cards';
@@ -111,12 +112,14 @@ const Quarantine = ({quarantine, badgeWidth, badgeHeight, isInteractive}: IQuara
 	);
 }
 
-// Подпись на кружке. У всех она белая прямо по кружку, а свой ник — белым по
-// тёмной подложке: за абсолютным столом (см. roomPlayerOrder) сидишь ты где
-// угодно, а не всегда внизу, и себя надо находить взглядом. Одним только ником
-// себя не найти — он такой же, как у соседей.
+// Подпись на кружке. У всех она белая по тёмной подложке, а свой ник — жирный и
+// золотой: за абсолютным столом (см. roomPlayerOrder) сидишь ты где угодно, а не
+// всегда внизу, и себя надо находить взглядом. Одним только ником себя не найти —
+// он такой же, как у соседей. Золото берём то же, что у стрелки обмена
+// (tradeColor): на столе это уже цвет «своего» действия, а по тёмной подложке он
+// выделяется, не споря с зелёным прицелом ходящего.
 const nicknameStyle = new PIXI.TextStyle({fontFamily: 'Arial', fontSize: 14, fill: 0xFFFFFF, align: 'center'});
-const youNicknameStyle = new PIXI.TextStyle({fontFamily: 'Arial', fontSize: 14, fontWeight: 'bold', fill: 0xFFFFFF, align: 'center'});
+const youNicknameStyle = new PIXI.TextStyle({fontFamily: 'Arial', fontSize: 14, fontWeight: 'bold', fill: tradeColor, align: 'center'});
 const youPlateColor = 0x14110C;
 // Поля подложки вокруг букв и её скругление в долях высоты: половина — и края
 // выходят полукруглыми.
@@ -485,8 +488,8 @@ const PlayerBadge = ({
 					{/* Ник — на подложке у всех: под ним теперь лицо игрока (а у кого-то
 					    ещё и карта статуса поверх), и по картинке белые буквы теряются.
 					    Ровного кружка, по которому они читались сами по себе, больше нет.
-					    Свой при этом жирный: за абсолютным столом себя надо находить
-					    взглядом. */}
+					    Свой при этом жирный и золотой: за абсолютным столом себя надо
+					    находить взглядом. */}
 					<PlatedNickname text={nick} style={isYou ? youNicknameStyle : nicknameStyle}/>
 					<Quarantine
 						quarantine={quarantine}

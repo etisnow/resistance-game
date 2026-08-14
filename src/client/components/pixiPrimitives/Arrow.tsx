@@ -27,6 +27,10 @@ const getCirclePoint = (radius: number, deg: number, centerX: number, centerY: n
 }
 
 
+// Толщина линии стрелки: на тёмном столе тонкая линия теряется, тем более что
+// идёт она по картинке комнаты, а не по чистому фону.
+const lineThickness = 3;
+
 const TYPE = "Arrow";
 export const behavior = {
   customDisplayObject: (_props: ArrowProps) => new PIXI.Graphics(),
@@ -40,7 +44,7 @@ export const behavior = {
     if (typeof oldProps !== "undefined") {
       instance.clear();
     }
-    instance.lineStyle(2, color);
+    instance.lineStyle(lineThickness, color);
     instance.moveTo(ax, ay);
     instance.bezierCurveTo(mid1X, mid1Y, mid2X, mid2Y, bx, by)
 
