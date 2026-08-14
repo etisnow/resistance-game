@@ -2,7 +2,7 @@ import React from 'react';
 import {clamp, clone, each, filter, includes, map} from 'lodash';
 import './styles.scss';
 import {observer} from "mobx-react-lite";
-import {interpolate, useSpring, useTransition} from 'react-spring/universal';
+import {config, interpolate, useSpring, useTransition} from 'react-spring/universal';
 import {
 	badgeAspect,
 	deckCardWidth,
