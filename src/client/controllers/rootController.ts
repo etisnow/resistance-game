@@ -3,6 +3,7 @@ import LauncherController from 'client/controllers/launcherController';
 import SocketController from 'client/controllers/socketController';
 import GameController from 'client/controllers/gameController';
 import TimerController from 'client/controllers/timerController';
+import SoundController from 'client/controllers/soundController';
 import {preloadAssets} from 'client/resources/preloader';
 import {isWebGLAvailable} from 'client/helpers/webgl';
 import {EAppState} from 'shared/enum/common';
@@ -16,11 +17,15 @@ export default class RootController {
 	@observable socketController: SocketController;
 	@observable gameController!: GameController;
 	@observable timerController!: TimerController;
+	// Не в start(), в отличие от соседей: громкость — настройка игрока, она
+	// переживает и партию, и реконнект, а start() дёргается на каждый из них.
+	@observable soundController: SoundController;
 	@observable isLoaded : boolean = false;
 	@observable loadProgress: number = 0;
 
 	constructor() {
 		this.socketController = new SocketController(this, this);
+		this.soundController = new SoundController(this, this);
 		this.start();
 		this.syncDocumentTitle();
 	}
