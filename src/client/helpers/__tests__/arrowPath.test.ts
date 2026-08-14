@@ -50,7 +50,7 @@ const counts = [4, 5, 6, 8, 10, 12];
 const seatsOf = (count: number) => map(range(count), String);
 
 // Радиус значка действия на стрелке — тот же, что рисует стол (tradeIconShare).
-const iconShare = 0.25;
+const iconShare = 0.3;
 
 const argsBetween = (count: number, fromSeat: number, toSeat: number) => {
 	const seats = seatsOf(count);
