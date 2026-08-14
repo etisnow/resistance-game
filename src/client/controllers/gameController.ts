@@ -21,7 +21,7 @@ import type {
 } from 'client/controllers/socketTypes';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {ETurnContextType} from 'shared/enum/turnContextType';
-import {playDiscard, playGameEnd, playMove, playPanic, startPilotFlame, stopMusic, stopPilotFlame} from 'client/helpers/sounds';
+import {playDiscard, playGameEnd, playMove, playPanic, startMusic, startPilotFlame, stopMusic, stopPilotFlame} from 'client/helpers/sounds';
 import type {IGameLogEntry} from 'shared/interfaces/gameLog';
 
 // Вид стола — настройка игрока, а не игры: её спрашивают один раз и помнят.
@@ -553,6 +553,12 @@ export default class GameController {
 		this.currentAction = currentAction;
 		// Вопрос закрыт (ответили сами или за нас) — отсчитывать больше нечего.
 		if (!currentAction || currentAction.type !== ENotificationAction.actionDecision) this.stopDecisionCountdown();
+		// Партия началась — тема замолкает. Обычно её снимает событие начала игры
+		// (см. socketController), но пришедшему в партию заново его уже не пришлют:
+		// перезагрузивший вкладку узнаёт о идущей игре только отсюда, первым же
+		// обновлением. На развязке тема встаёт обратно, и обновления после неё её не
+		// трогают: партия к этому моменту уже была начата, перехода нет.
+		if (state === EGameState.sarted && this.state !== EGameState.sarted) stopMusic();
 		this.state = state;
 		this.gameLog = gameLog;
 		this.syncGameEnd(this.takeBurnStarted(cardEffects));
@@ -616,10 +622,11 @@ export default class GameController {
 
 	backToLauncher = () => {
 		this.socket.sendToServer(EClientEventType.leaveGame, {})
-		// Тема играет по кругу и сама не кончится — со стола уходят, значит ей
-		// больше не над чем звучать. Запальник — тем более: обновлений, по которым
-		// он гаснет сам, для этого стола больше не будет.
-		stopMusic();
+		// Со стола уходят — значит партии для этого игрока больше нет, и тема
+		// возвращается на лобби. Уже играющую (ушли после развязки) startMusic не
+		// перебивает. Запальник, наоборот, гасим: обновлений, по которым он гаснет
+		// сам, для этого стола больше не будет.
+		startMusic();
 		stopPilotFlame();
 		// Чистим экранное состояние стола: иначе следующая игра открывается с чужими
 		// уведомлениями и старым индикатором действия.

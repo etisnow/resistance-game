@@ -1,6 +1,6 @@
 import {observable} from 'mobx';
 import RootController from 'client/controllers/rootController';
-import {applyMusicVolume, applySoundVolume} from 'client/helpers/sounds';
+import {applyMusicVolume, applySoundVolume, startMusic} from 'client/helpers/sounds';
 
 // Громкость — настройка игрока, а не игры: её ставят один раз и помнят.
 // Локальное хранилище, а не localforage (им хранится ник): читать надо
@@ -63,6 +63,13 @@ export default class SoundController {
 		// ползунка игра шла бы на максимуме вместо сохранённого уровня.
 		applySoundVolume(this.volume);
 		applyMusicVolume(this.musicVolume);
+		// Тема встаёт вместе с игрой, а не после первой партии: открывший её слышит
+		// «Нечто» с первого экрана и до того, как сядет за стол. Снимет её начало
+		// партии (см. socketController и GameController.updateGame).
+		//
+		// Здесь, а не в start(): тот дёргается на каждый реконнект, и тема
+		// начиналась бы заново посреди лобби.
+		startMusic();
 	}
 
 	setVolume = (value: number) => {

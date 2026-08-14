@@ -22,7 +22,7 @@
  * шипение газа наверху.
  */
 
-type AudioContextCtor = new () => AudioContext;
+import {getAudioContext, resumeAudio} from 'client/helpers/audioContext';
 
 // Длина шумового кольца. Секунды хватило бы по звуку, но на слух короткая петля
 // шума начинает «дышать» с её же периодом — слышно, что это одно и то же место
@@ -55,25 +55,6 @@ interface IFlame {
 }
 
 let flame: IFlame | null = null;
-// Контекст переживает отдельные запуски: заводить его на каждое прицеливание
-// значит каждый раз просить у браузера звуковое устройство, а их число он
-// ограничивает.
-let context: AudioContext | null = null;
-
-const getContext = (): AudioContext | null => {
-	if (context) return context;
-	if (typeof window === 'undefined') return null;
-	const ctor: AudioContextCtor | undefined = window.AudioContext
-		?? (window as unknown as {webkitAudioContext?: AudioContextCtor}).webkitAudioContext;
-	if (!ctor) return null;
-	try {
-		context = new ctor();
-	} catch (e) {
-		console.warn('Flame audio init failed', e);
-		return null;
-	}
-	return context;
-};
 
 let noise: AudioBuffer | null = null;
 
@@ -96,13 +77,13 @@ export const startPilotFlame = (volume: number): void => {
 		setPilotFlameVolume(volume);
 		return;
 	}
-	const ctx = getContext();
+	const ctx = getAudioContext();
 	if (!ctx) return;
 	try {
 		// Браузер держит звук выключенным, пока страницу не тронут. Целятся после
 		// нажатия на карту, так что разрешение к этому моменту уже есть, но
 		// контекст всё равно надо будить явно.
-		if (ctx.state === 'suspended') void ctx.resume();
+		resumeAudio();
 
 		const source = ctx.createBufferSource();
 		source.buffer = getNoise(ctx);
