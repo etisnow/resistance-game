@@ -31,11 +31,11 @@ const nodeGapShare = 0.44;
 const rejectDotShare = 0.035;
 const rejectGapShare = 0.09;
 
-const captionStyle = (size: number) => new PIXI.TextStyle({
+const captionStyle = (size: number, color = 0xC8CDD4) => new PIXI.TextStyle({
 	fontFamily: 'Arial',
 	fontSize: size,
 	fontWeight: 'bold',
-	fill: 0xC8CDD4,
+	fill: color,
 	letterSpacing: 1,
 });
 
@@ -99,6 +99,20 @@ const MissionTrack = observer(({controller}: IMissionTrackProps) => {
 				y={-nodeRadius * 2.1}
 				style={captionStyle(Math.max(nodeRadius * 0.52, 9))}
 			/>
+
+			{/* Чем вскрылась последняя сыгранная миссия. Числом, а не поимённо: кто
+			    сдал провал — тайна (FR-9). Висит до конца следующего набора команды —
+			    столько, сколько его и обсуждают. */}
+			{round.lastFailCount !== null && round.phase !== EGamePhase.mission && (
+				<Text
+					text={round.lastFailCount === 0
+						? 'ПРОВАЛОВ НЕ БЫЛО'
+						: `ПРОВАЛОВ: ${round.lastFailCount}`}
+					anchor={0.5}
+					y={-nodeRadius * 3.3}
+					style={captionStyle(Math.max(nodeRadius * 0.5, 9), round.lastFailCount === 0 ? okColor : failColor)}
+				/>
+			)}
 
 			{/* Счётчик отклонений: пятое деление красное — на нём партия кончается. */}
 			<Container y={nodeRadius * 2.2}>

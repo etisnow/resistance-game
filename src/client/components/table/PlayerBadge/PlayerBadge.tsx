@@ -33,8 +33,6 @@ interface IPlayerBadgeProps {
 	isLeader: boolean;
 	// Он в команде, которую сейчас обсуждают или которая ушла на дело.
 	isOnTeam: boolean;
-	// Как он проголосовал за последний состав. null — голоса ещё не вскрыты.
-	vote: boolean | null;
 	// Его роль, если смотрящему её положено знать. null — не положено.
 	isSpy: boolean | null;
 	mark: EPlayerMark | undefined;
@@ -307,10 +305,8 @@ const teamRingShare = 1.16;
 // Корона лидера сидит над кружком, наполовину заходя на него.
 const leaderEmoji = '\u{1F451}';
 const leaderIconShare = 0.42;
-// Жетон вскрытого голоса: под кружком, чтобы не спорить с пометкой на макушке.
-const voteIconShare = 0.34;
-const voteApproveEmoji = '\u{2705}';
-const voteRejectEmoji = '\u{274C}';
+// Жетоны вскрытых голосов рисует стол, а не бейдж: у дальних мест всё, что ниже
+// середины кружка, срезает столешница — она нарисована поверх них (см. Room).
 
 const PlayerBadge = ({
 		nickname,
@@ -324,7 +320,6 @@ const PlayerBadge = ({
 		isConnected,
 		isLeader,
 		isOnTeam,
-		vote,
 		isSpy,
 		style,
 		onLongPress = null,
@@ -425,17 +420,6 @@ const PlayerBadge = ({
 							y={-style.height / 2}
 							width={style.width * leaderIconShare}
 							height={style.width * leaderIconShare}
-						/>
-					)}
-					{/* Вскрытый голос — под кружком: голоса в «Сопротивлении» открытые,
-					    и по ним играют весь остаток партии. */}
-					{vote !== null && (
-						<Sprite
-							texture={emojiTexture(vote ? voteApproveEmoji : voteRejectEmoji)}
-							anchor={0.5}
-							y={style.height * 0.42}
-							width={style.width * voteIconShare}
-							height={style.width * voteIconShare}
 						/>
 					)}
 				</React.Fragment>

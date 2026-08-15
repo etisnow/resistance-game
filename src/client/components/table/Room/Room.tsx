@@ -20,7 +20,8 @@ import TableSurface from 'client/components/table/Room/TableSurface';
 import {EPlayerState} from 'shared/enum/player';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {AnimatedPixi} from 'client/components/table/pixiInjected';
-import {Container} from 'react-pixi-fiber';
+import {Container, Sprite} from 'react-pixi-fiber';
+import {emojiTexture} from 'client/helpers/emojiTexture';
 import Reticle from 'client/components/pixiPrimitives/Reticle';
 import Arrow from 'client/components/pixiPrimitives/Arrow';
 import {arrowPath} from 'client/helpers/arrowPath';
@@ -143,6 +144,14 @@ const TurnReticle = ({x, y, badgeRadius, playerId}: ITurnReticleProps) => {
 // одно и то же высказывание стола, «вот кого он отправляет».
 const teamArrowColor = 0xF2F4F7;
 
+// Жетон вскрытого голоса: доля ширины кружка и насколько он опущен под него.
+const voteTokenShare = 0.36;
+const voteTokenLift = 0.62;
+// У дальних мест — сбоку, в долях ширины кружка.
+const voteTokenSide = 0.62;
+const voteApproveEmoji = '\u{2705}';
+const voteRejectEmoji = '\u{274C}';
+
 // Соседи ли по кругу: между ними никто не сидит. Только таких стрелка может
 // обходить дугой — под не соседями промежуток занят третьим игроком.
 const isNeighbourSeats = (playerList: string[], a: string, b: string): boolean => {
@@ -225,6 +234,31 @@ const Room = observer(({controller, children}: IRoomProps) => {
 		));
 	};
 
+	// Вскрытые голоса — жетонами у кружков. Рисует их стол, а не бейдж: у дальних
+	// мест всё ниже середины кружка срезает столешница, а идёт она поверх них.
+	const voteTokens = () => {
+		if (!round || !round.revealedVotes) return null;
+		const votes = round.revealedVotes;
+		return map(seats, ({playerId, point, isFar}) => {
+			const vote = votes[playerId];
+			if (vote === undefined || !players[playerId]) return null;
+			const size = badgeWidth * voteTokenShare;
+			return (
+				<Sprite
+					key={playerId}
+					texture={emojiTexture(vote ? voteApproveEmoji : voteRejectEmoji)}
+					anchor={0.5}
+					// У ближних мест жетон висит под кружком, у дальних — сбоку от него:
+					// под ними лежит трек миссий, а над ними — подпись действия.
+					x={point.x + (isFar ? badgeWidth * voteTokenSide : 0)}
+					y={point.y + (isFar ? 0 : badgeHeight * voteTokenLift)}
+					width={size}
+					height={size}
+				/>
+			);
+		});
+	};
+
 	const renderBadge = (seat: ISeat) => {
 		const player = players[seat.playerId];
 		if (!player || !player.id) return null;
@@ -242,7 +276,6 @@ const Room = observer(({controller, children}: IRoomProps) => {
 				isDoor={state === EPlayerState.door}
 				isLeader={round ? round.leaderId === player.id : false}
 				isOnTeam={round ? round.team.includes(player.id) : false}
-				vote={round && round.revealedVotes ? round.revealedVotes[player.id] ?? null : null}
 				isSpy={player.isSpy}
 				onSelect={controller.selectPlayer}
 				onLongPress={controller.changePlayerMark}
@@ -304,6 +337,7 @@ const Room = observer(({controller, children}: IRoomProps) => {
 				{teamArrows()}
 				{map(nearSeats, renderShadow)}
 				{map(nearSeats, renderBadge)}
+				{voteTokens()}
 				{/* Прицел — поверх кружков: он обводит цель, а не лежит под ней.
 				    Пока ход ни за кем не числится (партия ещё не началась или уже
 				    кончилась), наводить его не на кого. */}
