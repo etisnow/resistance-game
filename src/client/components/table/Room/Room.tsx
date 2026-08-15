@@ -59,7 +59,7 @@ const getPositionFromPlayerList = ({players, playerId, playerList}: {players: IP
 
 // Прицел на том, чей сейчас ход. В «Сопротивлении» это лидер раунда: он один, и
 // прицел наводится ровно на него (turnPlayerId).
-const reticleColor = 0x00FF00;
+const reticleColor = 0x35C8FF;
 // Раствор прицела в долях радиуса бейджа: наведённый и в момент наводки.
 const reticleAimedShare = 1.3;
 const reticleWideShare = 2.6;
