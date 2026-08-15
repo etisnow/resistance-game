@@ -6,6 +6,9 @@ import {GameServer} from 'server/server/GameServer';
 import INotificationAction from 'shared/interfaces/notification';
 import {EPlayerState} from 'shared/enum/player';
 import {EGameState} from 'shared/enum/common';
+import {EGamePhase} from 'shared/enum/phase';
+import {keys} from 'lodash';
+import {failsNeeded, isPlayableCount, MAX_REJECTS, MISSIONS_COUNT, teamSize} from 'shared/constant/resistance';
 
 function formatEvent(type: string, payload?: unknown) {
 	return {
@@ -32,13 +35,48 @@ const formatUpdatePlayerPayload = ({ game, viewer }: {game: Game, viewer: Player
 		isClockwise: game.isClockwise,
 		gameLog: game.gameLog,
 		currentAction: viewer.currentAction,
+		round: formatRound(game),
 	}
 };
 
-// Что один игрок знает о другом. Роли сюда ещё не попадают: их раздача и правила
-// видимости — фаза 1 (см. docs/PLAN.md).
+/**
+ * Состояние партии для стола. Тайное сюда не попадает: пока голосуют, наружу
+ * уходит только «кто уже ответил» (FR-5), а карты миссии — только числом
+ * провалов в последней сыгранной (FR-9).
+ */
+const formatRound = (game: Game) => {
+	const round = game.round;
+	const playersCount = game.seatedPlayers().length;
+	const isPlayable = isPlayableCount(playersCount);
+	return {
+		phase: round.phase,
+		missionIndex: round.missionIndex,
+		missionResults: round.missionResults,
+		leaderId: round.leaderId,
+		rejectCount: round.rejectCount,
+		maxRejects: MAX_REJECTS,
+		team: round.team,
+		// Сколько человек нужно этой миссии и сколько провалов её сорвёт: считать
+		// это на клиенте значило бы держать вторую копию таблиц правил.
+		teamSize: isPlayable ? teamSize(playersCount, Math.min(round.missionIndex, MISSIONS_COUNT - 1)) : 0,
+		failsNeeded: isPlayable ? failsNeeded(round.missionIndex, playersCount) : 1,
+		// Кто уже ответил в текущей фазе — без содержания ответа.
+		answeredIds: round.phase === EGamePhase.voting
+			? keys(round.votes)
+			: round.phase === EGamePhase.mission ? keys(round.missionCards) : [],
+		revealedVotes: round.revealedVotes,
+		lastFailCount: round.lastFailCount,
+		isRolesRevealed: round.isRolesRevealed,
+	};
+};
+
+// Что один игрок знает о другом.
 const formatPlayer = (game: Game, viewer: Player) => (player: Player) => {
 	if (!player) return null;
+	// Шпионы знают друг друга, сопротивление не знает никого (FR-2). На развязке
+	// роли открываются всем (FR-10). null — «не твоё дело», и это не то же самое,
+	// что false: по «точно не шпион» игра читалась бы с первого обновления.
+	const isRoleVisible = game.round.isRolesRevealed || viewer.isSpy || player === viewer;
 
 	return {
 		id: player.id,
@@ -51,6 +89,7 @@ const formatPlayer = (game: Game, viewer: Player) => (player: Player) => {
 		turnState: player.turnState,
 		isReady: player.isReady,
 		isConnected: player.isConnected,
+		isSpy: isRoleVisible ? player.isSpy : null,
 		// Метки — личные заметки смотрящего, чужие ему не показываем.
 		marks: player === viewer ? player.marks : null,
 	}
@@ -95,6 +134,8 @@ export const formatSoundNotification = () => {
 	})
 };
 
-export const formatTimerNotification = (timerPayload: { text: string; seconds: number; playerId: string }) => {
+// Кого стол ждёт. Список, а не один игрок: в «Сопротивлении» голосуют все разом,
+// и таймер должен показывать всю фазу, а не последнего спрошенного.
+export const formatTimerNotification = (timerPayload: { text: string; seconds: number; playerIds: string[] }) => {
 	return formatEvent(EServerEventType.timerNotification, timerPayload)
 };

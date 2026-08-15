@@ -41,13 +41,15 @@ export default class RootController {
 		autorun(() => {
 			const nickname = (this.gameController?.currentPlayer?.nickname || this.launcherController?.nickname || '').trim();
 			const timer = this.timerController;
-			// Таймер тикает и на чужих ходах — берём его, только если отсчёт наш.
-			const isMyTimer = !!timer?.isActive && !!timer.playerId && timer.playerId === this.gameController?.currentPlayerId;
+			// Таймер тикает и когда ждут не тебя — берём его, только если в списке
+			// ожидаемых есть ты.
+			const myId = this.gameController?.currentPlayerId;
+			const isMyTimer = !!timer?.isActive && !!myId && timer.playerIds.includes(myId);
 			if (nickname && isMyTimer) {
-				document.title = `${timer.seconds} сек твой ход ${nickname}`;
+				document.title = `${timer.seconds} сек — ждут тебя, ${nickname}`;
 				return;
 			}
-			document.title = nickname ? `${nickname} - Нечто` : 'Игра нечто';
+			document.title = nickname ? `${nickname} — Сопротивление` : 'Сопротивление';
 		});
 	}
 

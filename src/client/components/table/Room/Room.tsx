@@ -2,20 +2,17 @@ import React from 'react';
 import {clamp, each, filter, map} from 'lodash';
 import './styles.scss';
 import {observer} from "mobx-react-lite";
-import {config, interpolate, useSpring, useTransition} from 'react-spring/universal';
+import {config, useSpring} from 'react-spring/universal';
 import {
 	badgeAspect,
-	degToRag,
 	isFarSeat,
 	playerRoomDiag,
 	roomPlayerAngle,
 	roomPlayerOrder,
 	roomPlayerPoint,
-	roomRadii,
 	tableLift,
 	tableRadii,
 	tableThickness,
-	unwrapAngle,
 } from 'client/helpers/roomHelpers';
 import GameController from 'client/controllers/gameController';
 import PlayerBadge, {badgeBodyWidth, PlayerShadow} from 'client/components/table/PlayerBadge/PlayerBadge';
@@ -42,25 +39,12 @@ interface IPoint {
 	y: number;
 }
 
-// Кружок игрока: угол его места за столом, удаление от центра (им кружок
-// вырастает из стола и им же уходит вышедший) и прозрачность.
-interface IBadgeLayout {
-	angle: number;
-	spread: number;
-	alpha: number;
-}
-
-// Место за столом, как его отдаёт useTransition: кто сидит, ключ перехода и его
-// анимируемые поля.
+// Место за столом: кто сидит, где сидит и по какую сторону столешницы.
 interface ISeat {
-	item: string;
-	key: string;
-	props: IBadgeLayout;
+	playerId: string;
+	point: IPoint;
+	isFar: boolean;
 }
-
-// Насколько дальше своего места за столом уезжает кружок вышедшего: он уходит
-// от стола наружу, за край экрана ему при этом лететь незачем.
-const leaveShare = 2.2;
 
 // Место игрока за столом (координаты относительно центра — его подставляет
 // контейнер). Сама геометрия круга живёт в roomHelpers.
@@ -179,42 +163,26 @@ const Room = observer(({controller, children}: IRoomProps) => {
 	const positionOf = (playerId: string): IPoint =>
 		lastPositions.current[playerId] ?? getPositionFromPlayerList({players, playerId, playerList: newPlayerList});
 
-	// Углы мест, а не координаты: пересаженный игрок должен обойти стол ПО кругу,
-	// а не проехать сквозь столешницу по прямой. Пружина ведёт угол, точку из него
-	// считает интерполяция ниже.
-	//
-	// Прежний угол помним: «размотать» новый (352° → 368°, а не → 8° назад через
-	// весь стол) можно только относительно него. Заодно он же — угол уходящего,
-	// которого в рассадке уже нет.
-	const lastAngles = React.useRef<Record<string, number>>({});
-	const seatAngle = (playerId: string): number => {
-		const deg = unwrapAngle(roomPlayerAngle(playerId, newPlayerList), lastAngles.current[playerId]);
-		lastAngles.current[playerId] = deg;
-		return deg;
-	};
-	const angleOf = (playerId: string): number =>
-		lastAngles.current[playerId] ?? roomPlayerAngle(playerId, newPlayerList);
+	const angleOf = (playerId: string): number => roomPlayerAngle(playerId, newPlayerList);
 
-	const transitions = useTransition<string, IBadgeLayout>(newPlayerList, playerId => playerId, {
-		angle: 90,
-		spread: 1,
-		alpha: 1,
-		// Севший за стол вырастает из его середины.
-		from: (playerId: string) => ({angle: seatAngle(playerId), spread: 0, alpha: 1}),
-		enter: (playerId: string) => ({angle: seatAngle(playerId), spread: 1, alpha: 1}),
-		update: (playerId: string) => ({angle: seatAngle(playerId), spread: 1, alpha: 1}),
-		// Вышедший встаёт и уходит из-за стола: его кружок отъезжает со своего
-		// места наружу и там гаснет. В центр стола ему нельзя — там трек миссий, и
-		// уход выглядел бы как ход, а не как «игрока больше нет».
-		leave: (playerId: string) => ({angle: angleOf(playerId), spread: leaveShare, alpha: 0}),
-	});
+	// Места считаются прямо, без пружин. В «Сопротивлении» за партию никто не
+	// пересаживается, не выбывает и не приходит: рассадка получается на старте и
+	// живёт до конца — анимировать в ней нечего.
+	//
+	// Раньше здесь стоял useTransition, который «выращивал» кружки из середины
+	// стола. Он же и ломал стол: анимация входа не запускалась на самом
+	// монтировании (только на каком-то следующем рендере), и до первого чужого
+	// хода все кружки лежали стопкой в центре.
+	const seats: ISeat[] = newPlayerList.map((playerId) => ({
+		playerId,
+		point: positionOf(playerId),
+		isFar: isFarSeat(angleOf(playerId)),
+	}));
 
 	const badgeWidth = playerRoomDiag(playersCount);
 	const badgeRadius = badgeWidth / 2;
-	// Круг рассадки и сама столешница. Полуоси берём один раз на рендер: пружина
-	// гонит по ним точку каждый кадр, а меняются они только вместе с окном — на
-	// него стол пересчитывается целиком (см. viewport).
-	const {rx, ry} = roomRadii(playersCount);
+	// Столешница. Меняется только вместе с окном — на него стол пересчитывается
+	// целиком (см. viewport).
 	const surface = tableRadii(playersCount);
 
 	const canPlayerBeSelected = (player: Player): boolean => {
@@ -226,21 +194,14 @@ const Room = observer(({controller, children}: IRoomProps) => {
 
 	const badgeHeight = badgeWidth * badgeAspect;
 
-	// Место игрока за столом: точка считается из угла прямо в пружине, поэтому
-	// пересадка идёт по дуге круга, а не по хорде через стол.
-	const seatPlace = ({item: playerId, key, props: {angle, spread, alpha}}: ISeat, children: React.ReactNode) => (
-		<AnimatedPixi.Container
-			key={`${playerId}:${key}`}
-			x={interpolate([angle, spread], (deg: number, away: number) => rx * Math.cos(degToRag(deg)) * away)}
-			y={interpolate([angle, spread], (deg: number, away: number) => ry * Math.sin(degToRag(deg)) * away)}
-			alpha={alpha}
-		>
+	const seatPlace = ({playerId, point}: ISeat, children: React.ReactNode) => (
+		<Container key={playerId} x={point.x} y={point.y}>
 			{children}
-		</AnimatedPixi.Container>
+		</Container>
 	);
 
 	const renderShadow = (seat: ISeat) => {
-		const player = players[seat.item];
+		const player = players[seat.playerId];
 		if (!player) return null;
 		return seatPlace(seat, (
 			<PlayerShadow
@@ -251,7 +212,7 @@ const Room = observer(({controller, children}: IRoomProps) => {
 	};
 
 	const renderBadge = (seat: ISeat) => {
-		const player = players[seat.item];
+		const player = players[seat.playerId];
 		if (!player || !player.id) return null;
 		const {nickname, color, avatar, state} = player;
 		return seatPlace(seat, (
@@ -276,13 +237,8 @@ const Room = observer(({controller, children}: IRoomProps) => {
 	// ДО стола, и он подрезает их по грудь. Ближних — после, они стоят перед
 	// столом. На этом (вместе со сплюснутой проекцией) и держится объём.
 	//
-	// Делим по месту, к которому игрок едет, а не по тому, где он сейчас:
-	// пересаживающийся сразу становится «ближним» или «дальним» и обходит стол
-	// соответственно перед ним или за ним.
-	const seatsOf = (isFar: boolean): ISeat[] => filter(
-		transitions as unknown as ISeat[],
-		({item}) => !!players[item] && isFarSeat(angleOf(item)) === isFar,
-	);
+	const seatsOf = (isFar: boolean): ISeat[] =>
+		filter(seats, (seat) => !!players[seat.playerId] && seat.isFar === isFar);
 	const farSeats = seatsOf(true);
 	const nearSeats = seatsOf(false);
 

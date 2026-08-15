@@ -8,14 +8,14 @@ test("launcher loads and a host can create a game", async ({ page }) => {
   // App mounted -> launcher screen.
   await expect(page.getByRole("heading", { name: "Вход" })).toBeVisible();
 
-  await expect(page).toHaveTitle("Игра нечто");
+  await expect(page).toHaveTitle("Сопротивление");
 
   const nick = page.getByPlaceholder("введи ник");
   await expect(nick).toBeVisible();
   await nick.fill("Host");
 
   // Ник уходит в заголовок вкладки — иначе несколько открытых окон неразличимы.
-  await expect(page).toHaveTitle("Host - Нечто");
+  await expect(page).toHaveTitle("Host — Сопротивление");
 
   await page.getByRole("button", { name: "Создай игру" }).click();
 

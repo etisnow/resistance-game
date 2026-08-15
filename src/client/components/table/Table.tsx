@@ -9,6 +9,7 @@ import {Helmet} from "react-helmet";
 import ActionInteracter from 'client/components/table/ActionInteracter/ActionInteracter';
 import ActionTimer from 'client/components/table/ActionTimer/ActionTimer';
 import TableMenu from 'client/components/table/TableMenu/TableMenu';
+import MissionTrack from 'client/components/table/MissionTrack/MissionTrack';
 import {StageBoundary} from 'client/components/table/StageBoundary';
 import {TableStage} from 'client/components/table/TableStage';
 
@@ -25,6 +26,7 @@ const Table = observer(({controller} : ITableProps) => {
 		return (
 			<div className={"gameTable"}>
 				<GameLog controller={controller}/>
+				<MissionTrack controller={controller}/>
 				<TableMenu controller={controller}/>
 				<ActionInteracter controller={controller}/>
 				<ActionTimer controller={controller}/>

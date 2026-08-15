@@ -14,9 +14,10 @@ export default class TimerController {
 	@observable initSeconds: number = 0;
 	@observable currentSeconds: number = 0;
 	@observable text: string = '';
-	// Чей ход отсчитываем — таймер рассылается всем, но заголовок вкладки должен
-	// реагировать только на свой.
-	@observable playerId: string = '';
+	// Кого стол ждёт — таймер рассылается всем, но заголовок вкладки должен
+	// реагировать только на свой. В «Сопротивлении» ждать могут сразу многих:
+	// голосуют все разом.
+	@observable playerIds: string[] = [];
 
 	// Секунды в том же виде, в каком их видит игрок на столе (ActionTimer).
 	@computed get seconds(): number {
@@ -37,15 +38,15 @@ export default class TimerController {
 		this.initSeconds = 0;
 		this.currentSeconds = 0;
 		this.isActive = false;
-		this.playerId = '';
+		this.playerIds = [];
 	};
-	initTimer = ({text, seconds, playerId}: ITimerPayload) => {
+	initTimer = ({text, seconds, playerIds}: ITimerPayload) => {
 		if (this.timer) clearInterval(this.timer);
 		this.text = text;
 		this.initSeconds = seconds;
 		this.currentSeconds = 0;
 		this.isActive = true;
-		this.playerId = playerId;
+		this.playerIds = playerIds;
 		this.timer = setInterval(() => {
 			this.currentSeconds = this.currentSeconds + 1;
 		}, 1000)
