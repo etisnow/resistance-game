@@ -3,7 +3,6 @@ import './styles.scss';
 import {observer} from 'mobx-react-lite';
 import GameController from 'client/controllers/gameController';
 import {ENotificationAction} from 'shared/enum/notifications';
-import CardsCatalog from 'client/components/table/TableMenu/CardsCatalog';
 import {playPaper} from 'client/helpers/sounds';
 
 interface ITableMenuProps {
@@ -51,7 +50,6 @@ const isBlockingOverlayShown = (controller: GameController): boolean => {
 
 const TableMenu = observer(({controller}: ITableMenuProps) => {
 	const [isExitConfirm, setExitConfirm] = React.useState(false);
-	const [isCardsOpen, setCardsOpen] = React.useState(false);
 	// Громкости своего состояния здесь не заводят: настройка глобальная и
 	// переживает меню, так что живёт она в SoundController, а меню её только
 	// рисует и двигает.
@@ -59,7 +57,6 @@ const TableMenu = observer(({controller}: ITableMenuProps) => {
 
 	const closeMenu = () => {
 		setExitConfirm(false);
-		setCardsOpen(false);
 		controller.closeMenu();
 	};
 
@@ -69,7 +66,6 @@ const TableMenu = observer(({controller}: ITableMenuProps) => {
 	React.useEffect(() => {
 		if (!controller.isMenuOpen) {
 			setExitConfirm(false);
-			setCardsOpen(false);
 		}
 	}, [controller.isMenuOpen]);
 
@@ -93,7 +89,6 @@ const TableMenu = observer(({controller}: ITableMenuProps) => {
 		);
 	}
 
-	if (isCardsOpen) return <CardsCatalog onClose={() => setCardsOpen(false)}/>;
 
 	const exitText = controller.isGameOver
 		? 'Выйти в лобби'
@@ -104,7 +99,6 @@ const TableMenu = observer(({controller}: ITableMenuProps) => {
 			<div className={'tableMenu'} onClick={(e) => e.stopPropagation()}>
 				{controller.isGameOver && <div className={'tableMenuTitle'}>Игра закончена</div>}
 				<button className={'tableMenuItem danger'} onClick={handleExitClick}>{exitText}</button>
-				<button className={'tableMenuItem'} onClick={() => setCardsOpen(true)}>Карты</button>
 				{/* Вид стола: меню не закрывается, чтобы переключатель можно было
 				    щёлкнуть туда-обратно и выбрать. Настройка переживает партию и
 				    перезаход — см. toggleFirstPersonTable. */}

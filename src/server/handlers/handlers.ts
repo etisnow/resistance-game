@@ -85,8 +85,6 @@ export const registerHandlers = (gameServer: GameServer, socket: IGameSocket) =>
 	socket.on(EClientEventType.playerAction, (payload: unknown) => safe('playerAction', () => {
 		const data = (payload ?? {}) as {
 			actionType?: unknown;
-			cardUniqueId?: unknown;
-			cardUniqueIds?: unknown;
 			selectedPlayerId?: unknown;
 			action?: unknown;
 		};
@@ -97,10 +95,6 @@ export const registerHandlers = (gameServer: GameServer, socket: IGameSocket) =>
 		gameServer.playerAction({
 			player,
 			actionType,
-			cardUniqueId: asString(data.cardUniqueId),
-			cardUniqueIds: Array.isArray(data.cardUniqueIds)
-				? data.cardUniqueIds.filter((id): id is string => typeof id === 'string')
-				: undefined,
 			selectedPlayerId: asString(data.selectedPlayerId),
 			action: asString(data.action),
 		});

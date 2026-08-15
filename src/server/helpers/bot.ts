@@ -1,16 +1,11 @@
-import {find, sortBy, map} from 'lodash';
 import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
 import {GameServer} from 'server/server/GameServer';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {ENotificationAction} from 'shared/enum/notifications';
-import {EEventID} from 'shared/enum/cards';
-import {getCardActions} from 'server/formatters/formatCardActions';
-import {shuffle} from 'server/helpers/util';
-import {ICardEvent} from 'shared/interfaces/cards';
 
 // Server-side bot opponents for the ?withBots=true dev mode. A real human plays
-// in the browser; these emulated players act on their own turns. Decisions are
+// in the browser; these emulated players answer their own prompts. Decisions are
 // driven by the game's seeded RNG (so a seed reproduces the bot choices too) and
 // fired one action per second so the human can follow along.
 
@@ -24,44 +19,11 @@ const pick = <T>(arr: readonly T[] | undefined, rng: () => number): T | undefine
 	return arr[Math.floor(rng() * arr.length)];
 };
 
-// Prefer the most-constrained playable card; the Thing prefers to move its
-// infect card so games actually progress to a result.
-const choosePlayableCard = (game: Game, player: Player, preferInfect: boolean): ICardEvent | undefined => {
-	const withMenus = map(player.hand, (card) => ({card, menu: getCardActions(game, player, card)}));
-	const playable = withMenus.filter((c) => c.menu.length > 0);
-	if (playable.length === 0) return undefined;
-	if (preferInfect && player.isThing) {
-		const infect = find(playable, (c) => c.card.id === EEventID.infect);
-		if (infect) return infect.card;
-	}
-	const sorted = sortBy(playable, (c) => c.menu.length);
-	return sorted[sorted.length - 1]?.card;
-};
-
-const actWithCard = (gameServer: GameServer, game: Game, player: Player, preferInfect: boolean): void => {
-	const card = choosePlayableCard(game, player, preferInfect);
-	if (!card || !card.uniqueId) return;
-	const menu = getCardActions(game, player, card);
-	const choice = pick(menu, game.rng);
-	if (!choice) return;
-	gameServer.playerAction({player, actionType: choice.menuType, cardUniqueId: card.uniqueId});
-};
-
 // Perform a single bot action based on what the player is currently asked for.
 const performBotAction = (gameServer: GameServer, game: Game, player: Player): void => {
 	const action = player.currentAction;
 	if (!action) return;
 	switch (action.type) {
-		case ENotificationAction.cardPick:
-			gameServer.playerAction({player, actionType: EPlayerActionType.cardPick});
-			return;
-		case ENotificationAction.turnCard:
-			actWithCard(gameServer, game, player, false);
-			return;
-		case ENotificationAction.offenseTradeCard:
-		case ENotificationAction.defenseTradeCard:
-			actWithCard(gameServer, game, player, true);
-			return;
 		case ENotificationAction.actionDecision: {
 			const choice = pick(action.menu, game.rng);
 			if (choice) gameServer.playerAction({player, actionType: EPlayerActionType.actionDecision, action: choice.action});
@@ -72,22 +34,6 @@ const performBotAction = (gameServer: GameServer, game: Game, player: Player): v
 			if (selectedPlayerId) gameServer.playerAction({player, actionType: EPlayerActionType.playerSelect, selectedPlayerId});
 			return;
 		}
-		case ENotificationAction.okayCard:
-			// Бот «закрывает» окно с подсмотренными картами — иначе ход стоял бы на
-			// осмотре вечно (см. cardsView).
-			gameServer.playerAction({player, actionType: EPlayerActionType.viewConfirm});
-			return;
-		case ENotificationAction.selectCards: {
-			// Отмечаем нужное количество карт разом — тем же одним действием, каким
-			// их подтверждает живой игрок.
-			const cardUniqueIds = shuffle(Object.values(action.cards), game.rng)
-				.map((card) => card.uniqueId)
-				.filter((uniqueId): uniqueId is string => !!uniqueId)
-				.slice(0, action.count);
-			if (cardUniqueIds.length !== action.count) return;
-			gameServer.playerAction({player, actionType: EPlayerActionType.cardsSelect, cardUniqueIds});
-			return;
-		}
 		default:
 			return;
 	}
@@ -96,7 +42,7 @@ const performBotAction = (gameServer: GameServer, game: Game, player: Player): v
 const findActionableBot = (game: Game): Player | undefined => {
 	for (const playerId of game.playersList) {
 		const player = game.players[playerId];
-		if (player && player.isBot && player.isAlive() && player.currentAction) return player;
+		if (player && player.isBot && player.currentAction) return player;
 	}
 	return undefined;
 };
@@ -106,8 +52,11 @@ export const gameHasBots = (game: Game): boolean =>
 
 // Schedule the next bot move (if any bot is waiting to act) one second from now;
 // after it resolves, reschedule — so consecutive bot moves are paced 1s apart
-// and the loop naturally pauses whenever it is the human's turn. Call after the
-// human acts to resume the bots.
+// and the loop naturally pauses whenever the table waits on the human. Call
+// after the human acts to resume the bots.
+//
+// TODO (фаза 4): в «Сопротивлении» голосуют все разом, и очередь по секунде
+// растянет шесть голосов на шесть секунд — боты должны отвечать параллельно.
 export const scheduleBots = (gameServer: GameServer, game: Game): void => {
 	const existing = timers.get(game);
 	if (existing) clearTimeout(existing);

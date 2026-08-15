@@ -6,10 +6,9 @@ import cn from 'classnames';
 import {animateScroll} from 'react-scroll';
 import GameController from 'client/controllers/gameController';
 import {ENotificationAction} from 'shared/enum/notifications';
-import {EPlayerState, ETurnState} from 'shared/enum/player';
+import {EPlayerState} from 'shared/enum/player';
 import {EGameLogType} from 'shared/enum/gameLogType';
 import type {IGameLogEntry} from 'shared/interfaces/gameLog';
-import {renderCardMentions} from 'client/components/hint/CardHint';
 
 interface IGameLogProps {
 	controller: GameController
@@ -59,13 +58,13 @@ const getNickHighlights = (controller: GameController): INickHighlight[] => {
 	return highlights.sort((a, b) => b.nickname.length - a.nickname.length);
 };
 
-// Ники разбираем первыми: игрок с ником «Топор» остаётся игроком, а не картой.
+// Ники в строке лога подсвечиваем цветом игрока.
 const renderLogText = (text: string, highlights: INickHighlight[]) => {
-	if (!highlights.length) return renderCardMentions(text);
+	if (!highlights.length) return text;
 	const pattern = new RegExp(`(${map(highlights, (h) => escapeRegExp(h.nickname)).join('|')})`, 'g');
 	return map(text.split(pattern), (part, index) => {
 		const highlight = find(highlights, (h) => h.nickname === part);
-		if (!highlight) return <React.Fragment key={index}>{renderCardMentions(part)}</React.Fragment>;
+		if (!highlight) return <React.Fragment key={index}>{part}</React.Fragment>;
 		return <span
 			key={index}
 			className={cn('logNick', {isYou: highlight.isYou})}
@@ -76,13 +75,13 @@ const renderLogText = (text: string, highlights: INickHighlight[]) => {
 	});
 };
 
-// Живых игроков (без дверей и мертвецов) — столько строк лога и показываем.
+// Сколько игроков за столом — столько строк лога и показываем.
 const getVisibleLogLimit = (controller: GameController) => {
 	let count = 0;
 	each(controller.players, (player) => {
 		if (!player) return;
 		if (player.state === EPlayerState.door) return;
-		if (player.turnState === ETurnState.dead) return;
+
 		count++;
 	});
 	return Math.max(count, 1);
@@ -100,8 +99,8 @@ export const getZIndex = (controller: GameController) => {
 	if (controller.currentAction && controller.currentAction.type === ENotificationAction.actionDecision ) return 99;
 	const firstNotification = controller.notifications.length ? controller.notifications[0] : undefined;
 	if (firstNotification && firstNotification.type === ENotificationAction.gameEnd) return 99;
-	const cardInPreview = controller.cardInPreview ? controller.hand[controller.cardInPreview] : undefined;
-	if (cardInPreview || controller.notifications.length > 0) return 0;
+	
+	if (controller.notifications.length > 0) return 0;
 	return 99;
 }
 

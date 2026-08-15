@@ -6,22 +6,11 @@ import GameController from 'client/controllers/gameController';
 import {ENotificationAction} from 'shared/enum/notifications';
 import * as PIXI from 'pixi.js';
 import {Container, Sprite, Text} from 'react-pixi-fiber';
-import HandComponent from 'client/components/table/Hand/HandComponent';
-import {
-	autoWidthCard,
-	getWindowHeight,
-	getWindowWidth,
-	playerCardWidthPix,
-	selectedNotificationCardScale,
-	tableCenterY,
-} from 'client/helpers/window';
-import {getPixiTexture} from 'client/components/table/pixiInjected';
-import {resources} from 'client/resources/resources';
+import {getWindowHeight, getWindowWidth, tableCenterY} from 'client/helpers/window';
 import Rectangle from 'client/components/pixiPrimitives/Rectangle';
-import {cardAspectRatio} from 'shared/constant/cards';
 
 interface INotifierProps {
-	controller:  GameController;
+	controller: GameController;
 }
 
 const getFontStyle = (fontSize: number, maxWidth: number) => ({
@@ -42,127 +31,16 @@ const getFontStyle = (fontSize: number, maxWidth: number) => ({
     wordWrapWidth: maxWidth
 })
 
+// Окно поверх стола. Сейчас им показывают только текстовые сообщения: вскрытие
+// голосов и результат миссии встанут сюда в фазе 3 (см. docs/PLAN.md).
 const Notification = observer(({notification, controller}: {notification: INotificationAction, controller: GameController}) => {
-	let notificationContent: React.ReactNode = null;
-	const okayTexture = getPixiTexture(resources.okay)
-	const {cardInNotificationPreview} = controller;
-
-	const notificationFontSize = 22;
-	// Центр ряда карт и его высота С УЧЁТОМ увеличения выбранной карты. Подпись и
-	// кнопку вешаем ПОД ряд: сверху висит бейдж действия (DOM) с тем же текстом, и
-	// раньше надписи налезали друг на друга.
-	const cardsRowCenterY = tableCenterY();
-	const rowHeight = (cardsCount: number) =>
-		autoWidthCard(cardsCount) * cardAspectRatio * selectedNotificationCardScale;
-	const textY = (rowCardHeight: number) => cardsRowCenterY + rowCardHeight / 2 + notificationFontSize * 1.2;
-	let cardHeight = 0;
-	switch (notification.type) {
-		case ENotificationAction.okayCard:
-			cardHeight = rowHeight(Object.keys(notification.cards).length);
-			notificationContent = (
-				<React.Fragment>
-					<Sprite
-						texture={okayTexture}
-						interactive={true}
-						buttonMode={true}
-						pointerdown={() => controller.activatePlayerSelectMode(notification)}
-						width={playerCardWidthPix() * 1.5}
-						height={playerCardWidthPix() * 1.5}
-						anchor={0.5}
-						x={getWindowWidth() / 2}
-						y={textY(cardHeight) + notificationFontSize + ((playerCardWidthPix() * 1.5) / 2)}
-					/>
-					<Text
-						x={getWindowWidth() / 2}
-						y={textY(cardHeight)}
-						text={notification.text}
-						anchor={0.5}
-						style={getFontStyle(18, getWindowWidth() * 0.8)}
-					/>
-					<HandComponent
-						cards={notification.cards}
-						selectedCardIndex={cardInNotificationPreview}
-						autoWidth={true}
-						cardActions={{}}
-						onSelectCard={controller.selectNotificationCardPreview}
-						onCardAction={() => {}}
-						y={tableCenterY()}
-					/>
-				</React.Fragment>
-			);
-			break;
-		case ENotificationAction.selectCards: {
-			// Весь выбор на одном экране: карты отмечаются галочками, а OKEY меняет
-			// их разом. Пока набрано не всё, кнопка притушена и не жмётся — тогда и
-			// подпись говорит, сколько ещё осталось отметить.
-			cardHeight = rowHeight(Object.keys(notification.cards).length);
-			const {checkedNotificationCards} = controller;
-			const isReady = checkedNotificationCards.length === notification.count;
-			const okayWidth = playerCardWidthPix() * 1.5;
-			notificationContent = (
-				<React.Fragment>
-					<Sprite
-						texture={okayTexture}
-						interactive={isReady}
-						buttonMode={isReady}
-						alpha={isReady ? 1 : 0.35}
-						pointerdown={() => controller.selectCards(notification)}
-						width={okayWidth}
-						height={okayWidth}
-						anchor={0.5}
-						x={getWindowWidth() / 2}
-						y={textY(cardHeight) + notificationFontSize * 2 + (okayWidth / 2)}
-					/>
-					{/* Под картами — что вообще требуется сделать, и уже под этим счёт
-					    отмеченного: со счётом в одиночку окно не объясняет само себя.
-					    Когда карта нужна одна, считать нечего — «отмечено 1 из 1» не
-					    говорит ничего сверх того, что и так видно по самой карте. */}
-					<Text
-						x={getWindowWidth() / 2}
-						y={textY(cardHeight)}
-						text={notification.count === 1
-							? `${notification.text}${isReady ? '\nЖми OKAY' : ''}`
-							: isReady
-								? `${notification.text}\nОтмечено ${notification.count} из ${notification.count} — жми OKAY`
-								: `${notification.text}\nОтмечено ${checkedNotificationCards.length} из ${notification.count}`}
-						anchor={0.5}
-						style={getFontStyle(18, getWindowWidth() * 0.8)}
-					/>
-					<HandComponent
-						cards={notification.cards}
-						selectedCardIndex={null}
-						autoWidth={true}
-						checkedCardIds={checkedNotificationCards}
-						cardActions={{}}
-						onSelectCard={(cardUniqueId) => controller.toggleNotificationCardCheck(cardUniqueId, notification.count)}
-						onCardAction={() => {}}
-						y={tableCenterY()}
-					/>
-				</React.Fragment>
-			);
-			break;
-		}
-		case ENotificationAction.info:
-			notificationContent = (
-				<Text
-					x={getWindowWidth() / 2}
-					y={tableCenterY()}
-					text={notification.text}
-					anchor={0.5}
-					style={getFontStyle(18, getWindowWidth() * 0.8)}
-				/>
-			);
-			break;
-	}
-	if (!notificationContent) return null;
+	if (notification.type !== ENotificationAction.info) return null;
 
 	return (
 		<Container width={getWindowWidth()} height={getWindowHeight()}>
 			<Container alpha={0.7} pointerdown={() => {}}>
 				<Rectangle xCoord={0} yCoord={0} width={getWindowWidth()} height={getWindowHeight()} color={0}/>
 			</Container>
-			{/* Клик мимо карт снимает увеличение выбранной карты (карты лежат выше и
-			    перехватывают клик первыми — pixi ищет попадание с конца списка). */}
 			<Sprite
 				texture={PIXI.Texture.WHITE}
 				alpha={0}
@@ -171,10 +49,16 @@ const Notification = observer(({notification, controller}: {notification: INotif
 				y={0}
 				width={getWindowWidth()}
 				height={getWindowHeight()}
-				pointerdown={() => {controller.cardInNotificationPreview = null}}
+				pointerdown={controller.hidENotificationAction}
 			/>
 			<Container width={getWindowWidth()} height={getWindowHeight()}>
-				{notificationContent}
+				<Text
+					x={getWindowWidth() / 2}
+					y={tableCenterY()}
+					text={notification.text}
+					anchor={0.5}
+					style={getFontStyle(18, getWindowWidth() * 0.8)}
+				/>
 			</Container>
 		</Container>
 	)

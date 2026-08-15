@@ -1,6 +1,6 @@
 import {clamp} from 'lodash';
 import {roomLift, tableField} from 'client/helpers/window';
-import {cardAspectRatio} from 'shared/constant/cards';
+import {cardAspectRatio} from 'shared/constant/layout';
 
 // Доля свободного поля, которую оставляем по краям стола.
 const roomMargin = 0.04;

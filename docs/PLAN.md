@@ -10,9 +10,9 @@
 
 ## Сейчас
 
-- **Фаза:** 0 — Зачистка (не начата)
-- **Последняя итерация:** форк создан, документы заведены
-- **Следующее:** удалить карточную логику сервера (первый блок фазы 0)
+- **Фаза:** 0 — Зачистка (готова), ветка `phase-0-cleanup`
+- **Последняя итерация:** «Нечто» вычищено, каркас живой: typecheck и 294 юнит-теста зелёные, 13 e2e проходят, лобби поднимается, стол пустой
+- **Следующее:** фаза 1 — константы правил и раздача ролей
 - **Блокирует:** ничего
 
 ---
@@ -22,27 +22,27 @@
 Ориентир готовности: зелёный `./run typecheck`, лобби поднимается, стол пустой.
 
 **Сервер**
-- [ ] Удалить `src/server/helpers/cardActions/**` (30 файлов)
-- [ ] Удалить `panicActions.ts`, `tradeCard.ts`, `discardCard.ts`, `cardHelpers.ts`, `validators.ts`, `playerAction.ts`
-- [ ] Удалить `formatters/formatCardActions.ts`, `formatters/formatHand.ts`
-- [ ] Вычистить из `models/Game.ts`: колоду, добор, панику, обмен, карантин, `killPlayer` и выбывание
-- [ ] Вычистить из `models/Player.ts`: `hand`, `isThing`/`isInfected`/`quarantine`, `getCardTargets`, `getNextAlivePlayer`
-- [ ] Отключить аналитику заглушкой — рекордер и контракт переписываются в фазе 4
+- [x] Удалить `src/server/helpers/cardActions/**` (30 файлов)
+- [x] Удалить `panicActions.ts`, `tradeCard.ts`, `discardCard.ts`, `cardHelpers.ts`, `validators.ts`, `playerAction.ts`
+- [x] Удалить `formatters/formatCardActions.ts`, `formatters/formatHand.ts`
+- [x] Вычистить из `models/Game.ts`: колоду, добор, панику, обмен, карантин, `killPlayer` и выбывание
+- [x] Вычистить из `models/Player.ts`: `hand`, `isThing`/`isInfected`/`quarantine`, `getCardTargets`, `getNextAlivePlayer`
+- [x] Отключить аналитику — клиент аналитики удалён, сам пакет `analytics/` заморожен (см. журнал)
 
 **Общие типы**
-- [ ] Удалить `shared/constant/cards.ts`, `cardNames.ts`, `cardSections.ts`
-- [ ] Удалить `shared/enum/cards.ts`, `shared/interfaces/cards.ts`, `cardMenu.ts`
-- [ ] Удалить `shared/interfaces/turnContext.ts`, `shared/enum/turnContextType.ts`, `helpers/playerHelpers.ts`
+- [x] Удалить `shared/constant/cards.ts`, `cardNames.ts`, `cardSections.ts`
+- [x] Удалить `shared/enum/cards.ts`, `shared/interfaces/cards.ts`, `cardMenu.ts`
+- [x] Удалить `shared/interfaces/turnContext.ts`, `shared/enum/turnContextType.ts`, `helpers/playerHelpers.ts`
 
 **Клиент**
-- [ ] Удалить `Hand/`, `Deck/`, `Card/`, `PanicCard/`, `TableMenu/CardsCatalog.tsx`, `hint/`
-- [ ] Удалить `Room/Burn.tsx`, `Deflect.tsx`, `CardFlight.tsx`, `CardDraw.tsx`, `CardEffect.tsx`, `pixiPrimitives/Fire.tsx`
-- [ ] Вычистить `controllers/gameController.ts`: руку, паники, полёты карт, костёр
-- [ ] Удалить ассеты карт (`resources/cards/`) и звуки карточных эффектов
+- [x] Удалить `Hand/`, `Deck/`, `Card/`, `PanicCard/`, `TableMenu/CardsCatalog.tsx`, `hint/`
+- [x] Удалить `Room/Burn.tsx`, `Deflect.tsx`, `CardFlight.tsx`, `CardDraw.tsx`, `CardEffect.tsx`, `pixiPrimitives/Fire.tsx`
+- [x] Вычистить `controllers/gameController.ts`: руку, паники, полёты карт, костёр
+- [x] Удалить ассеты карт (`resources/cards/`) и звуки карточных эффектов
 
 **Тесты**
-- [ ] Удалить `_integration/__tests__/cardLogic/**`, `deckLogic.test.ts`, `tradeLogic.test.ts`
-- [ ] Удалить `e2e/cards/**`, сохранив обвязку лобби и старта партии
+- [x] Удалить `_integration/__tests__/cardLogic/**`, `deckLogic.test.ts`, `tradeLogic.test.ts`
+- [x] Удалить `e2e/cards/**`, сохранив обвязку лобби и старта партии
 
 ---
 
@@ -136,6 +136,24 @@
 Таймера на обсуждение нет: спор — это и есть игра, обрывать его нечем. Длинный
 автоответ (3 минуты) остаётся только как страховка против ушедшего лидера.
 Оценка 10–12 дней в силе.
+
+**2026-08-15 · Пакет `analytics/` заморожен, а не переделан и не удалён.**
+Он весь построен на событиях «Нечто» (заражения, сожжения, карты), и вместе с
+клиентом аналитики ушёл общий контракт — пакет больше не собирается. Удалять его
+сейчас значило бы предрешить вопрос фазы 4, поэтому `./run analytics` честно
+говорит, что заморожен, а `./run go` поднимает только игру. Расморозка — вместе с
+решением, переделывать его или выбросить.
+
+**2026-08-15 · Выбывания в движке больше нет.**
+Вместе с `killPlayer` ушли `ETurnState.dead`, обход «следующего живого» и
+рекурсия в смене хода. В «Сопротивлении» из-за стола не встают, а рекурсия по
+живым была источником тихих багов. Двери (`EPlayerState.door`) оставлены как
+понятие «место за столом, которое не игрок» — их никто не создаёт.
+
+**2026-08-15 · `window.__nechto` → `window.__resistance`, `NECHTO_E2E` →
+`RESISTANCE_E2E`.** Заодно переменные окружения для e2e-сервера переехали в поле
+`env` конфига playwright: на Windows префикс `VAR=value cmd` уходит в cmd.exe и
+там не работает — e2e просто не поднимался.
 
 ---
 
