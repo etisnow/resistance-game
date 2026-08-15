@@ -20,16 +20,16 @@
  * игрока — его дело, здесь только то, что звучит.
  */
 import {getAudioContext, resumeAudio} from 'client/helpers/audioContext';
-import resistanceTrack from 'client/resources/sound/resistance.mp3';
-import mainTrack from 'client/resources/sound/resistance-main.mp3';
-import chillTrack from 'client/resources/sound/resistance-chill.mp3';
+import nechtoTrack from 'client/resources/sound/nechto.mp3';
+import mainTrack from 'client/resources/sound/nechto-main.mp3';
+import chillTrack from 'client/resources/sound/nechto-chill.mp3'
 
 /**
  * Ротация тем. Скачивается и распаковывается всегда ровно одна: три темы — это
  * под три мегабайта сжатыми и десятки распакованными, и держать их все разом
  * незачем, до второй партии доходит не каждый.
  */
-const tracks = [resistanceTrack, mainTrack, chillTrack];
+const tracks = [nechtoTrack, mainTrack, chillTrack];
 // Что играло в прошлый раз. −1 — ещё ничего: первую тему выбираем из всех.
 let trackIndex = -1;
 

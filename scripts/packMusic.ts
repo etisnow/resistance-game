@@ -33,9 +33,9 @@ const FADE_SEC = 0.005;
 // надо одинаково — иначе на стыке между темами слышно, что одна другой громче
 // или глуше.
 const tracks: {from: string; to: string}[] = [
-	{from: 'resistance.mp3', to: 'resistance.mp3'},
-	{from: 'resistance-main.mp3', to: 'resistance-main.mp3'},
-	{from: 'resistance-chill.mp3', to: 'resistance-chill.mp3'},
+	{from: 'nechto.mp3', to: 'nechto.mp3'},
+	{from: 'nechto-main.mp3', to: 'nechto-main.mp3'},
+	{from: 'nechto-chill.mp3', to: 'nechto-chill.mp3'},
 ];
 
 for (const {from, to} of tracks) {
