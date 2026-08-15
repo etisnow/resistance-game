@@ -15,8 +15,8 @@ h1 {
 	justify-content: space-between;
 	display: flex;
 	&.isReady {
-		background: #009442;
-		box-shadow: 1px 8px 7px -4px #047903;
+		background: #0069a0;
+		box-shadow: 1px 8px 7px -4px #033b79;
 	}
 	.kick-button {
 		@include buttons.button(buttons.$button-warning-top, buttons.$button-warning-bottom);

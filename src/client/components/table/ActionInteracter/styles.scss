@@ -6,7 +6,7 @@
 		filter: brightness(1);
 	}
 	50% {
-		box-shadow: 0 4px 7px black, 0 0 16px 2px #d7ff5e99;
+		box-shadow: 0 4px 7px black, 0 0 16px 2px #5ed7ff99;
 		filter: brightness(1.25);
 	}
 }
@@ -19,7 +19,7 @@
 	justify-content: center;
 	z-index: 20;
 	// Бейдж — не кнопка (его не жмут), но выглядит он так же, как кнопки: то же
-	// скругление, градиент и тень. Цвет свой, ярче зелёного: это не действие, а
+	// скругление, градиент и тень. Цвет свой, ярче синего: это не действие, а
 	// требование действия.
 	.interaction-badge {
 		@include buttons.button(buttons.$button-lime-top, buttons.$button-lime-bottom, 8px);

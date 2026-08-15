@@ -2,32 +2,32 @@
 // вертикальный градиент от светлого края цвета к почти чёрному, скруглённые
 // углы, белая подпись и тень под кнопкой.
 //
-// Цвет остаётся за кнопкой: зелёная — обычное действие, красная — то, чего уже
+// Цвет остаётся за кнопкой: синяя — обычное действие, красная — то, чего уже
 // не отменить, жёлтая — вмешательство хоста. Меняется только форма, поэтому
 // пары «верх–низ» заданы руками, а не выведены из одного цвета: у каждой пары
-// низ уходит в свой оттенок тени, как у зелёной — в чистую зелень.
+// низ уходит в свой оттенок тени, как у синей — в глубокую синь.
 
 // Обычное действие. Этой парой покрашена «Создай игру» — она и есть образец.
-$button-green-top: #6c920e;
-$button-green-bottom: #005213;
+$button-blue-top: #0e6c92;
+$button-blue-bottom: #002852;
 
 // Выход из игры, кик — то, что не отменить.
 $button-danger-top: #922e0e;
 $button-danger-bottom: #520500;
 
 // Бейдж текущего действия: ярче кнопок, потому что он не жмётся, а кричит.
-$button-lime-top: #a4c40d;
-$button-lime-bottom: #5c7a06;
+$button-lime-top: #0da0c4;
+$button-lime-bottom: #064a7a;
 
 // Вмешательство хоста в чужую судьбу: кик из лобби.
 $button-warning-top: #d8bb00;
 $button-warning-bottom: #5a4a00;
 
 // Не действие, а состояние: переключатель в меню стола.
-$button-muted-top: #3f4a2a;
-$button-muted-bottom: #1c2410;
+$button-muted-top: #2a3c4a;
+$button-muted-bottom: #101a24;
 
-@mixin button($top: $button-green-top, $bottom: $button-green-bottom, $radius: 5px) {
+@mixin button($top: $button-blue-top, $bottom: $button-blue-bottom, $radius: 5px) {
 	border: 0;
 	border-radius: $radius;
 	background: linear-gradient(180deg, $top 0%, $bottom 100%);
