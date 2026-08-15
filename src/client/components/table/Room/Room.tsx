@@ -249,8 +249,10 @@ const Room = observer(({controller, children}: IRoomProps) => {
 					texture={emojiTexture(vote ? voteApproveEmoji : voteRejectEmoji)}
 					anchor={0.5}
 					// У ближних мест жетон висит под кружком, у дальних — сбоку от него:
-					// под ними лежит трек миссий, а над ними — подпись действия.
-					x={point.x + (isFar ? badgeWidth * voteTokenSide : 0)}
+					// под ними лежит трек миссий, а над ними — подпись действия. Вбок
+					// он уходит НАРУЖУ от середины стола: у левой половины — влево, у
+					// правой — вправо, иначе жетон ложится на тот самый трек.
+					x={point.x + (isFar ? badgeWidth * voteTokenSide * (point.x < 0 ? -1 : 1) : 0)}
 					y={point.y + (isFar ? 0 : badgeHeight * voteTokenLift)}
 					width={size}
 					height={size}
