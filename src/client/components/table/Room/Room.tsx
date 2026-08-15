@@ -22,6 +22,8 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {AnimatedPixi} from 'client/components/table/pixiInjected';
 import {Container} from 'react-pixi-fiber';
 import Reticle from 'client/components/pixiPrimitives/Reticle';
+import Arrow from 'client/components/pixiPrimitives/Arrow';
+import {arrowPath} from 'client/helpers/arrowPath';
 import {tableCenterX, tableCenterY} from 'client/helpers/window';
 import type {IPlayersMap} from 'client/controllers/socketTypes';
 import type Player from 'client/models/Player';
@@ -137,13 +139,25 @@ const TurnReticle = ({x, y, badgeRadius, playerId}: ITurnReticleProps) => {
 	);
 };
 
-// TODO (фаза 3): стрелки от лидера к набранной команде. Геометрия пути для них
-// уже написана и проверена — см. client/helpers/arrowPath.
+// Стрелки от лидера к команде — белые, в цвет кольца команды на кружках: это
+// одно и то же высказывание стола, «вот кого он отправляет».
+const teamArrowColor = 0xF2F4F7;
+
+// Соседи ли по кругу: между ними никто не сидит. Только таких стрелка может
+// обходить дугой — под не соседями промежуток занят третьим игроком.
+const isNeighbourSeats = (playerList: string[], a: string, b: string): boolean => {
+	const count = playerList.length;
+	const from = playerList.indexOf(a);
+	const to = playerList.indexOf(b);
+	if (from < 0 || to < 0 || from === to || count < 2) return false;
+	const step = Math.abs(from - to);
+	return step === 1 || step === count - 1;
+};
 
 const Room = observer(({controller, children}: IRoomProps) => {
 
 	const { currentPlayer, currentPlayerId } = controller;
-	const { playersList, players, turnPlayerId } = controller;
+	const { playersList, players, turnPlayerId, round } = controller;
 	if (!currentPlayer || !currentPlayerId || !playersList) return null;
 	const {marks} = currentPlayer;
 
@@ -226,11 +240,34 @@ const Room = observer(({controller, children}: IRoomProps) => {
 				isConnected={player.isConnected}
 				isYou={player.isYou}
 				isDoor={state === EPlayerState.door}
+				isLeader={round ? round.leaderId === player.id : false}
+				isOnTeam={round ? round.team.includes(player.id) : false}
+				vote={round && round.revealedVotes ? round.revealedVotes[player.id] ?? null : null}
+				isSpy={player.isSpy}
 				onSelect={controller.selectPlayer}
 				onLongPress={controller.changePlayerMark}
 				mark={marks[player.id]}
 			/>
 		));
+	};
+
+	// Стрелки от лидера к набранной команде: состав виден вживую, ещё до того как
+	// лидер нажмёт «Готово». Себя лидер тоже может взять — стрелки в себя нет.
+	const teamArrows = () => {
+		if (!round) return null;
+		const from = positionOf(round.leaderId);
+		return map(round.team, (memberId) => {
+			if (memberId === round.leaderId) return null;
+			if (!players[memberId]) return null;
+			const path = arrowPath({
+				from,
+				to: positionOf(memberId),
+				isNeighbours: isNeighbourSeats(newPlayerList, round.leaderId, memberId),
+				badgeRadius,
+				iconRadius: 0,
+			});
+			return <Arrow key={memberId} {...path} arrowColor={teamArrowColor}/>;
+		});
 	};
 
 	// Дальняя половина стола — та, что уходит за столешницу: её жильцов рисуют
@@ -264,6 +301,7 @@ const Room = observer(({controller, children}: IRoomProps) => {
 			    без сдвига к центру. */}
 			{children}
 			<Container x={tableCenterX()} y={tableCenterY()}>
+				{teamArrows()}
 				{map(nearSeats, renderShadow)}
 				{map(nearSeats, renderBadge)}
 				{/* Прицел — поверх кружков: он обводит цель, а не лежит под ней.

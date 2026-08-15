@@ -9,6 +9,8 @@ import {tableSquash} from 'client/helpers/roomHelpers';
 import {sphereShadeTexture} from 'client/helpers/sphereShade';
 import {resources} from 'client/resources/resources';
 import {getPixiTexture} from 'client/components/table/pixiInjected';
+import Ring from 'client/components/pixiPrimitives/Ring';
+import {emojiTexture} from 'client/helpers/emojiTexture';
 import {EPlayerMark} from 'shared/enum/playerMarks';
 import {cardAspectRatio} from 'shared/constant/layout';
 
@@ -27,6 +29,14 @@ interface IPlayerBadgeProps {
 	onLongPress: ((playerId: string) => void) | null;
 	isYou: boolean;
 	isConnected: boolean;
+	// Лидер этого раунда: он набирает команду.
+	isLeader: boolean;
+	// Он в команде, которую сейчас обсуждают или которая ушла на дело.
+	isOnTeam: boolean;
+	// Как он проголосовал за последний состав. null — голоса ещё не вскрыты.
+	vote: boolean | null;
+	// Его роль, если смотрящему её положено знать. null — не положено.
+	isSpy: boolean | null;
 	mark: EPlayerMark | undefined;
 	style: {
 		width:number;
@@ -82,9 +92,6 @@ const PlatedNickname = ({text, style}: {text: string, style: PIXI.TextStyle}) =>
 		</Container>
 	);
 };
-
-// TODO (фаза 3): сюда вернётся «шкура» кружка под роль — раскрытие ролей на
-// развязке и маркер лидера (см. docs/PLAN.md).
 
 /**
  * Светотень поверх кружка — одна на всех: и на цветных бейджах, и на картах
@@ -271,13 +278,15 @@ export const BadgeBody = ({
 	);
 };
 
+// Картинки пометок пока «нечтовские»: свой набор значков придёт вместе с
+// визуальным стилем (см. открытые вопросы в docs/PLAN.md).
 const getMarkTexture = (mark: EPlayerMark | undefined): PIXI.Texture | undefined => {
 	switch (mark) {
 		case EPlayerMark.question:
 			return playerStatusQuestion;
-		case EPlayerMark.infected:
+		case EPlayerMark.suspect:
 			return playerStatusInfected;
-		case EPlayerMark.thing:
+		case EPlayerMark.spy:
 			return playerStatusThing;
 		case EPlayerMark.clear:
 			return playerStatusClear;
@@ -285,6 +294,23 @@ const getMarkTexture = (mark: EPlayerMark | undefined): PIXI.Texture | undefined
 			return undefined;
 	}
 }
+
+// Роль на кружке: шпион в красном кольце, сопротивление в зелёном. Кольцо видно
+// не всегда — только тому, кому эту роль положено знать (см. formatPlayer).
+const spyRingColor = 0xDD6A5D;
+const cleanRingColor = 0x5CA98D;
+// Кольцо команды: этих лидер отправляет на дело прямо сейчас.
+const teamRingColor = 0xF2F4F7;
+// Насколько кольца шире самого кружка.
+const roleRingShare = 1.04;
+const teamRingShare = 1.16;
+// Корона лидера сидит над кружком, наполовину заходя на него.
+const leaderEmoji = '\u{1F451}';
+const leaderIconShare = 0.42;
+// Жетон вскрытого голоса: под кружком, чтобы не спорить с пометкой на макушке.
+const voteIconShare = 0.34;
+const voteApproveEmoji = '\u{2705}';
+const voteRejectEmoji = '\u{274C}';
 
 const PlayerBadge = ({
 		nickname,
@@ -296,6 +322,10 @@ const PlayerBadge = ({
 		isDoor,
 		isYou,
 		isConnected,
+		isLeader,
+		isOnTeam,
+		vote,
+		isSpy,
 		style,
 		onLongPress = null,
 		mark,
@@ -348,6 +378,24 @@ const PlayerBadge = ({
 			{!isDoor && (
 				<React.Fragment>
 					<BadgeShade badgeWidth={bodyWidth} badgeHeight={style.height}/>
+					{/* Роль — тонким кольцом по краю кружка. Видно её не всем: сопротивление
+					    чужих ролей не знает, и кольца у него нет ни у кого, кроме себя. */}
+					{isSpy !== null && (
+						<Ring
+							r={bodyWidth * roleRingShare / 2}
+							thickness={Math.max(bodyWidth * 0.035, 2)}
+							color={isSpy ? spyRingColor : cleanRingColor}
+						/>
+					)}
+					{/* Кольцо команды — снаружи ролевого и толще: состав обсуждают
+					    прямо сейчас, и он должен читаться первым. */}
+					{isOnTeam && (
+						<Ring
+							r={bodyWidth * teamRingShare / 2}
+							thickness={Math.max(bodyWidth * 0.05, 3)}
+							color={teamRingColor}
+						/>
+					)}
 					{/* Ник — на подложке у всех: под ним теперь лицо игрока (а у кого-то
 					    ещё и карта статуса поверх), и по картинке белые буквы теряются.
 					    Ровного кружка, по которому они читались сами по себе, больше нет.
@@ -365,6 +413,29 @@ const PlayerBadge = ({
 							y={-style.height/2}
 							width={style.width * 0.3}
 							height={style.width * 0.3}
+						/>
+					)}
+					{/* Корона лидера — над кружком, сбоку от пометки: они делят макушку,
+					    но не садятся друг на друга. */}
+					{isLeader && (
+						<Sprite
+							texture={emojiTexture(leaderEmoji)}
+							anchor={0.5}
+							x={style.width * 0.3}
+							y={-style.height / 2}
+							width={style.width * leaderIconShare}
+							height={style.width * leaderIconShare}
+						/>
+					)}
+					{/* Вскрытый голос — под кружком: голоса в «Сопротивлении» открытые,
+					    и по ним играют весь остаток партии. */}
+					{vote !== null && (
+						<Sprite
+							texture={emojiTexture(vote ? voteApproveEmoji : voteRejectEmoji)}
+							anchor={0.5}
+							y={style.height * 0.42}
+							width={style.width * voteIconShare}
+							height={style.width * voteIconShare}
 						/>
 					)}
 				</React.Fragment>

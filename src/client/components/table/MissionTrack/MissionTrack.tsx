@@ -1,95 +1,124 @@
 import React from 'react';
-import './styles.scss';
 import {observer} from 'mobx-react-lite';
-import cn from 'classnames';
 import {map, range} from 'lodash';
+import * as PIXI from 'pixi.js';
+import {Container, Text} from 'react-pixi-fiber';
+import Circle from 'client/components/pixiPrimitives/Circle';
+import Ring from 'client/components/pixiPrimitives/Ring';
 import GameController from 'client/controllers/gameController';
 import {EGamePhase} from 'shared/enum/phase';
+import {deckCardWidth, tableCardPoint} from 'client/helpers/roomHelpers';
+import {tableCenterX, tableCenterY} from 'client/helpers/window';
 
-// Табло партии: трек миссий, счётчик отклонений, состав команды и своя роль.
-//
-// Пока это DOM поверх стола, а не часть самого стола: играть без него нельзя, а
-// рисовать его в PixiJS — работа фазы 3. Всё, что он показывает, приходит одним
-// полем `round` в обновлении (см. formatRound).
+// Трек миссий лежит там же, где в «Нечто» лежала колода, — посреди столешницы.
+// Это главный элемент стола: он же счётчик раундов, он же табло счёта, он же
+// напоминание про особое правило четвёртой миссии.
 
 interface IMissionTrackProps {
 	controller: GameController;
 }
 
-const PHASE_TEXT: Record<EGamePhase, string> = {
-	[EGamePhase.teamBuilding]: 'Набор команды',
-	[EGamePhase.voting]: 'Голосование',
-	[EGamePhase.mission]: 'Миссия идёт',
-	[EGamePhase.over]: 'Партия окончена',
-};
+const okColor = 0x5CA98D;
+const failColor = 0xDD6A5D;
+const idleColor = 0x4A4F57;
+const currentColor = 0xF2F4F7;
+const warnColor = 0xC39B4A;
+
+// Размеры — в долях ширины карты, которая лежала бы на этом столе: так трек
+// растёт и сжимается вместе со столом, а не живёт в своих пикселях.
+const nodeRadiusShare = 0.17;
+const nodeGapShare = 0.44;
+const rejectDotShare = 0.035;
+const rejectGapShare = 0.09;
+
+const captionStyle = (size: number) => new PIXI.TextStyle({
+	fontFamily: 'Arial',
+	fontSize: size,
+	fontWeight: 'bold',
+	fill: 0xC8CDD4,
+	letterSpacing: 1,
+});
+
+const nodeStyle = (size: number, color: number) => new PIXI.TextStyle({
+	fontFamily: 'Arial',
+	fontSize: size,
+	fontWeight: 'bold',
+	fill: color,
+});
 
 const MissionTrack = observer(({controller}: IMissionTrackProps) => {
 	const round = controller.round;
 	if (!round) return null;
-	const {players} = controller;
-	const nameOf = (id: string) => players[id]?.nickname ?? '?';
-	const isSpy = controller.currentPlayer?.isSpy;
+	const playersCount = controller.playersList.length;
+	if (!playersCount) return null;
+
+	const unit = deckCardWidth(playersCount);
+	const nodeRadius = unit * nodeRadiusShare;
+	const gap = unit * nodeGapShare;
+	const point = tableCardPoint(playersCount);
+	const width = gap * (round.missionResults.length - 1);
+
+	const colorOf = (result: boolean | null, isCurrent: boolean): number => {
+		if (result === true) return okColor;
+		if (result === false) return failColor;
+		return isCurrent ? currentColor : idleColor;
+	};
+
+	const caption = round.phase === EGamePhase.over
+		? 'ПАРТИЯ ОКОНЧЕНА'
+		: `МИССИЯ ${round.missionIndex + 1} · ${round.teamSize} ЧЕЛ.${round.failsNeeded > 1 ? ' · НУЖНО 2 ПРОВАЛА' : ''}`;
 
 	return (
-		<div className={'missionTrack'}>
-			<div className={'missionTrackRow'}>
-				{map(round.missionResults, (result, index) => {
-					const isCurrent = index === round.missionIndex && round.phase !== EGamePhase.over;
+		<Container x={tableCenterX() + point.x} y={tableCenterY() + point.y}>
+			{map(round.missionResults, (result, index) => {
+				const isCurrent = index === round.missionIndex && round.phase !== EGamePhase.over;
+				const color = colorOf(result, isCurrent);
+				const x = index * gap - width / 2;
+				return (
+					<Container key={index} x={x}>
+						{/* Сыгранная миссия залита своим цветом, будущая — только обведена.
+						    Текущая — самым ярким кольцом, потолще. */}
+						<Ring
+							r={nodeRadius}
+							thickness={isCurrent ? 3 : 2}
+							color={color}
+							fillAlpha={result === null ? 0.14 : 0.3}
+						/>
+						<Text
+							text={result === true ? '✓' : result === false ? '✕' : String(index + 1)}
+							anchor={0.5}
+							style={nodeStyle(nodeRadius * 1.1, color)}
+						/>
+					</Container>
+				);
+			})}
+
+			<Text
+				text={caption}
+				anchor={0.5}
+				y={-nodeRadius * 2.1}
+				style={captionStyle(Math.max(nodeRadius * 0.52, 9))}
+			/>
+
+			{/* Счётчик отклонений: пятое деление красное — на нём партия кончается. */}
+			<Container y={nodeRadius * 2.2}>
+				{map(range(round.maxRejects), (index) => {
+					const isLast = index === round.maxRejects - 1;
+					const isOn = index < round.rejectCount;
+					const color = isLast ? failColor : warnColor;
+					const dotGap = unit * rejectGapShare;
 					return (
-						<div
+						<Circle
 							key={index}
-							className={cn('missionNode', {
-								ok: result === true,
-								fail: result === false,
-								current: isCurrent,
-							})}
-						>
-							{result === true ? '✓' : result === false ? '✕' : index + 1}
-						</div>
+							xCoord={index * dotGap - (dotGap * (round.maxRejects - 1)) / 2}
+							r={unit * rejectDotShare}
+							color={color}
+							alpha={isOn ? 1 : 0.22}
+						/>
 					);
 				})}
-			</div>
-
-			<div className={'missionTrackLine'}>
-				<span className={'phase'}>{PHASE_TEXT[round.phase]}</span>
-				{/* Что требует текущая миссия. У сыгранных это уже ничего не решает, а
-				    у будущих зависит от того, доживёт ли до них стол в этом составе. */}
-				{round.phase !== EGamePhase.over && (
-					<span>
-						Команда: <b>{round.teamSize}</b>
-						{round.failsNeeded > 1 && <span className={'twoFails'}> · нужно 2 провала</span>}
-					</span>
-				)}
-				<span className={'rejects'}>
-					Отклонений:
-					{map(range(round.maxRejects), (i) => (
-						<i key={i} className={cn('rejectDot', {on: i < round.rejectCount, last: i === round.maxRejects - 1})}/>
-					))}
-				</span>
-			</div>
-
-			<div className={'missionTrackLine'}>
-				<span>Лидер: <b>{nameOf(round.leaderId)}</b></span>
-				{round.team.length > 0 && <span>Команда: <b>{round.team.map(nameOf).join(', ')}</b></span>}
-			</div>
-
-			{/* Голоса в «Сопротивлении» открытые — по ним и играют. */}
-			{round.revealedVotes && (
-				<div className={'missionTrackLine votes'}>
-					{map(round.revealedVotes, (isApproved, playerId) => (
-						<span key={playerId} className={cn('vote', {approve: isApproved})}>
-							{nameOf(playerId)} {isApproved ? '✓' : '✕'}
-						</span>
-					))}
-				</div>
-			)}
-
-			{isSpy !== null && isSpy !== undefined && (
-				<div className={cn('missionTrackRole', {spy: isSpy})}>
-					{isSpy ? 'Ты шпион' : 'Ты в сопротивлении'}
-				</div>
-			)}
-		</div>
+			</Container>
+		</Container>
 	);
 });
 
