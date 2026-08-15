@@ -1,10 +1,12 @@
 import {filter, includes, keys, values} from 'lodash';
+import {shuffle} from 'server/helpers/util';
+import {formatTimerNotification} from 'server/formatters/formatOutgoingEvents';
 import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
 import {EGamePhase} from 'shared/enum/phase';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {EGameLogType} from 'shared/enum/gameLogType';
-import {askDecision} from 'server/helpers/askDecision';
+import {askDecision, decisionTimeout} from 'server/helpers/askDecision';
 import {failsNeeded, MAX_REJECTS, MISSIONS_COUNT, MISSIONS_TO_WIN, teamSize} from 'shared/constant/resistance';
 
 /**
@@ -29,6 +31,44 @@ export const ACTION = {
 // Сколько лидер думает над составом. Больше, чем над голосом: набрать пятерых —
 // это и есть то самое обсуждение, ради которого играют (см. docs/PRD.md, FR-4).
 const TEAM_DECISION_SECONDS = 180;
+
+// Сколько ждём состава от молчащего лидера, прежде чем набрать за него. Это
+// страховка против ушедшего, а не ограничение на обсуждение (FR-11): пока лидер
+// жив и тыкает в игроков, отсчёт заводится заново.
+const TEAM_PICK_TIMEOUT_MS = TEAM_DECISION_SECONDS * 1000;
+
+// По одному таймеру на игру: новый вопрос лидеру отменяет предыдущий.
+const teamTimers = new WeakMap<Game, ReturnType<typeof setTimeout>>();
+
+const clearTeamTimer = (game: Game): void => {
+	const timer = teamTimers.get(game);
+	if (!timer) return;
+	clearTimeout(timer);
+	teamTimers.delete(game);
+};
+
+// Лидер молчит — добираем состав случайными игроками и отправляем его на
+// голосование. Стол сам решит, годится ли такая команда.
+const armTeamTimer = (game: Game): void => {
+	clearTeamTimer(game);
+	const timer = setTimeout(() => {
+		teamTimers.delete(game);
+		if (!game.gameInProcess) return;
+		if (game.round.phase !== EGamePhase.teamBuilding) return;
+		try {
+			const missing = currentTeamSize(game) - game.round.team.length;
+			const candidates = filter(seatedIds(game), (id) => !includes(game.round.team, id));
+			game.round.team.push(...shuffle(candidates, game.rng).slice(0, missing));
+			game.addLog(`${leaderOf(game).nickname} молчит — команду добрали за него`, EGameLogType.system);
+			leaderOf(game).currentAction = null;
+			beginVoting(game);
+		} catch (e) {
+			console.error('[round] team timeout error:', e);
+		}
+	}, TEAM_PICK_TIMEOUT_MS);
+	timer.unref();
+	teamTimers.set(game, timer);
+};
 
 const seatedIds = (game: Game): string[] => game.seatedPlayers().map((p) => p.id);
 
@@ -77,6 +117,18 @@ const askTeamMember = (game: Game): void => {
 			playersToSelect: filter(seatedIds(game), (id) => !includes(round.team, id)),
 		},
 	});
+	awaitPlayers(game, [leader], `${leader.nickname} набирает команду`, TEAM_DECISION_SECONDS);
+	armTeamTimer(game);
+};
+
+// Кого стол сейчас ждёт. Одним сообщением на всю фазу: в «Сопротивлении»
+// спрашивают сразу многих, и таймер должен показывать их всех, а не последнего.
+const awaitPlayers = (game: Game, players: Player[], text: string, seconds: number): void => {
+	game.notifyAllPlayers(formatTimerNotification({
+		text,
+		seconds,
+		playerIds: players.map((p) => p.id),
+	}));
 };
 
 // Состав набран — спрашиваем лидера, отправлять ли его. Кнопка по умолчанию (а
@@ -120,8 +172,11 @@ export const onPlayerSelect = (game: Game, player: Player, selectedPlayerId: str
 
 const beginVoting = (game: Game): void => {
 	const round = game.round;
+	clearTeamTimer(game);
 	round.phase = EGamePhase.voting;
 	round.votes = {};
+	// Прошлое вскрытие со стола убираем: голосуют заново.
+	round.revealedVotes = null;
 	game.addLog(`Голосуем за команду: ${nicknamesOf(game, round.team)}`, EGameLogType.turn);
 	// Голосуют все и одновременно — включая тех, кто идёт на дело сам.
 	// «Против» стоит последним нарочно: сервер жмёт за молчащего последнюю
@@ -137,6 +192,7 @@ const beginVoting = (game: Game): void => {
 			],
 		});
 	});
+	awaitPlayers(game, game.seatedPlayers(), 'Стол голосует', decisionTimeout.seconds);
 	game.updateGame();
 };
 
@@ -144,7 +200,12 @@ const resolveVotes = (game: Game): void => {
 	const round = game.round;
 	const total = seatedIds(game).length;
 	const approvals = filter(values(round.votes), (isApproved) => isApproved).length;
-	game.addLog(`Голоса: ${approvals} за, ${total - approvals} против`, EGameLogType.info);
+	// Голоса в «Сопротивлении» открытые — по ним и играют, поэтому вскрываем
+	// поимённо: и на стол (revealedVotes), и в лог.
+	round.revealedVotes = {...round.votes};
+	const voted = (isApproved: boolean) =>
+		nicknamesOf(game, filter(keys(round.votes), (id) => round.votes[id] === isApproved)) || '—';
+	game.addLog(`За: ${voted(true)}. Против: ${voted(false)}`, EGameLogType.info);
 
 	// Строгое большинство: ничья — это отклонение (FR-6).
 	if (approvals * 2 > total) {
@@ -190,6 +251,12 @@ const beginMission = (game: Game): void => {
 			menu,
 		});
 	});
+	awaitPlayers(
+		game,
+		round.team.map((id) => game.players[id]).filter((p): p is Player => !!p),
+		'Команда на задании',
+		decisionTimeout.seconds,
+	);
 	game.updateGame();
 };
 
@@ -298,6 +365,7 @@ const passLeader = (game: Game): void => {
 };
 
 const endMatch = (game: Game, {isSpiesWin, message}: {isSpiesWin: boolean, message: string}): void => {
+	clearTeamTimer(game);
 	game.round.phase = EGamePhase.over;
 	// Роли открываются всем: партия кончилась, и разбор без них невозможен.
 	game.round.isRolesRevealed = true;
@@ -314,6 +382,7 @@ export const createRoundState = (leaderId: string) => ({
 	team: [] as string[],
 	votes: {} as Record<string, boolean>,
 	missionCards: {} as Record<string, boolean>,
+	revealedVotes: null,
 	lastFailCount: null,
 	isRolesRevealed: false,
 });

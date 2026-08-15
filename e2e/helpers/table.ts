@@ -6,7 +6,7 @@ import type {Browser, Page} from '@playwright/test';
 // обработчики канваса — клиент выставляет его как `window.__resistance` (см.
 // GameController), — и читает обратно его наблюдаемое состояние.
 //
-// TODO (фаза 1): вернуть сюда `arrange` — раскладку сценария из известного
+// TODO (фаза 4): вернуть сюда `arrange` — раскладку сценария из известного
 // состояния (роли, фаза раунда). Серверная её половина ждёт в e2eSetup.ts.
 
 export interface GcPlayer {
@@ -29,6 +29,19 @@ export interface GcNotification {
 	isSpiesWin?: boolean;
 }
 
+export interface GcRound {
+	phase: string;
+	missionIndex: number;
+	missionResults: (boolean | null)[];
+	leaderId: string;
+	rejectCount: number;
+	team: string[];
+	teamSize: number;
+	answeredIds: string[];
+	revealedVotes: Record<string, boolean> | null;
+	isRolesRevealed: boolean;
+}
+
 export interface GcSnapshot {
 	currentPlayerId: string | null;
 	players: Record<string, GcPlayer>;
@@ -37,6 +50,7 @@ export interface GcSnapshot {
 	currentAction: GcNotification | null;
 	notifications: GcNotification[];
 	gameLog: string[];
+	round: GcRound | null;
 }
 
 // Structural shape of `window.__resistance` (the GameController) — only the
@@ -50,6 +64,7 @@ interface GcController {
 	currentAction: GcNotification | null;
 	notifications: GcNotification[];
 	gameLog: {text: string}[];
+	round: GcRound | null;
 	selectPlayer(playerId: string): void;
 	actionDecision(action: string): void;
 	hidENotificationAction(): void;
@@ -143,8 +158,28 @@ export class GameSession {
 				notifications: plain(gc.notifications),
 				// Спекам нужен только текст строки — тип лога нужен UI, а не проверкам.
 				gameLog: plain(gc.gameLog).map((entry) => entry.text),
+				round: plain(gc.round),
 			};
 		});
+	}
+
+	/** Ник игрока по его серверному id. */
+	async nickOf(playerId: string): Promise<string> {
+		const snap = await this.snapshot(this.liveNick());
+		const nickname = snap.players[playerId]?.nickname;
+		if (!nickname) throw new Error(`Игрок ${playerId} не найден в состоянии`);
+		return nickname;
+	}
+
+	/** Кому сейчас задан вопрос такого типа. */
+	async whoIsAsked(type: string): Promise<string[]> {
+		const asked: string[] = [];
+		for (const nick of this.nicks) {
+			if (this.offline.has(nick)) continue;
+			const snap = await this.snapshot(nick);
+			if (snap.currentAction?.type === type) asked.push(nick);
+		}
+		return asked;
 	}
 
 	// Resolve a nickname to its server player id (from any player's view).

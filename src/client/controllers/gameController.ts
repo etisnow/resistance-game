@@ -9,7 +9,7 @@ import {EPlayerActionType} from 'shared/enum/playerActions';
 import fscreen from 'fscreen';
 import {each, merge} from "lodash";
 import {EAsyncState} from 'shared/enum/async';
-import type {IGameUpdatePayload, IPlayersMap} from 'client/controllers/socketTypes';
+import type {IGameUpdatePayload, IPlayersMap, IRoundPayload} from 'client/controllers/socketTypes';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {playGameEnd, startMusic, stopMusic} from 'client/helpers/sounds';
 import type {IGameLogEntry} from 'shared/interfaces/gameLog';
@@ -60,6 +60,9 @@ export default class GameController {
 	// абсолютный, у всех одинаковый (см. roomPlayerOrder).
 	@observable isFirstPersonTable: boolean = loadFirstPersonTable();
 	@observable isFullScreen: boolean = false;
+	// Состояние партии: фаза, счёт миссий, лидер, команда, счётчик отклонений.
+	// До первого обновления его нет — стол в это время ещё в лобби.
+	@observable round: IRoundPayload | null = null;
 	@observable currentAction: INotificationAction | null = null;
 	// Секунды до автоответа на текущий вопрос: их показывает кнопка по умолчанию
 	// (см. startDecisionCountdown). null — отсчитывать нечего.
@@ -213,7 +216,7 @@ export default class GameController {
 
 	// Одним действием: без него mobx отдаёт реакциям каждое присваивание по
 	// отдельности, и компонент успевает отрисоваться наполовину обновлённым.
-	@action updateGame = ({players, playersList, turnPlayerId, gameLog, currentAction, state, currentPlayer, hostPlayerId, isClockwise}: IGameUpdatePayload) => {
+	@action updateGame = ({players, playersList, turnPlayerId, gameLog, currentAction, state, currentPlayer, hostPlayerId, isClockwise, round}: IGameUpdatePayload) => {
 		this.updatePlayers(players);
 		this.hostPlayerId = hostPlayerId;
 		this.playersList = playersList;
@@ -221,6 +224,7 @@ export default class GameController {
 		this.turnPlayerId = turnPlayerId;
 		this.currentPlayerId = currentPlayer.id;
 		this.currentAction = currentAction;
+		this.round = round;
 		// Вопрос закрыт (ответили сами или за нас) — отсчитывать больше нечего.
 		if (!currentAction || currentAction.type !== ENotificationAction.actionDecision) this.stopDecisionCountdown();
 		// Партия началась — тема замолкает. Обычно её снимает событие начала игры
@@ -250,6 +254,7 @@ export default class GameController {
 		this.currentAction = null;
 		this.stopDecisionCountdown();
 		this.playersToSelect = [];
+		this.round = null;
 		this.state = EGameState.lobby;
 		this.root.launcherController.state = EAsyncState.idle;
 		this.root.state = EAppState.launcher;

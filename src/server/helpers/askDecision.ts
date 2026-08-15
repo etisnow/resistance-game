@@ -3,7 +3,6 @@ import {ENotificationAction} from 'shared/enum/notifications';
 import {
 	formatPlayerNotification,
 	formatSoundNotification,
-	formatTimerNotification,
 } from 'server/formatters/formatOutgoingEvents';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import {gameServer} from 'server/server/GameServer';
@@ -56,12 +55,9 @@ export const askDecision = ({asker, decider, text, menu, seconds = decisionTimeo
 
 	if (!fallback) return;
 	decider.notify(formatSoundNotification());
-	// Отсчёт видят все: стол должен понимать, кого он ждёт (см. ActionTimer).
-	decider.game.notifyAllPlayers(formatTimerNotification({
-		text: `${decider.nickname} принимает решение`,
-		seconds,
-		playerId: decider.id,
-	}));
+	// Отсчёт на столе заводит не этот вызов, а сама фаза раунда: в
+	// «Сопротивлении» спрашивают сразу всех, и пять вопросов подряд заводили бы
+	// пять таймеров, из которых стол показал бы последний (см. round.ts).
 
 	const timer = setTimeout(() => {
 		timers.delete(decider);

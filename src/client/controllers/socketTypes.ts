@@ -3,11 +3,31 @@
 // across the client/server boundary). Keep these in sync with
 // server/formatters/formatOutgoingEvents.ts.
 import type { EGameState } from 'shared/enum/common';
+import type { EGamePhase } from 'shared/enum/phase';
 import type INotificationAction from 'shared/interfaces/notification';
 import type { IGameLogEntry } from 'shared/interfaces/gameLog';
 import type Player from 'client/models/Player';
 
 export type IPlayersMap = { [key: string]: Player | null };
+
+// Состояние партии, как его видит этот игрок. Тайного здесь нет: голоса приходят
+// только вскрытыми, карты миссии — только числом провалов (см. formatRound).
+export interface IRoundPayload {
+	phase: EGamePhase;
+	missionIndex: number;
+	missionResults: (boolean | null)[];
+	leaderId: string;
+	rejectCount: number;
+	maxRejects: number;
+	team: string[];
+	teamSize: number;
+	failsNeeded: number;
+	/** Кто уже ответил в текущей фазе — без содержания ответа. */
+	answeredIds: string[];
+	revealedVotes: Record<string, boolean> | null;
+	lastFailCount: number | null;
+	isRolesRevealed: boolean;
+}
 
 export interface IGameUpdatePayload {
 	players: IPlayersMap;
@@ -19,6 +39,7 @@ export interface IGameUpdatePayload {
 	currentPlayer: Player;
 	hostPlayerId: string;
 	isClockwise: boolean;
+	round: IRoundPayload;
 }
 
 export interface IGameConnectionSuccessPayload {
@@ -46,5 +67,5 @@ export interface ILobbyUpdatePayload {
 export interface ITimerPayload {
 	text: string;
 	seconds: number;
-	playerId: string;
+	playerIds: string[];
 }

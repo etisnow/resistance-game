@@ -18,6 +18,8 @@ export default class Player {
 	@observable isThing: boolean = false;
 	@observable quarantine: number = 0;
 	@observable isYou: boolean = false;
+	// Роль. null — «не твоё дело»: сопротивление чужих ролей не видит до развязки.
+	@observable isSpy: boolean | null = null;
 	@observable isReady: boolean = false;
 	@observable isConnected: boolean = true;
 	@observable marks: {[key:string]: EPlayerMark} = {};
