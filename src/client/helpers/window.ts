@@ -1,5 +1,5 @@
 import {clamp} from 'lodash';
-import {cardAspectRatio, cardWidthPercent} from 'shared/constant/cards';
+import {cardAspectRatio, cardWidthPercent} from 'shared/constant/layout';
 import {viewport} from 'client/helpers/viewport';
 
 // Размер сцены, а не окна: канвас живёт в своём контейнере и следит за ним

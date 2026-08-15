@@ -1,5 +1,5 @@
 import {test, expect, Browser} from '@playwright/test';
-import {GameSession, startGame, newPlayer} from './helpers/nechto';
+import {GameSession, startGame, newPlayer} from './helpers/table';
 
 // Правила сессии игрока (ник = человек):
 //  • у одного человека не может быть двух комнат — повторное «Создай игру»
@@ -50,10 +50,10 @@ test.describe.serial('Сессия игрока: одна игра на чело
 		await joinButton.click();
 		await expect(newBob.locator('canvas')).toBeVisible({timeout: 20_000});
 		await newBob.waitForFunction(() => {
-			const gc = (window as unknown as {__nechto?: {currentPlayerId: string | null}}).__nechto;
+			const gc = (window as unknown as {__resistance?: {currentPlayerId: string | null}}).__resistance;
 			return !!gc && !!gc.currentPlayerId;
 		});
-		expect(await newBob.evaluate(() => (window as unknown as {__nechto: {currentPlayerId: string | null}}).__nechto.currentPlayerId)).toBe(bobId);
+		expect(await newBob.evaluate(() => (window as unknown as {__resistance: {currentPlayerId: string | null}}).__resistance.currentPlayerId)).toBe(bobId);
 
 		// Старая вкладка Bob вернулась в лаунчер, а для остальных Bob всё это
 		// время онлайн — «залипшего» офлайна после замещения быть не должно.

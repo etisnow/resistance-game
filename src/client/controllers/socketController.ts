@@ -77,8 +77,6 @@ function handleGlobalEvents(socket: Socket, root: RootController) {
 		switch (notification.type) {
 			case ENotificationAction.info:
 			case ENotificationAction.actionDecision:
-			case ENotificationAction.okayCard:
-			case ENotificationAction.selectCards:
 				root.gameController.addNotification(notification);
 				break;
 			case ENotificationAction.gameEnd:

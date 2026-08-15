@@ -4,13 +4,9 @@ export enum EPlayerState {
 	door = 'door',
 }
 
+// В «Сопротивлении» игрок либо чего-то ждёт, либо от него ждут ответа. Никто не
+// выбывает, поэтому «мёртвых» состояний тут нет.
 export enum ETurnState {
 	idle = 'idle',
-	inCardPick = 'inCardPick',
-	inCardAction = 'inCardAction',
-	inCardActionProgress = 'inCardActionProgress',
-
-	inOffenseTrade = 'inOffenseTrade',
-	inDefenseTrade = 'inDefenseTrade',
-	dead = 'dead',
+	waiting = 'waiting',
 }

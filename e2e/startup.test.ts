@@ -31,7 +31,10 @@ test("ассеты грузятся до лобби, экран загрузки
     const images = entries.filter((e) => /\.(png|jpg|svg)(\?|$)/.test(e.name));
     return { total: images.length, empty: images.filter((e) => e.decodedBodySize === 0 && e.transferSize === 0).length };
   });
-  expect(pending.total).toBeGreaterThan(30);
+  // Порог — «весь набор, а не пара штук»: столько картинок в resources.ts за
+  // вычетом запаса. Проверка не про точное число, а про то, что прелоад дошёл
+  // до конца; с новыми ассетами (фаза 3) порог поднимется.
+  expect(pending.total).toBeGreaterThan(12);
   expect(pending.empty).toBe(0);
 });
 

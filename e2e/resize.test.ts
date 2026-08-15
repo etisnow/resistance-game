@@ -5,7 +5,7 @@ import {test, expect, Browser, Page} from '@playwright/test';
 // дальше CSS растягивал его — сцена ехала с чужим соотношением сторон.
 
 interface GcWindow {
-	__nechto?: {playersList: string[]};
+	__resistance?: {playersList: string[]};
 	__glContexts?: number;
 }
 
@@ -48,7 +48,7 @@ const startBotGame = async (browser: Browser, viewport: {width: number; height: 
 	await page.getByRole('button', {name: 'Создай игру'}).click();
 	await expect(page.locator('canvas')).toBeVisible({timeout: 20_000});
 	await page.waitForFunction(() => {
-		const gc = (window as unknown as GcWindow).__nechto;
+		const gc = (window as unknown as GcWindow).__resistance;
 		return !!gc && gc.playersList.length === 5;
 	});
 	return {context, page};

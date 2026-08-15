@@ -55,16 +55,8 @@ Docker (client = vite, server = bun, tunnel = cloudflared):
   prod <cmd>     Prod stack via docker-compose.prod.yml
                    prod up | prod down | prod build | prod logs
 
-Аналитика (отдельный пакет analytics/ — свой сервер, витрина и база):
-  analytics up|down|logs        Аналитические сервисы в докере
-  analytics server              Бекенд аналитики (bun, :3200) локально
-  analytics web                 Витрина (vite, :5174) локально
-  analytics build               Собрать витрину в analytics/dist/web
-  analytics migrate             Накатить миграции на базу
-  analytics seed                Заполнить базу демо-партиями
-  analytics generate            Сгенерировать миграции по схеме (drizzle-kit)
-  analytics typecheck           tsc --noEmit по пакету аналитики
-  analytics test                Тесты аналитики
+Аналитика (пакет analytics/):
+  analytics <cmd>               ЗАМОРОЖЕН до фазы 4 — см. docs/PLAN.md
 
 Local (no Docker):
   install        bun install + Playwright chromium
@@ -95,25 +87,19 @@ case "$cmd" in
     : "${CLOUDFLARE_TUNNEL_TOKEN:?set in .env (Cloudflare dashboard -> Tunnels -> connector token)}"
     : "${CLIENT_HOST:?set in .env}" "${API_HOST:?set in .env}"
     [ -x node_modules/.bin/vite ] || bun install
-    # Профиль analytics включён: одной кнопкой поднимается и игра, и
-    # исследовательский центр (без него статистика просто не собиралась бы).
-    $DCA up -d --remove-orphans "$@"
+    # Только игра: аналитический центр заморожен до фазы 4 (см. ниже).
+    $DC up -d --remove-orphans "$@"
     echo
     echo "Waiting for services:"
     rc=0
     wait_http "http://localhost:${PORT}/socket.io/?EIO=4&transport=polling" server 60 || rc=1
     wait_http "http://localhost:${CLIENT_PORT}" client 60 || rc=1
-    wait_http "http://localhost:${ANALYTICS_PORT}/healthz" stats-api 60 || rc=1
-    wait_http "http://localhost:${ANALYTICS_WEB_PORT}" stats 60 || rc=1
     wait_http "https://${CLIENT_HOST}" public 90 || rc=1
-    [ -z "${ANALYTICS_HOST_PUBLIC:-}" ] || wait_http "https://${ANALYTICS_HOST_PUBLIC}" pub-stats 90 || rc=1
     echo
     echo "Up:"
     echo "  local   : http://localhost:${CLIENT_PORT}"
     echo "  client  : https://${CLIENT_HOST}"
     echo "  api     : https://${API_HOST}"
-    echo "  stats   : http://localhost:${ANALYTICS_WEB_PORT}${ANALYTICS_HOST_PUBLIC:+  |  https://${ANALYTICS_HOST_PUBLIC}}"
-    echo "  stats-api: http://localhost:${ANALYTICS_PORT}${ANALYTICS_API_HOST:+  |  https://${ANALYTICS_API_HOST}}"
     [ "$rc" -eq 0 ] || echo "  something did not come up — ./run logs"
     exit "$rc" ;;
   # ---- Docker (dev) ----
@@ -135,7 +121,16 @@ case "$cmd" in
       *)     exec $DCP "$sub" "$@" ;;
     esac ;;
   # ---- Аналитика ----
+  # Пакет analytics/ заморожен: он весь построен на событиях «Нечто» (заражения,
+  # сожжения, карты), а игровой сервер их больше не шлёт и общего контракта
+  # больше нет — по нему пакет и не собирается. Переделывать его под голоса,
+  # составы команд и исходы миссий или выбросить — решается в фазе 4
+  # (см. docs/PLAN.md, открытые вопросы). До тех пор команда честно об этом
+  # говорит, а не падает грудой ошибок компиляции.
   analytics|stats)
+    echo "Аналитический центр заморожен до фазы 4 — см. docs/PLAN.md." >&2
+    echo "Чтобы всё же его запустить, убери этот выход из ./run." >&2
+    exit 1
     sub="${1:-help}"; shift || true
     # Сервисы аналитики живут в профиле, поэтому называем их явно: обычный
     # `./run up` их не трогает, а `./run analytics down` не гасит игру.

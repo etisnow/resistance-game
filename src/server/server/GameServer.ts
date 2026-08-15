@@ -3,39 +3,24 @@ import {Player} from "server/models/Player";
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import type {IGameSocket, IServerEvent, ISocketServer} from 'shared/interfaces/socket';
 import {formatCommonError, formatLobbyState, formatPlayerNotification} from 'server/formatters/formatOutgoingEvents';
-import {
-  isPlayerCanActCard, isPlayerCanCancel,
-  isPlayerCanDiscardCard,
-  isPlayerCanSelectCards,
-  isPlayerCanSelectDesicion,
-  isPlayerCanSelectPlayer,
-  isPlayerCanTradeCard,
-} from 'server/helpers/validators';
 import {debugLog} from 'server/helpers/util';
 import {each, find, map, some} from 'lodash';
 import {EGameState} from 'shared/enum/common';
 import {gameHasBots, scheduleBots} from 'server/helpers/bot';
-import {getCard, getPanic} from 'shared/constant/cards';
-import {EEventID, EPanicID} from 'shared/enum/cards';
 import {EGameLogType} from 'shared/enum/gameLogType';
-import {submitMatch} from 'server/analytics/track';
-import {EAnalyticsSource} from 'shared/analytics/contract';
 
 export interface IBotGameOptions {
   withBots?: boolean;
   seed?: number;
-  firstPanic?: string;
-  hand?: string[];
   botCount?: number;
 }
 
 // Сколько ботов сажать за стол в дев-режиме, если ?botCount= не задан.
-const DEFAULT_BOT_COUNT = 5;
-// Колода собирается под 4..12 игроков (карты фильтруются по playersCount, а
-// бейджей на столе 11 + человек), поэтому число ботов зажимаем в эти рамки:
-// меньше трёх — колода почти пустая, больше одиннадцати — за столом некому сесть.
-const MIN_BOT_COUNT = 3;
-const MAX_BOT_COUNT = 11;
+const DEFAULT_BOT_COUNT = 4;
+// «Сопротивление» играется впятером-вдесятером (FR-1), а человек за столом уже
+// сидит один — отсюда и рамки для числа ботов.
+const MIN_BOT_COUNT = 4;
+const MAX_BOT_COUNT = 9;
 
 // Значение приходит из URL, поэтому нормализуем: мусор и дроби превращаем в
 // дефолт/целое, а всё остальное зажимаем в поддерживаемый диапазон.
@@ -56,10 +41,6 @@ class GameServer {
   sockets: Map<IGameSocket, Player | null> = new Map();
   isMock: boolean = false;
   ignoreChecks: boolean = false;
-  // Чем помечать партии этого сервера в аналитике. Нужен тестовым стендам,
-  // которые играют в РЕАЛЬНОМ режиме (фаззер): по isMock их не отличить от
-  // живой игры, а их партиям в публичной статистике делать нечего.
-  analyticsSource: EAnalyticsSource | null = null;
   io: ISocketServer | null = null;
   initialize(io: ISocketServer) {
     this.io = io;
@@ -157,9 +138,8 @@ class GameServer {
   }
 
   // Dev mode (?withBots=true): fill the game with emulated opponents, start
-  // immediately, optionally pin the seed and rig the human's hand / top panic,
-  // then let the bot scheduler take over. Число ботов — ?botCount= (по умолчанию
-  // DEFAULT_BOT_COUNT).
+  // immediately, optionally pin the seed, then let the bot scheduler take over.
+  // Число ботов — ?botCount= (по умолчанию DEFAULT_BOT_COUNT).
   private setupBotGame({ game, host, options }: { game: Game; host: Player; options: IBotGameOptions }) {
     if (typeof options.seed === 'number') game.reseed(options.seed);
 
@@ -172,23 +152,8 @@ class GameServer {
     }
 
     game.start();
-
-    // Rigging the hand breaks the dealt card-conservation invariant, so relax the
-    // checks for this dev game.
-    if (options.hand && options.hand.length > 0) {
-      this.ignoreChecks = true;
-      host.hand = options.hand
-        .filter((id): id is EEventID => id !== EEventID.thing && Object.values(EEventID).includes(id as EEventID))
-        .map((id) => getCard(id as EEventID));
-      host.isInfected = host.hand.some((c) => c.id === EEventID.infect);
-    }
-    if (options.firstPanic && Object.values(EPanicID).includes(options.firstPanic as EPanicID)) {
-      game.deck.unshift(getPanic(options.firstPanic as EPanicID));
-    }
-
-    // Let the human play first (so a rigged hand / first-drawn panic are
-    // immediately in their hands), then hand off to the bot scheduler.
-    game.changeTurn(host.id);
+    // Человек ходит первым, дальше расписание берут на себя боты.
+    game.turnPlayerId = host.id;
     game.updateGame();
     scheduleBots(this, game);
   }
@@ -343,13 +308,6 @@ class GameServer {
   destroyGame(id: string) {
     const game = this.games[id];
     if (game) {
-      // Комнату закрыли, не доиграв (хост вышел, все отвалились). Партия всё
-      // равно уезжает в аналитику — но помеченной как брошенная, чтобы не
-      // портить статистику побед. Доигранные партии сюда приходят уже
-      // отправленными (Game.end), и рекордер их не продублирует.
-      if (game.gameInProcess) {
-        submitMatch(game, {endMessage: 'Партия не доиграна', isComplete: false});
-      }
       // Помечаем игру завершённой, иначе привязанные к ней таймеры (боты)
       // продолжают ходить в комнате-призраке.
       game.gameInProcess = false;
@@ -358,72 +316,32 @@ class GameServer {
     this.updateLobby();
   }
 
+  // Ответ игрока на заданный ему вопрос. Правила «Сопротивления» ещё не написаны
+  // (фаза 1), поэтому пока действие только проверяется на осмысленность и
+  // логируется — разбор по фазам раунда появится здесь в фазе 2.
   playerAction({
     player,
     actionType,
     selectedPlayerId,
-    cardUniqueId,
-    cardUniqueIds,
     action
   }: {
-    player:Player,
+    player: Player,
     actionType: EPlayerActionType,
-    cardUniqueId?: string,
-    cardUniqueIds?: string[],
-    selectedPlayerId?:string,
+    selectedPlayerId?: string,
     action?: string
   }) {
     const game = player.game;
-    if (game) {
-      switch(actionType) {
-        case EPlayerActionType.actionCancel:
-          if (!isPlayerCanCancel(game, player)) {
-            debugLog(`Игрок ${player.nickname} не может отменить действие`);
-            return;
-          }
-          break;
-        case EPlayerActionType.cardAct:
-          if (!isPlayerCanActCard(game, player, cardUniqueId)) {
-            debugLog(`Игрок ${player.nickname} не может discard ${cardUniqueId}`);
-            return;
-          }
-          break;
-        case EPlayerActionType.cardDiscard:
-          if (!isPlayerCanDiscardCard(game, player, cardUniqueId)) {
-            debugLog(`Игрок ${player.nickname} не может act ${cardUniqueId}`);
-            return;
-          }
-          break;
-        case EPlayerActionType.cardTrade:
-          if (!isPlayerCanTradeCard(game, player, cardUniqueId)) {
-            debugLog(`Игрок ${player.nickname} не может торговать ${cardUniqueId}`);
-            return;
-          }
-          break;
-        case EPlayerActionType.playerSelect:
-          if (!isPlayerCanSelectPlayer(game, player, selectedPlayerId)) {
-            debugLog(`Игрок ${player.nickname} не выбрать игрока ${selectedPlayerId}`);
-            return;
-          }
-          break;
-        case EPlayerActionType.cardsSelect:
-          if (!isPlayerCanSelectCards(game, player, cardUniqueIds)) {
-            debugLog(`Игрок ${player.nickname} не может выбрать карты ${cardUniqueIds}`);
-            return;
-          }
-          break;
-        case EPlayerActionType.actionDecision:
-          if (!isPlayerCanSelectDesicion(game, player, action)) {
-            debugLog(`Игрок ${player.nickname} не решить ${action}`);
-            return;
-          }
-          break;
-      }
+    if (!game || !game.gameInProcess) return;
+    // Отвечать можно только на свой вопрос: без этой проверки любой игрок мог бы
+    // проголосовать за соседа, просто отправив событие в сокет.
+    if (!player.currentAction && actionType !== EPlayerActionType.actionCancel) {
+      debugLog(`Игрок ${player.nickname} отвечает вне вопроса (${actionType})`);
+      return;
     }
-    player.game.cardAction({player, actionType, cardUniqueId, cardUniqueIds, selectedPlayerId, action})
-    // After a human move, resume the bots (no-op if it is still the human's turn
-    // or there are no bots).
-    if (game && !player.isBot && gameHasBots(game)) {
+    debugLog(`Игрок ${player.nickname}: ${actionType} ${selectedPlayerId ?? action ?? ''}`);
+
+    // After a human move, resume the bots (no-op if there are no bots).
+    if (!player.isBot && gameHasBots(game)) {
       scheduleBots(this, game);
     }
   }

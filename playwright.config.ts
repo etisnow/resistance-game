@@ -34,9 +34,16 @@ export default defineConfig({
   ],
   webServer: {
     // Run the Bun server from source; it serves the prebuilt dist/client.
-    // NECHTO_E2E enables the deterministic `e2eSetup` socket hook used by the
-    // per-card specs (inert in production).
-    command: `NECHTO_E2E=true PORT=${PORT} bun src/server/index.ts`,
+    // RESISTANCE_E2E enables the gated e2e socket hooks (inert in production).
+    //
+    // Переменные — полем env, а не префиксом в командной строке: на Windows
+    // playwright запускает команду через cmd.exe, и `VAR=value cmd` там не
+    // синтаксис присваивания, а попытка выполнить программу с таким именем.
+    command: `bun src/server/index.ts`,
+    env: {
+      RESISTANCE_E2E: 'true',
+      PORT: String(PORT),
+    },
     url: `http://127.0.0.1:${PORT}/healthz`,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
