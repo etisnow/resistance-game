@@ -134,7 +134,7 @@ class GameServer {
     this.releaseOtherSeats(nickname, game);
     this.updateLobby();
     if (bots?.withBots) {
-      this.setupBotGame({ game, host: player, options: bots });
+      this.setupBotGame({ game, options: bots });
     }
     return [game, player];
   }
@@ -142,7 +142,7 @@ class GameServer {
   // Dev mode (?withBots=true): fill the game with emulated opponents, start
   // immediately, optionally pin the seed, then let the bot scheduler take over.
   // Число ботов — ?botCount= (по умолчанию DEFAULT_BOT_COUNT).
-  private setupBotGame({ game, host, options }: { game: Game; host: Player; options: IBotGameOptions }) {
+  private setupBotGame({ game, options }: { game: Game; options: IBotGameOptions }) {
     if (typeof options.seed === 'number') game.reseed(options.seed);
 
     const botCount = botGameBotCount(options.botCount);
@@ -150,13 +150,15 @@ class GameServer {
       const bot = new Player({ socket: null });
       bot.isBot = true;
       bot.isReady = true;
-      bot.register({ nickname: `Бот ${i}`, game });
+      // Без пробела: на кружке ник обрезается до четырёх букв (см.
+      // formatNickname), и «Бот 1» с «Бот 2» превратились бы в одинаковые «БОТ».
+      bot.register({ nickname: `Бот${i}`, game });
     }
 
     game.start();
-    // Человек ходит первым, дальше расписание берут на себя боты.
-    game.turnPlayerId = host.id;
-    game.updateGame();
+    // Лидера назначает сам старт партии, и он вполне может оказаться ботом:
+    // подменять его на человека нельзя — прицел стола показывал бы не того, кто
+    // на самом деле набирает команду.
     scheduleBots(this, game);
   }
   leaveGame({ player }: { player: Player }) {
