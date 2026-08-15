@@ -305,6 +305,10 @@ const teamRingShare = 1.16;
 // Корона лидера сидит над кружком, наполовину заходя на него.
 const leaderEmoji = '\u{1F451}';
 const leaderIconShare = 0.42;
+// Пометка сдвинута с макушки вбок и чуть вниз — по краю «яйца», а не по прямой:
+// на самом верху сидит корона.
+const markIconSide = 0.36;
+const markIconDrop = 0.1;
 // Жетоны вскрытых голосов рисует стол, а не бейдж: у дальних мест всё, что ниже
 // середины кружка, срезает столешница — она нарисована поверх них (см. Room).
 
@@ -377,7 +381,8 @@ const PlayerBadge = ({
 					    чужих ролей не знает, и кольца у него нет ни у кого, кроме себя. */}
 					{isSpy !== null && (
 						<Ring
-							r={bodyWidth * roleRingShare / 2}
+							rx={bodyWidth * roleRingShare / 2}
+							ry={style.height * roleRingShare / 2}
 							thickness={Math.max(bodyWidth * 0.035, 2)}
 							color={isSpy ? spyRingColor : cleanRingColor}
 						/>
@@ -386,7 +391,8 @@ const PlayerBadge = ({
 					    прямо сейчас, и он должен читаться первым. */}
 					{isOnTeam && (
 						<Ring
-							r={bodyWidth * teamRingShare / 2}
+							rx={bodyWidth * teamRingShare / 2}
+							ry={style.height * teamRingShare / 2}
 							thickness={Math.max(bodyWidth * 0.05, 3)}
 							color={teamRingColor}
 						/>
@@ -401,22 +407,24 @@ const PlayerBadge = ({
 					    внутри её не отличить от рисунка на бейдже, да и разглядывать
 					    чужие пометки приходится по всему столу разом — по верхнему краю
 					    они читаются одним взглядом. */}
+					{/* Пометка уходит вбок: макушку занимает корона лидера, а пометить
+					    можно и лидера — иначе они сели бы друг на друга. */}
 					{(mark && mark !== EPlayerMark.none) && (
 						<Sprite
 							texture={getMarkTexture(mark)}
 							anchor={0.5}
-							y={-style.height/2}
+							x={-style.width * markIconSide}
+							y={-style.height / 2 + style.height * markIconDrop}
 							width={style.width * 0.3}
 							height={style.width * 0.3}
 						/>
 					)}
-					{/* Корона лидера — над кружком, сбоку от пометки: они делят макушку,
-					    но не садятся друг на друга. */}
+					{/* Корона лидера — ровно на макушке кружка, по его оси: это главное,
+					    что стол говорит об игроке в этом раунде. */}
 					{isLeader && (
 						<Sprite
 							texture={emojiTexture(leaderEmoji)}
 							anchor={0.5}
-							x={style.width * 0.3}
 							y={-style.height / 2}
 							width={style.width * leaderIconShare}
 							height={style.width * leaderIconShare}

@@ -79,7 +79,8 @@ const MissionTrack = observer(({controller}: IMissionTrackProps) => {
 						{/* Сыгранная миссия залита своим цветом, будущая — только обведена.
 						    Текущая — самым ярким кольцом, потолще. */}
 						<Ring
-							r={nodeRadius}
+							rx={nodeRadius}
+							ry={nodeRadius}
 							thickness={isCurrent ? 3 : 2}
 							color={color}
 							fillAlpha={result === null ? 0.14 : 0.3}

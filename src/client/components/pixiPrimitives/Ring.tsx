@@ -6,8 +6,12 @@ import type { GraphicsBehaviorThis } from "./behaviorTypes";
 // пропами Circle: props отсюда раскладываются прямо по объекту PIXI, и толщина
 // линии, названная как поле Graphics, вела бы себя непредсказуемо (та же грабля,
 // что и у Plate).
+//
+// Полуоси задаются порознь: кружок игрока за столом — не круг, а вытянутое по
+// вертикали «яйцо» (см. badgeAspect), и кольцо обязано огибать именно его.
 interface RingProps {
-  r: number;
+  rx: number;
+  ry: number;
   thickness: number;
   color: number;
   // Заливка внутри кольца. Прозрачность нулевая — значит кольцо пустое.
@@ -24,7 +28,7 @@ export const behavior = {
     oldProps: RingProps | undefined,
     newProps: RingProps,
   ) {
-    const { r, thickness, color, fillColor = color, fillAlpha = 0 } = newProps;
+    const { rx, ry, thickness, color, fillColor = color, fillAlpha = 0 } = newProps;
     if (typeof oldProps !== "undefined") {
       instance.clear();
     }
@@ -32,7 +36,7 @@ export const behavior = {
       instance.beginFill(fillColor, fillAlpha);
     }
     instance.lineStyle(thickness, color, 1);
-    instance.drawCircle(0, 0, r);
+    instance.drawEllipse(0, 0, rx, ry);
     if (fillAlpha > 0) {
       instance.endFill();
     }
