@@ -7,7 +7,9 @@ import {debugLog} from 'server/helpers/util';
 import {each, find, map, some} from 'lodash';
 import {EGameState} from 'shared/enum/common';
 import {gameHasBots, scheduleBots} from 'server/helpers/bot';
+import {onDecision, onPlayerSelect} from 'server/helpers/round';
 import {EGameLogType} from 'shared/enum/gameLogType';
+import {isPlayableCount, MAX_PLAYERS, MIN_PLAYERS} from 'shared/constant/resistance';
 
 export interface IBotGameOptions {
   withBots?: boolean;
@@ -270,11 +272,25 @@ class GameServer {
     player.toggleReady();
   }
 
+  // «Сопротивление» играется впятером-вдесятером (FR-1): вне этих рамок таблиц
+  // ролей и команд просто нет, и партию начинать не с чем.
+  private canStart(game: Game, player: Player): boolean {
+    const playersCount = game.seatedPlayers().length;
+    if (isPlayableCount(playersCount)) return true;
+    const reason = playersCount < MIN_PLAYERS
+      ? `Нужно хотя бы ${MIN_PLAYERS} игроков, а за столом ${playersCount}.`
+      : `За столом ${playersCount} — больше ${MAX_PLAYERS} игра не идёт.`;
+    if (player.socket) this.notifySocket(player.socket, formatCommonError(reason));
+    debugLog(reason);
+    return false;
+  }
+
   startGame({player}: {player:Player}) {
     if (!!some(player.game.players, {isReady: false})) {
       debugLog('Игроки не готовы')
       return;
     }
+    if (!this.canStart(player.game, player)) return;
     player.game.start();
   }
 
@@ -282,6 +298,7 @@ class GameServer {
     each(player.game.players, (pl) => {
       pl.isReady = true;
     });
+    if (!this.canStart(player.game, player)) return;
     player.game.start();
   }
 
@@ -316,9 +333,8 @@ class GameServer {
     this.updateLobby();
   }
 
-  // Ответ игрока на заданный ему вопрос. Правила «Сопротивления» ещё не написаны
-  // (фаза 1), поэтому пока действие только проверяется на осмысленность и
-  // логируется — разбор по фазам раунда появится здесь в фазе 2.
+  // Ответ игрока на заданный ему вопрос. Разбор по фазам раунда — в
+  // server/helpers/round.ts; здесь только общие проверки и продолжение ботов.
   playerAction({
     player,
     actionType,
@@ -339,6 +355,18 @@ class GameServer {
       return;
     }
     debugLog(`Игрок ${player.nickname}: ${actionType} ${selectedPlayerId ?? action ?? ''}`);
+
+    switch (actionType) {
+      case EPlayerActionType.playerSelect:
+        if (selectedPlayerId) onPlayerSelect(game, player, selectedPlayerId);
+        break;
+      case EPlayerActionType.actionDecision:
+        if (action !== undefined) onDecision(game, player, action);
+        break;
+      case EPlayerActionType.actionCancel:
+        // TODO (фаза 2): отмена набора команды лидером.
+        break;
+    }
 
     // After a human move, resume the bots (no-op if there are no bots).
     if (!player.isBot && gameHasBots(game)) {

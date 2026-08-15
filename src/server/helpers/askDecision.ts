@@ -35,11 +35,14 @@ export const clearDecisionTimer = (player: Player) => {
  * сервер жмёт кнопку сам — последнюю в меню: защитную карту, если она есть
  * («никакого шашлыка», «мне и здесь неплохо»), иначе единственный вариант.
  */
-export const askDecision = ({asker, decider, text, menu}: {
+export const askDecision = ({asker, decider, text, menu, seconds = decisionTimeout.seconds}: {
 	asker: Player,
 	decider: Player,
 	text: string,
 	menu: TDecisionMenu,
+	// Сколько отведено на ответ. По умолчанию — общий срок; на набор команды его
+	// дают больше (см. server/helpers/round.ts).
+	seconds?: number,
 }): void => {
 	clearDecisionTimer(decider);
 	const fallback = menu[menu.length - 1];
@@ -47,7 +50,7 @@ export const askDecision = ({asker, decider, text, menu}: {
 		type: ENotificationAction.actionDecision,
 		text,
 		menu,
-		...(fallback ? {seconds: decisionTimeout.seconds, defaultAction: fallback.action} : {}),
+		...(fallback ? {seconds, defaultAction: fallback.action} : {}),
 	};
 	decider.notify(formatPlayerNotification({player: asker, notification}));
 
@@ -56,7 +59,7 @@ export const askDecision = ({asker, decider, text, menu}: {
 	// Отсчёт видят все: стол должен понимать, кого он ждёт (см. ActionTimer).
 	decider.game.notifyAllPlayers(formatTimerNotification({
 		text: `${decider.nickname} принимает решение`,
-		seconds: decisionTimeout.seconds,
+		seconds,
 		playerId: decider.id,
 	}));
 
@@ -77,7 +80,7 @@ export const askDecision = ({asker, decider, text, menu}: {
 		} catch (e) {
 			console.error('[decision] auto action error:', e);
 		}
-	}, decisionTimeout.seconds * 1000);
+	}, seconds * 1000);
 	// Незакрытый вопрос не должен держать процесс живым.
 	timer.unref();
 	timers.set(decider, timer);

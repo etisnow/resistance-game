@@ -3,8 +3,10 @@ import {concat, each, map, range} from 'lodash';
 import {avatarsCount} from 'shared/constant/avatars';
 import {shuffle} from 'server/helpers/util';
 import {gameServer} from 'server/server/GameServer';
+import {spyCount} from 'shared/constant/resistance';
+import {EGameLogType} from 'shared/enum/gameLogType';
 
-// Рассадка и лица. Раздача ролей появится здесь же в фазе 1 (см. docs/PLAN.md).
+// Рассадка, лица и роли.
 export const gameStarter = (game: Game) => {
 	const playersCount = Object.keys(game.players).length || 0;
 	if (!playersCount) throw new Error("количество игроков равно нулю");
@@ -28,5 +30,16 @@ export const gameStarter = (game: Game) => {
 		if (!player) return;
 		player.color = index + ''
 		player.avatar = avatarDeck[index] + ''
+		player.isSpy = false;
 	});
+
+	// Роли (FR-2). Тасуем список игроков сидом партии и первым N раздаём шпионов:
+	// сколько их за таким столом — вопрос к таблице, а не к формуле.
+	const spies = shuffle(playerList, game.rng).slice(0, spyCount(playersCount));
+	each(spies, (playerId) => {
+		const player = game.players[playerId];
+		if (player) player.isSpy = true;
+	});
+	// В лог — только число: сами роли тайна до самой развязки.
+	game.addLog(`За столом ${playersCount} чел., из них шпионов: ${spies.length}`, EGameLogType.system);
 };
