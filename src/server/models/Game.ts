@@ -17,6 +17,8 @@ import {EGameState} from 'shared/enum/common';
 import type {IServerEvent} from 'shared/interfaces/socket';
 import {EGameLogType} from 'shared/enum/gameLogType';
 import type {IGameLogEntry} from 'shared/interfaces/gameLog';
+import type {IResistanceState} from 'shared/interfaces/resistanceState';
+import {beginTeamBuilding, createRoundState} from 'server/helpers/round';
 
 export class Game {
   id: string = '';
@@ -30,6 +32,10 @@ export class Game {
   hostPlayerId: string = '';
   gameLog: IGameLogEntry[] = [];
   gameInProcess: boolean = true;
+  // Состояние партии: фаза раунда, счёт миссий, лидер, команда, голоса. Всё
+  // движение по нему — в server/helpers/round.ts. До старта партии оно пустое:
+  // лидера ещё нет.
+  round: IResistanceState = createRoundState('');
   // Every game runs on its own seeded RNG so the whole game is reproducible from
   // this one number (logged as the first game-log line). A bug report's log is
   // enough to replay the exact deal. Override before start() via reseed().
@@ -162,12 +168,16 @@ export class Game {
     this.addLog('Игра началась', EGameLogType.system);
     this.state = EGameState.sarted;
     gameStarter(this);
-    const firstPlayerId = this.playersList[0];
-    if (firstPlayerId) this.turnPlayerId = firstPlayerId;
+    // Первый лидер — тот, кто сидит первым: рассадку gameStarter уже перетасовал
+    // сидом партии, так что случайность здесь настоящая (FR-3). В тестах мест не
+    // тасуют, и первым лидером выходит тот, кто первым сел за стол.
+    const firstLeaderId = this.playersList[0];
+    if (!firstLeaderId) throw new Error('Некому начинать партию');
+    this.round = createRoundState(firstLeaderId);
     this.notifyAllPlayers(formatStartGameEvent({players}))
-    this.updateGame();
     // Комната перешла в «идёт игра» — список в лаунчере должен это показать.
     gameServer.updateLobby();
+    beginTeamBuilding(this);
   };
 
   // Игроки сидят по кругу, и обход по кругу нужен всему: лидер передаётся

@@ -24,6 +24,9 @@ export class Player {
 	// Always assigned via register() before the player participates in a game.
 	game!: Game;
 	isYou: boolean = false;
+	// Роль. Раздаётся на старте партии (см. gameStarter) и до развязки наружу
+	// уходит только своим: шпионы знают друг друга, сопротивление не знает никого.
+	isSpy: boolean = false;
 	isReady: boolean = false;
 	// True for server-driven emulated opponents (the ?withBots=true dev mode).
 	isBot: boolean = false;
