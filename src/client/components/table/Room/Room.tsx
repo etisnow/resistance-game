@@ -19,10 +19,12 @@ import PlayerBadge, {badgeBodyWidth, PlayerShadow} from 'client/components/table
 import TableSurface from 'client/components/table/Room/TableSurface';
 import {EPlayerState} from 'shared/enum/player';
 import {ENotificationAction} from 'shared/enum/notifications';
+import {EGamePhase} from 'shared/enum/phase';
 import {AnimatedPixi} from 'client/components/table/pixiInjected';
 import {Container, Sprite} from 'react-pixi-fiber';
 import {emojiTexture} from 'client/helpers/emojiTexture';
 import Reticle from 'client/components/pixiPrimitives/Reticle';
+import Circle from 'client/components/pixiPrimitives/Circle';
 import Arrow from 'client/components/pixiPrimitives/Arrow';
 import {arrowPath} from 'client/helpers/arrowPath';
 import {tableCenterX, tableCenterY} from 'client/helpers/window';
@@ -144,6 +146,40 @@ const TurnReticle = ({x, y, badgeRadius, playerId}: ITurnReticleProps) => {
 // одно и то же высказывание стола, «вот кого он отправляет».
 const teamArrowColor = 0xF2F4F7;
 
+// «Ждём ответа»: три точки на месте будущего жетона. Пока стол голосует, а
+// команда сдаёт карты, сами ответы — тайна, а вот КОГО ждут, знать можно и
+// нужно: иначе непонятно, стол думает или кто-то отошёл от компьютера.
+const pendingDotColor = 0xBFD4E4;
+const pendingDotShare = 0.05;
+const pendingGapShare = 0.15;
+// Как быстро огонёк перебегает по точкам.
+const pendingStepMs = 320;
+
+const PendingDots = ({x, y, badgeWidth}: {x: number, y: number, badgeWidth: number}) => {
+	// Своим таймером, а не пружиной: это не переход из состояния в состояние, а
+	// бесконечное ожидание, и заводить ради него пружину незачем.
+	const [step, setStep] = React.useState(0);
+	React.useEffect(() => {
+		const timer = setInterval(() => setStep((current) => (current + 1) % 3), pendingStepMs);
+		return () => clearInterval(timer);
+	}, []);
+	const r = badgeWidth * pendingDotShare;
+	const gap = badgeWidth * pendingGapShare;
+	return (
+		<Container x={x} y={y}>
+			{map([0, 1, 2], (index) => (
+				<Circle
+					key={index}
+					xCoord={(index - 1) * gap}
+					r={r}
+					color={pendingDotColor}
+					alpha={index === step ? 1 : 0.28}
+				/>
+			))}
+		</Container>
+	);
+};
+
 // Жетон вскрытого голоса: доля ширины кружка и насколько он опущен под него.
 const voteTokenShare = 0.36;
 const voteTokenLift = 0.62;
@@ -234,26 +270,63 @@ const Room = observer(({controller, children}: IRoomProps) => {
 		));
 	};
 
-	// Вскрытые голоса — жетонами у кружков. Рисует их стол, а не бейдж: у дальних
-	// мест всё ниже середины кружка срезает столешница, а идёт она поверх них.
+	// Место жетона у кружка. Рисует его стол, а не бейдж: у дальних мест всё ниже
+	// середины кружка срезает столешница, а идёт она поверх них.
+	//
+	// У ближних мест жетон висит под кружком, у дальних — сбоку: под ними лежит
+	// трек миссий, а над ними — подпись действия. Вбок он уходит НАРУЖУ от
+	// середины стола: у левой половины — влево, у правой — вправо, иначе жетон
+	// ложится на тот самый трек.
+	const tokenPoint = ({point, isFar}: ISeat): IPoint => ({
+		x: point.x + (isFar ? badgeWidth * voteTokenSide * (point.x < 0 ? -1 : 1) : 0),
+		y: point.y + (isFar ? 0 : badgeHeight * voteTokenLift),
+	});
+
+	// От кого стол сейчас ждёт ответа: на голосовании — от всех, кто ещё не
+	// проголосовал, на миссии — от тех в команде, кто ещё не сдал карту.
+	const pendingIds = (): string[] => {
+		if (!round) return [];
+		if (round.phase === EGamePhase.voting) {
+			return filter(newPlayerList, (id) => !round.answeredIds.includes(id));
+		}
+		if (round.phase === EGamePhase.mission) {
+			return filter(round.team, (id) => !round.answeredIds.includes(id));
+		}
+		return [];
+	};
+
+	// Ждём ответа — бегущие точки ровно там, где потом ляжет жетон. Сам ответ
+	// тайна, а вот кого ждут — нет.
+	const pendingTokens = () => {
+		const waiting = pendingIds();
+		if (!waiting.length) return null;
+		return map(seats, (seat) => {
+			if (!waiting.includes(seat.playerId) || !players[seat.playerId]) return null;
+			const {x, y} = tokenPoint(seat);
+			return <PendingDots key={seat.playerId} x={x} y={y} badgeWidth={badgeWidth}/>;
+		});
+	};
+
+	// Вскрытые голоса — жетонами у кружков. У того, чьего ответа ещё ждут (карта
+	// миссии), на этом месте бегут точки, и старый его голос уступает им место.
 	const voteTokens = () => {
 		if (!round || !round.revealedVotes) return null;
 		const votes = round.revealedVotes;
-		return map(seats, ({playerId, point, isFar}) => {
+		const waiting = pendingIds();
+		return map(seats, (seat) => {
+			const {playerId} = seat;
 			const vote = votes[playerId];
 			if (vote === undefined || !players[playerId]) return null;
+			if (waiting.includes(playerId)) return null;
+			const {x, y} = tokenPoint(seat);
 			const size = badgeWidth * voteTokenShare;
 			return (
 				<Sprite
 					key={playerId}
 					texture={emojiTexture(vote ? voteApproveEmoji : voteRejectEmoji)}
 					anchor={0.5}
-					// У ближних мест жетон висит под кружком, у дальних — сбоку от него:
-					// под ними лежит трек миссий, а над ними — подпись действия. Вбок
-					// он уходит НАРУЖУ от середины стола: у левой половины — влево, у
-					// правой — вправо, иначе жетон ложится на тот самый трек.
-					x={point.x + (isFar ? badgeWidth * voteTokenSide * (point.x < 0 ? -1 : 1) : 0)}
-					y={point.y + (isFar ? 0 : badgeHeight * voteTokenLift)}
+					x={x}
+					y={y}
 					width={size}
 					height={size}
 				/>
@@ -340,6 +413,7 @@ const Room = observer(({controller, children}: IRoomProps) => {
 				{map(nearSeats, renderShadow)}
 				{map(nearSeats, renderBadge)}
 				{voteTokens()}
+				{pendingTokens()}
 				{/* Прицел — поверх кружков: он обводит цель, а не лежит под ней.
 				    Пока ход ни за кем не числится (партия ещё не началась или уже
 				    кончилась), наводить его не на кого. */}
