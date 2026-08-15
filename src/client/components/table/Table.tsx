@@ -26,7 +26,6 @@ const Table = observer(({controller} : ITableProps) => {
 		return (
 			<div className={"gameTable"}>
 				<GameLog controller={controller}/>
-				<MissionTrack controller={controller}/>
 				<TableMenu controller={controller}/>
 				<ActionInteracter controller={controller}/>
 				<ActionTimer controller={controller}/>
@@ -37,7 +36,9 @@ const Table = observer(({controller} : ITableProps) => {
 						    что на ней лежит, и только потом ближние игроки. Трек миссий
 						    ляжет на столешницу и станет ребёнком Room — ровно в этот
 						    промежуток (фаза 3). */}
-						<Room controller={controller}/>
+						<Room controller={controller}>
+							<MissionTrack controller={controller}/>
+						</Room>
 						<Notifier controller={controller} />
 					</TableStage>
 				</StageBoundary>

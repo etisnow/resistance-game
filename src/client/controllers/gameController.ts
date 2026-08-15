@@ -11,7 +11,7 @@ import {each, merge} from "lodash";
 import {EAsyncState} from 'shared/enum/async';
 import type {IGameUpdatePayload, IPlayersMap, IRoundPayload} from 'client/controllers/socketTypes';
 import {ENotificationAction} from 'shared/enum/notifications';
-import {playGameEnd, startMusic, stopMusic} from 'client/helpers/sounds';
+import {playBell, playGameEnd, playPaper, startMusic, stopMusic} from 'client/helpers/sounds';
 import type {IGameLogEntry} from 'shared/interfaces/gameLog';
 
 // Вид стола — настройка игрока, а не игры: её спрашивают один раз и помнят.
@@ -224,6 +224,7 @@ export default class GameController {
 		this.turnPlayerId = turnPlayerId;
 		this.currentPlayerId = currentPlayer.id;
 		this.currentAction = currentAction;
+		this.syncRoundSounds(round);
 		this.round = round;
 		// Вопрос закрыт (ответили сами или за нас) — отсчитывать больше нечего.
 		if (!currentAction || currentAction.type !== ENotificationAction.actionDecision) this.stopDecisionCountdown();
@@ -234,6 +235,20 @@ export default class GameController {
 		if (state === EGameState.sarted && this.state !== EGameState.sarted) stopMusic();
 		this.state = state;
 		this.gameLog = gameLog;
+	};
+
+	// Две кульминации раунда звучат: вскрытие голосов и вскрытый результат
+	// миссии. Считаем их по самому обновлению, а не по событиям: партия
+	// восстанавливается из состояния целиком (реконнект), и отдельных «событий
+	// вскрытия» у сервера нет.
+	syncRoundSounds = (round: IRoundPayload) => {
+		const previous = this.round;
+		if (!previous) return;
+		if (!previous.revealedVotes && round.revealedVotes) playPaper();
+		// Миссия сыграна: её исход только что появился в треке.
+		const playedNow = round.missionResults.some((result, index) =>
+			result !== null && previous.missionResults[index] === null);
+		if (playedNow) playBell();
 	};
 
 	toggleGameLog = () => {
