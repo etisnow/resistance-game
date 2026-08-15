@@ -47,17 +47,24 @@
 			animation: interaction-badge-pulse 1.6s ease-in-out infinite;
 		}
 	}
+	// Кнопки игрового действия стоят внизу — там, где в «Нечто» лежала рука.
+	// Ни затемнения, ни слоя во весь экран: спрашивают как раз о том, что на
+	// столе (состав команды, трек миссий), и закрывать его на время ответа
+	// нельзя. Сквозь пустое место кнопок стол остаётся кликабельным — ловят
+	// нажатия только они сами.
 	.menu-wrapper {
 		position: fixed;
-		top:0;
-		left:0;
+		left: 0;
+		bottom: 4vh;
 		z-index: 1;
-		width:100%;
-		height: 100%;
-		background: rgba(0, 0, 0, 0.63);
+		width: 100%;
 		display: flex;
 		justify-content: center;
-		align-items: center;
+		pointer-events: none;
+
+		.okayNotificationButton {
+			pointer-events: auto;
+		}
 
 		// Кнопка по умолчанию: полоса под подписью утекает справа налево, а справа
 		// стоят оставшиеся секунды. Когда они кончатся, сервер нажмёт её сам.
