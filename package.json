@@ -1,5 +1,5 @@
 {
-  "name": "@nechto/game",
+  "name": "@resistance/game",
   "version": "0.1.0",
   "private": true,
   "workspaces": [
