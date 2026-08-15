@@ -17,7 +17,7 @@ import type {
 } from 'client/controllers/socketTypes';
 
 // When the client is served from a real host (e.g. a tunnel), the API lives on
-// the `api-` sibling subdomain (nechto.estaco.my -> api-nechto.estaco.my). On
+// the `api-` sibling subdomain (resistance.estaco.my -> api-resistance.estaco.my). On
 // localhost we return undefined and connect same-origin (vite proxies socket.io).
 function deriveServerUrl(): string | undefined {
 	if (typeof window === 'undefined') return undefined;
@@ -101,7 +101,7 @@ export default class SocketController {
 		//  1. window.__SERVER_URL__  (runtime override, e.g. e2e)
 		//  2. VITE_SERVER_URL        (build/dev env override)
 		//  3. derived api-<host>     (when served from a non-local host, e.g. a
-		//                             tunnel: nechto.estaco.my -> api-nechto.estaco.my)
+		//                             tunnel: resistance.estaco.my -> api-resistance.estaco.my)
 		//  4. same origin            (localhost dev / preview proxy)
 		const envUrl = import.meta.env ? import.meta.env.VITE_SERVER_URL : undefined;
 		const winUrl = (typeof window !== 'undefined'

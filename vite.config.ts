@@ -6,7 +6,7 @@ import { resolve } from "path";
 const PROXY_TARGET = process.env.VITE_PROXY_TARGET || "http://localhost:3000";
 const CLIENT_PORT = Number(process.env.CLIENT_PORT) || 5173;
 
-// Public host when served via the Cloudflare tunnel (e.g. nechto.estaco.my).
+// Public host when served via the Cloudflare tunnel (e.g. resistance.estaco.my).
 const PUBLIC_CLIENT_HOST = process.env.PUBLIC_CLIENT_HOST || "";
 
 const proxy = {

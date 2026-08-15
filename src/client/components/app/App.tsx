@@ -40,7 +40,7 @@ class App extends React.Component<IAppProps> {
 	};
 	override render() {
 		return (
-			<div className="nechto-wrapper">
+			<div className="resistance-wrapper">
 				<RoomBackdrop/>
 				{this.renderContent()}
 			</div>

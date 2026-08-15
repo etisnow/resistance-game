@@ -11,7 +11,7 @@
 #
 # Source is bind-mounted for hot reload; the host's node_modules is reused
 # (run `./run install` once). A missing node_modules is bootstrapped on start.
-name: nechto
+name: resistance
 
 services:
   server:

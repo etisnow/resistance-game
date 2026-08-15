@@ -39,7 +39,7 @@ const PAGES: Record<string, (route: IRoute) => Promise<HTMLElement> | HTMLElemen
 
 // Фильтры витрины хранятся в localStorage: выбрал «показывать игры с ботами» —
 // оно таким и осталось при следующем заходе.
-const FILTER_KEY = 'nechto-analytics-filters';
+const FILTER_KEY = 'resistance-analytics-filters';
 
 const loadFilters = (): IQuery => {
 	try {
@@ -52,7 +52,7 @@ const loadFilters = (): IQuery => {
 
 const saveFilters = (query: IQuery) => localStorage.setItem(FILTER_KEY, JSON.stringify(query));
 
-const THEME_KEY = 'nechto-analytics-theme';
+const THEME_KEY = 'resistance-analytics-theme';
 
 const applyTheme = (theme: string) => {
 	document.documentElement.setAttribute('data-theme', theme);

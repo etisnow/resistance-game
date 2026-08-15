@@ -2,14 +2,14 @@
 # serves the built assets via `vite preview` and proxies /socket.io to the
 # backend; the server service runs the bun socket.io backend. Open
 # http://localhost:5173.
-name: nechto-prod
+name: resistance-prod
 
 services:
   server:
     build:
       context: .
       dockerfile: Dockerfile
-    image: nechto:latest
+    image: resistance:latest
     command: ["bun", "dist/server/index.js"]
     environment:
       NODE_ENV: "production"
@@ -24,7 +24,7 @@ services:
       - "3000:3000"
 
   client:
-    image: nechto:latest
+    image: resistance:latest
     command: sh -c 'exec bunx vite preview --host 0.0.0.0 --port 5173'
     environment:
       NODE_ENV: "production"
@@ -38,7 +38,7 @@ services:
   # Аналитический центр: один процесс отдаёт и API, и собранную витрину, поэтому
   # публичный домен статистики достаточно направить сюда.
   analytics:
-    image: nechto:latest
+    image: resistance:latest
     working_dir: /app/analytics
     command: ["bun", "src/server/index.ts"]
     environment:

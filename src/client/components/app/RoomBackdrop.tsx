@@ -77,7 +77,7 @@ export const RoomBackdrop = observer(() => {
 	const mask = fadeMask(fadeLength(height));
 	return (
 		<img
-			className="nechto-backdrop"
+			className="resistance-backdrop"
 			src={backdrop}
 			alt=""
 			draggable={false}

@@ -4,7 +4,7 @@
 движок на **socket.io + [Bun](https://bun.sh)**. Обе части поднимаются как
 **Docker**-сервисы; Bun — и рантайм, и пакетный менеджер.
 
-Форк карточной игры [«Нечто»](https://github.com/neerone/nechto): от неё достались
+Форк карточной игры [«Нечто»](https://github.com/neerone/resistance): от неё достались
 комнаты, лобби, реконнект, круглый стол на PixiJS и тестовая обвязка. Правила —
 свои, см. **[docs/PRD.md](docs/PRD.md)**; ход работ — **[docs/PLAN.md](docs/PLAN.md)**.
 

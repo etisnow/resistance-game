@@ -31,9 +31,9 @@ export function shuffle<T>(array: T[], rng: () => number = Math.random): T[] {
   return array;
 }
 
-// Verbose game logging is off unless NECHTO_DEBUG=true (keeps test output clean
+// Verbose game logging is off unless resistance_DEBUG=true (keeps test output clean
 // and the brutforce fuzzer fast).
-const silent = process.env.NECHTO_DEBUG !== 'true';
+const silent = process.env.resistance_DEBUG !== 'true';
 export let debugCache: unknown[][] = [];
 export function clearDebugCache() {
   debugCache = [];

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Nechto task runner. Bun is the package manager/runtime; vite is the client
+# resistance task runner. Bun is the package manager/runtime; vite is the client
 # dev server + bundler; both the client (vite) and the backend (bun socket.io)
 # run as Docker services. Usage: ./run <command>
 #
@@ -40,7 +40,7 @@ wait_http() {
 
 usage() {
   cat <<'EOF'
-Nechto — ./run <command>
+resistance — ./run <command>
 
 One button:
   go             Deps + the whole dev stack (игра + аналитика) в фоне; ждёт,

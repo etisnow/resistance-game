@@ -155,7 +155,7 @@
 живым была источником тихих багов. Двери (`EPlayerState.door`) оставлены как
 понятие «место за столом, которое не игрок» — их никто не создаёт.
 
-**2026-08-15 · `window.__nechto` → `window.__resistance`, `NECHTO_E2E` →
+**2026-08-15 · `window.__resistance` → `window.__resistance`, `resistance_E2E` →
 `RESISTANCE_E2E`.** Заодно переменные окружения для e2e-сервера переехали в поле
 `env` конфига playwright: на Windows префикс `VAR=value cmd` уходит в cmd.exe и
 там не работает — e2e просто не поднимался.

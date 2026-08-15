@@ -23,7 +23,7 @@ h1 {
     font-weight: 500;
 }
 
-.nechto-wrapper {
+.resistance-wrapper {
     display: flex;
     position: relative;
     width:100%;
@@ -38,7 +38,7 @@ h1 {
 
 // Сам задник — отдельным слоем, а не фоном обёртки: место ему считает
 // RoomBackdrop, чтобы круг на полу пришёлся ровно под стол.
-.nechto-backdrop {
+.resistance-backdrop {
     position: absolute;
     z-index: 0;
     pointer-events: none;
@@ -49,7 +49,7 @@ h1 {
 // рисуются РАНЬШЕ любого позиционированного соседа — то есть под картинкой.
 // Работает и без position: дети обёртки — флекс-элементы, а им z-index доступен
 // сам по себе.
-.nechto-wrapper > *:not(.nechto-backdrop) {
+.resistance-wrapper > *:not(.resistance-backdrop) {
     z-index: 1;
 }
 

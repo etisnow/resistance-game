@@ -66,7 +66,7 @@ export const api = {
 
 // ------------------------------------------------------------------ админка
 
-const TOKEN_KEY = 'nechto-analytics-admin-token';
+const TOKEN_KEY = 'resistance-analytics-admin-token';
 
 export const adminToken = {
 	get: () => localStorage.getItem(TOKEN_KEY) ?? '',

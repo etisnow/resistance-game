@@ -108,7 +108,7 @@ process.on("unhandledRejection", (reason) => {
 });
 
 httpServer.listen(PORT, HOST, () => {
-  console.log(`Nechto server listening on http://${HOST}:${PORT}`);
+  console.log(`resistance server listening on http://${HOST}:${PORT}`);
   console.log(`Serving client from ${CLIENT_DIR}`);
 });
 
