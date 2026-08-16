@@ -8,7 +8,7 @@ async function newPlayer(browser: Browser, nick: string): Promise<Page> {
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Вход" })).toBeVisible();
+  await expect(page.getByPlaceholder("введи ник")).toBeVisible();
   await page.getByPlaceholder("введи ник").fill(nick);
   return page;
 }

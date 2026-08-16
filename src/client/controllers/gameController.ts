@@ -7,11 +7,11 @@ import {EAppState, EGameState} from 'shared/enum/common';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import fscreen from 'fscreen';
-import {each, merge} from "lodash";
+import {each, filter, findIndex, merge} from "lodash";
 import {EAsyncState} from 'shared/enum/async';
 import type {IGameUpdatePayload, IPlayersMap, IRoundPayload} from 'client/controllers/socketTypes';
 import {ENotificationAction} from 'shared/enum/notifications';
-import {playBell, playGameEnd, playPaper, startMusic, stopMusic} from 'client/helpers/sounds';
+import {playGameEnd, playMissionFail, playMissionSuccess, playPaper, startMusic, stopMusic} from 'client/helpers/sounds';
 import type {IGameLogEntry} from 'shared/interfaces/gameLog';
 
 // Вид стола — настройка игрока, а не игры: её спрашивают один раз и помнят.
@@ -123,8 +123,21 @@ export default class GameController {
 		if (notification.type === ENotificationAction.gameEnd) {
 			this.isGameOver = true;
 			playGameEnd(notification.isSpiesWin);
+			// Развязка отменяет все незакрытые вопросы. Своим обновлением их уже не
+			// снять: партии конец, обновлений больше не будет (см. Game.updateGame), а
+			// очередь показывает только первое уведомление и разбирается нажатием —
+			// оставшийся вопрос закрыл бы собой и развязку, и кнопку меню.
+			this.dropPendingQuestions();
+			this.stopDecisionCountdown();
 		}
 		this.notifications = [...this.notifications, notification];
+	};
+
+	// Вопросы, на которые сервер ответа больше не ждёт. Живой игрок разбирает
+	// очередь нажатием, но кнопку за него может нажать и сервер (см.
+	// askDecision) — тогда вопрос повисает в очереди навсегда.
+	dropPendingQuestions = () => {
+		this.notifications = filter(this.notifications, (n) => n.type !== ENotificationAction.actionDecision);
 	};
 
 	// Сколько секунд осталось до того, как сервер нажмёт кнопку по умолчанию сам
@@ -226,8 +239,12 @@ export default class GameController {
 		this.currentAction = currentAction;
 		this.syncRoundSounds(round);
 		this.round = round;
-		// Вопрос закрыт (ответили сами или за нас) — отсчитывать больше нечего.
-		if (!currentAction || currentAction.type !== ENotificationAction.actionDecision) this.stopDecisionCountdown();
+		// Вопрос закрыт (ответили сами или за нас) — отсчитывать больше нечего, и
+		// висеть ему в очереди тоже.
+		if (!currentAction || currentAction.type !== ENotificationAction.actionDecision) {
+			this.stopDecisionCountdown();
+			this.dropPendingQuestions();
+		}
 		// Партия началась — тема замолкает. Обычно её снимает событие начала игры
 		// (см. socketController), но пришедшему в партию заново его уже не пришлют:
 		// перезагрузивший вкладку узнаёт о идущей игре только отсюда, первым же
@@ -245,10 +262,14 @@ export default class GameController {
 		const previous = this.round;
 		if (!previous) return;
 		if (!previous.revealedVotes && round.revealedVotes) playPaper();
-		// Миссия сыграна: её исход только что появился в треке.
-		const playedNow = round.missionResults.some((result, index) =>
+		// Миссия сыграна: её исход только что появился в треке. Успех и провал
+		// звучат по-разному — стол узнаёт исход ухом, ещё не дочитав подпись.
+		const played = findIndex(round.missionResults, (result, index) =>
 			result !== null && previous.missionResults[index] === null);
-		if (playedNow) playBell();
+		if (played >= 0) {
+			if (round.missionResults[played]) playMissionSuccess();
+			else playMissionFail();
+		}
 	};
 
 	toggleGameLog = () => {

@@ -135,8 +135,6 @@ function getNextMark(currentMark: EPlayerMark | undefined) {
 		case EPlayerMark.clear:
 			return EPlayerMark.question;
 		case EPlayerMark.question:
-			return EPlayerMark.suspect;
-		case EPlayerMark.suspect:
 			return EPlayerMark.spy;
 		case EPlayerMark.spy:
 			return EPlayerMark.none;

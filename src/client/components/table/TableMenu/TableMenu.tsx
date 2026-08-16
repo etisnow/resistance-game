@@ -1,43 +1,13 @@
 import React from 'react';
-import './styles.scss';
 import {observer} from 'mobx-react-lite';
 import GameController from 'client/controllers/gameController';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {playPaper} from 'client/helpers/sounds';
+import {MenuButton, MenuPanel, VolumeSlider} from 'client/components/util/menu/GameMenu';
 
 interface ITableMenuProps {
 	controller: GameController;
 }
-
-interface IVolumeSliderProps {
-	label: string;
-	value: number;
-	onChange: (value: number) => void;
-	/** Чем отозваться, когда ползунок отпустили. Музыке не нужно — она уже играет. */
-	onRelease?: () => void;
-}
-
-/**
- * Пункт-ползунок. Не кнопка: ползунок ловит нажатия сам, и меню от них
- * закрываться не должно.
- */
-const VolumeSlider = ({label, value, onChange, onRelease}: IVolumeSliderProps) => (
-	<div className={'tableMenuItem slider'}>
-		<span className={'tableMenuSliderLabel'}>{label}</span>
-		<input
-			type={'range'}
-			className={'tableMenuSliderInput'}
-			min={0}
-			max={100}
-			step={1}
-			value={Math.round(value * 100)}
-			onChange={(event) => onChange(Number(event.target.value) / 100)}
-			onPointerUp={onRelease}
-			onKeyUp={onRelease}
-		/>
-		<span className={'tableMenuSliderValue'}>{Math.round(value * 100)}</span>
-	</div>
-);
 
 // Пока ActionInteracter показывает свой полноэкранный оверлей (решение по ходу
 // или итог игры), кнопка меню только мешает — прячем её, она вернётся сразу
@@ -82,11 +52,7 @@ const TableMenu = observer(({controller}: ITableMenuProps) => {
 
 	if (!controller.isMenuOpen) {
 		if (isBlockingOverlayShown(controller)) return null;
-		return (
-			<button className={'tableMenuButton'} onClick={controller.toggleMenu}>
-				Меню
-			</button>
-		);
+		return <MenuButton onClick={controller.toggleMenu}/>;
 	}
 
 
@@ -95,40 +61,38 @@ const TableMenu = observer(({controller}: ITableMenuProps) => {
 		: isExitConfirm ? 'Точно выйти? Нажми ещё раз' : 'Выйти в лобби';
 
 	return (
-		<div className={'tableMenuOverlay'} onClick={closeMenu}>
-			<div className={'tableMenu'} onClick={(e) => e.stopPropagation()}>
-				{controller.isGameOver && <div className={'tableMenuTitle'}>Игра закончена</div>}
-				<button className={'tableMenuItem danger'} onClick={handleExitClick}>{exitText}</button>
-				{/* Вид стола: меню не закрывается, чтобы переключатель можно было
-				    щёлкнуть туда-обратно и выбрать. Настройка переживает партию и
-				    перезаход — см. toggleFirstPersonTable. */}
-				<button className={'tableMenuItem toggle'} onClick={controller.toggleFirstPersonTable}>
-					Стол от первого лица
-					<span className={'tableMenuToggle' + (controller.isFirstPersonTable ? ' on' : '')}/>
-				</button>
-				{/* Звуки стола. Отпустив ползунок, игрок слышит шелест карты — иначе
-				    выставлять уровень пришлось бы вслепую, дожидаясь следующего
-				    события за столом. */}
-				<VolumeSlider
-					label={'Звуки'}
-					value={sound.volume}
-					onChange={sound.setVolume}
-					onRelease={() => playPaper()}
-				/>
-				{/* Музыка — своим ползунком: тема играет фоном и подолгу, и убавляют
-				    её отдельно от звуков, а не вместе с ними. Отдельного отклика на
-				    отпускание нет: когда тема играет, ползунок слышно на лету, а когда
-				    не играет — отвечать нечем. */}
-				<VolumeSlider
-					label={'Музыка'}
-					value={sound.musicVolume}
-					onChange={sound.setMusicVolume}
-				/>
-				<button className={'tableMenuItem'} onClick={closeMenu}>
-					{controller.isGameOver ? 'Остаться и почитать лог' : 'Вернуться к игре'}
-				</button>
-			</div>
-		</div>
+		<MenuPanel onClose={closeMenu}>
+			{controller.isGameOver && <div className={'gameMenuTitle'}>Игра закончена</div>}
+			<button className={'gameMenuItem danger'} onClick={handleExitClick}>{exitText}</button>
+			{/* Вид стола: меню не закрывается, чтобы переключатель можно было
+			    щёлкнуть туда-обратно и выбрать. Настройка переживает партию и
+			    перезаход — см. toggleFirstPersonTable. */}
+			<button className={'gameMenuItem toggle'} onClick={controller.toggleFirstPersonTable}>
+				Стол от первого лица
+				<span className={'gameMenuToggle' + (controller.isFirstPersonTable ? ' on' : '')}/>
+			</button>
+			{/* Звуки стола. Отпустив ползунок, игрок слышит шелест карты — иначе
+			    выставлять уровень пришлось бы вслепую, дожидаясь следующего
+			    события за столом. */}
+			<VolumeSlider
+				label={'Звуки'}
+				value={sound.volume}
+				onChange={sound.setVolume}
+				onRelease={() => playPaper()}
+			/>
+			{/* Музыка — своим ползунком: тема играет фоном и подолгу, и убавляют
+			    её отдельно от звуков, а не вместе с ними. Отдельного отклика на
+			    отпускание нет: когда тема играет, ползунок слышно на лету, а когда
+			    не играет — отвечать нечем. */}
+			<VolumeSlider
+				label={'Музыка'}
+				value={sound.musicVolume}
+				onChange={sound.setMusicVolume}
+			/>
+			<button className={'gameMenuItem'} onClick={closeMenu}>
+				{controller.isGameOver ? 'Остаться и почитать лог' : 'Вернуться к игре'}
+			</button>
+		</MenuPanel>
 	);
 });
 

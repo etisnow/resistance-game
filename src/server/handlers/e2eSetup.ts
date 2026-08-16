@@ -1,6 +1,7 @@
 import {GameServer} from 'server/server/GameServer';
 import type {IGameSocket} from 'shared/interfaces/socket';
 import {filter} from 'lodash';
+import {decisionTimeout} from 'server/helpers/askDecision';
 
 // E2E-ONLY hooks, gated behind RESISTANCE_E2E=true and therefore inert in
 // production. They let a Playwright spec pin the game's seed and read server
@@ -28,6 +29,17 @@ export const registerE2EHandlers = (gameServer: GameServer, socket: IGameSocket)
 			gameServer.ignoreChecks = false;
 		} catch (e) {
 			console.error('[handler:e2eSeed] error:', e);
+		}
+	});
+
+	// Сколько сервер ждёт ответа, прежде чем нажать кнопку сам (см. askDecision).
+	// Спеку про молчащего игрока незачем стоять полминуты живого времени.
+	socket.on('e2eDecisionTimeout', (payload: unknown) => {
+		try {
+			const seconds = (payload as {seconds?: unknown})?.seconds;
+			if (typeof seconds === 'number' && seconds > 0) decisionTimeout.seconds = seconds;
+		} catch (e) {
+			console.error('[handler:e2eDecisionTimeout] error:', e);
 		}
 	});
 

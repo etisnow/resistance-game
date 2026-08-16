@@ -7,6 +7,7 @@ import LauncherController from 'client/controllers/launcherController';
 import {Loader} from 'client/components/util/Loader';
 import {EAsyncState} from 'shared/enum/async';
 import type {ILobbyGameItem} from 'client/controllers/socketTypes';
+import logo from 'client/resources/images/logo.png';
 
 interface ILauncherProps {
 	controller: LauncherController
@@ -56,7 +57,10 @@ class Launcher extends React.Component<ILauncherProps> {
 		const {games} = this.props.controller;
 		return (
 			<div className="launcher-wrapper">
-				<h1>Вход</h1>
+				{/* Логотип вместо заголовка «Вход»: он и есть название игры, а что это
+				    вход, видно по единственному полю с ником. Висит он выше формы своим
+				    слоем, чтобы её не двигать (см. style.scss). */}
+				<img className={'launcher-logo'} src={logo} alt={'Сопротивление'}/>
 				<form onSubmit={(e) => e.preventDefault() }>
 					<label>Укажи ник</label>
 					<input

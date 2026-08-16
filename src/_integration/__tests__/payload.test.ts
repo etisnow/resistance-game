@@ -7,7 +7,7 @@ import {EServerEventType} from 'shared/enum/enumServerEvents';
 import {EGamePhase} from 'shared/enum/phase';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {ACTION} from 'server/helpers/round';
+import {ACTION, revealPause} from 'server/helpers/round';
 
 // Что уезжает игроку в обновлении стола. Тайна партии держится здесь: если она
 // протечёт в payload, никакой интерфейс её уже не спрячет.
@@ -21,7 +21,8 @@ interface IUpdate {
 		team: string[];
 		teamSize: number;
 		failsNeeded: number;
-		lastFailCount: number | null;
+		missionFails: (number | null)[];
+		missionTeamSizes: number[];
 		missionResults: (boolean | null)[];
 		rejectCount: number;
 	};
@@ -90,20 +91,32 @@ describe('FR-5: голоса не утекают до вскрытия', () => {
 		expect(JSON.stringify(update.round)).not.toContain('votes"');
 	});
 
-	it('после вскрытия голоса видны поимённо', () => {
+	// Жетоны живут ровно паузу вскрытия: пока стол на них смотрит — видны все
+	// поимённо, а дальше гаснут разом, вместе с переходом хода.
+	it('на паузе голоса видны поимённо, после неё гаснут все', async () => {
 		const [game, players] = createRoundGame();
-		buildTeam(game, [players[0]!, players[1]!]);
-		voteAll(game, 3);
+		revealPause.votes = 0.05;
+		try {
+			buildTeam(game, [players[0]!, players[1]!]);
+			voteAll(game, 3);
 
-		const update = lastUpdate(players[4]!);
-		expect(update.round.phase).toBe(EGamePhase.mission);
-		expect(update.round.revealedVotes).toEqual({
-			[players[0]!.id]: true,
-			[players[1]!.id]: true,
-			[players[2]!.id]: true,
-			[players[3]!.id]: false,
-			[players[4]!.id]: false,
-		});
+			const revealed = lastUpdate(players[4]!);
+			expect(revealed.round.phase).toBe(EGamePhase.voting);
+			expect(revealed.round.revealedVotes).toEqual({
+				[players[0]!.id]: true,
+				[players[1]!.id]: true,
+				[players[2]!.id]: true,
+				[players[3]!.id]: false,
+				[players[4]!.id]: false,
+			});
+
+			await new Promise((resolve) => setTimeout(resolve, 200));
+			const after = lastUpdate(players[4]!);
+			expect(after.round.phase).toBe(EGamePhase.mission);
+			expect(after.round.revealedVotes).toBeNull();
+		} finally {
+			revealPause.votes = 0;
+		}
 	});
 });
 
@@ -117,9 +130,17 @@ describe('FR-9: миссия уходит на стол числом, а не п
 		gameServer.playerAction({player: players[1]!, actionType: EPlayerActionType.actionDecision, action: ACTION.success});
 
 		const update = lastUpdate(players[3]!);
-		expect(update.round.lastFailCount).toBe(1);
+		expect(update.round.missionFails[0]).toBe(1);
 		expect(update.round.missionResults[0]).toBe(false);
 		expect(JSON.stringify(update.round)).not.toContain('missionCards');
+	});
+
+	// Трек рисует точками, сколько человек ходило на каждую миссию, — размеры
+	// команд считает сервер, у клиента таблиц правил нет.
+	it('в обновлении есть размеры команд всех пяти миссий', () => {
+		const [game, players] = createRoundGame();
+		expect(game.seatedPlayers().length).toBe(5);
+		expect(lastUpdate(players[0]!).round.missionTeamSizes).toEqual([2, 3, 2, 3, 3]);
 	});
 });
 

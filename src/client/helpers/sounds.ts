@@ -1,6 +1,8 @@
 import UIfxImport from 'uifx';
 import bellAudio from 'client/resources/sound/beep.mp3';
 import paperAudio from 'client/resources/sound/paper.mp3';
+import missionSuccessAudio from 'client/resources/sound/missionSuccess.mp3';
+import missionFailAudio from 'client/resources/sound/missionFail.mp3';
 import spiesWinAudio from 'client/resources/sound/thingWin.mp3';
 import spiesLoseAudio from 'client/resources/sound/thingLose.mp3';
 import {setMusicVolume, startMusic as igniteMusic, stopMusic} from 'client/helpers/music';
@@ -93,6 +95,19 @@ export const playBell = createSound(bellAudio, 0.75, 100);
  * столом разом, не зашелестели хором.
  */
 export const playPaper = createSound(paperAudio, 1, 120);
+
+/**
+ * Итог миссии. Звучит он громче гонга нарочно: гонг зовёт к столу по многу раз
+ * за партию, а это развязка раунда — то, ради чего стол пять минут спорил.
+ *
+ * Доли выведены из замера самих записей: у гонга RMS −25.3 дБ при доле 0.75,
+ * то есть на столе он звучит на −27.8; успех сведён на −20.4, провал — на −14.7
+ * (он короткий, всего 0.23 с, оттого и плотный). Доли ниже ставят оба примерно
+ * на −24 дБ, на три-четыре децибела громче гонга, а провалу добавлено сверх
+ * того: за четверть секунды его иначе не расслышать.
+ */
+export const playMissionSuccess = createSound(missionSuccessAudio, 0.65, 200);
+export const playMissionFail = createSound(missionFailAudio, 0.45, 200);
 
 /**
  * Развязка партии. Своим элементом, а не через uifx: нужно знать, когда звук

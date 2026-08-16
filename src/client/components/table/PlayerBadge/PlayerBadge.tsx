@@ -10,13 +10,25 @@ import {sphereShadeTexture} from 'client/helpers/sphereShade';
 import {resources} from 'client/resources/resources';
 import {getPixiTexture} from 'client/components/table/pixiInjected';
 import Ring from 'client/components/pixiPrimitives/Ring';
-import {emojiTexture} from 'client/helpers/emojiTexture';
+import DashedRing from 'client/components/pixiPrimitives/DashedRing';
 import {EPlayerMark} from 'shared/enum/playerMarks';
 import {cardAspectRatio} from 'shared/constant/layout';
 
 // Золото своего ника. Тот же цвет, что и у «своего» действия на столе: по тёмной
 // подложке он выделяется, не споря с зелёным прицелом ходящего.
 const youColor = 0xE8C33F;
+
+// Каким кольцом команды обведён кружок.
+export enum ETeamRing {
+	// В команде его нет.
+	none = 'none',
+	// Состав обсуждают или голосуют за него.
+	solid = 'solid',
+	// Команда на деле, карту он уже сдал.
+	mission = 'mission',
+	// Команда на деле, и ждут именно его.
+	waiting = 'waiting',
+}
 
 interface IPlayerBadgeProps {
 	id: string;
@@ -29,10 +41,9 @@ interface IPlayerBadgeProps {
 	onLongPress: ((playerId: string) => void) | null;
 	isYou: boolean;
 	isConnected: boolean;
-	// Лидер этого раунда: он набирает команду.
-	isLeader: boolean;
-	// Он в команде, которую сейчас обсуждают или которая ушла на дело.
-	isOnTeam: boolean;
+	// Кольцо команды. Сплошное — состав обсуждают; пунктирное — команда на деле, и
+	// пунктир бежит у того, чьей карты ещё ждут.
+	teamRing: ETeamRing;
 	// Его роль, если смотрящему её положено знать. null — не положено.
 	isSpy: boolean | null;
 	mark: EPlayerMark | undefined;
@@ -50,8 +61,6 @@ const doorCardTexture = getPixiTexture(resources.playerBadges['door']);
 const disconnectedTexture = getPixiTexture(resources.playerBadges['disconnected']);
 /*Marks*/
 const playerStatusQuestion = getPixiTexture(resources.playerStatusQuestion);
-const playerStatusThing = getPixiTexture(resources.playerStatusThing);
-const playerStatusInfected = getPixiTexture(resources.playerStatusInfected);
 const playerStatusClear = getPixiTexture(resources.playerStatusClear);
 
 export const formatNickname = (nickname: string | null): string | null => {
@@ -190,6 +199,22 @@ const avatarTextures = map(resources.avatars, getPixiTexture);
 const avatarTextureOf = (avatar: string): PIXI.Texture | undefined =>
 	avatar === '' ? undefined : avatarTextures[Number(avatar) % avatarTextures.length];
 
+// Лицо стоит в кружке чуть отдалённым и прижатым к его верху: «яйцо» сужается
+// кверху, и вписанная впритык картинка срезала макушки. Кадр берём шире самой
+// картинки, верхним краем по её верхнему краю — голова целиком встаёт под самую
+// макушку кружка. По бокам и снизу кадр выходит за картинку, но у эллипса это
+// узкие серпы под тенью сферы.
+//
+// Константой, а не выражением в разметке: EllipseTexture сверяет кадр по ссылке,
+// и новый объект на каждый рендер пересобирал бы заливку каждого кружка.
+const avatarZoomOut = 1.12;
+const avatarFocus = {
+	x: (1 - avatarZoomOut) / 2,
+	y: 0,
+	width: avatarZoomOut,
+	height: avatarZoomOut,
+};
+
 interface IBadgeBodyProps {
 	isDoor: boolean;
 	isConnected: boolean;
@@ -250,6 +275,7 @@ export const BadgeBody = ({
 					rx={badgeWidth / 2}
 					ry={badgeHeight / 2}
 					texture={face}
+					focus={avatarFocus}
 					interactive={isInteractive}
 					buttonMode={isInteractive}
 					pointerdown={pointerdown}
@@ -276,22 +302,47 @@ export const BadgeBody = ({
 	);
 };
 
-// Картинки пометок пока «нечтовские»: свой набор значков придёт вместе с
-// визуальным стилем (см. открытые вопросы в docs/PLAN.md).
+// Пометок ровно три, и все они об одном — веришь ты соседу или нет: галочка,
+// вопрос, крестик. Щупальце и морда «Нечто» стояли здесь от прошлой игры и в
+// «Сопротивлении» не значат ничего.
 const getMarkTexture = (mark: EPlayerMark | undefined): PIXI.Texture | undefined => {
 	switch (mark) {
 		case EPlayerMark.question:
 			return playerStatusQuestion;
-		case EPlayerMark.suspect:
-			return playerStatusInfected;
-		case EPlayerMark.spy:
-			return playerStatusThing;
 		case EPlayerMark.clear:
 			return playerStatusClear;
 		default:
 			return undefined;
 	}
 }
+
+// Крестик рисуем сами: своей картинки для него нет, а собрать его из кружка и
+// знака — то же самое, чем нарисованы две другие пометки (заливка, тёмный кант,
+// белый знак посередине).
+const spyMarkFill = 0xC63B33;
+const spyMarkEdge = 0x2A1210;
+const spyMarkGlyphShare = 0.62;
+const spyMarkEdgeShare = 0.09;
+const spyMarkGlyphStyle = (size: number) => new PIXI.TextStyle({
+	fontFamily: 'Arial',
+	fontSize: size,
+	fontWeight: 'bold',
+	fill: 0xFFFFFF,
+});
+
+const SpyMark = ({size}: {size: number}) => (
+	<Container>
+		<Ring
+			rx={size / 2}
+			ry={size / 2}
+			thickness={size * spyMarkEdgeShare}
+			color={spyMarkEdge}
+			fillColor={spyMarkFill}
+			fillAlpha={1}
+		/>
+		<Text text={'✕'} anchor={0.5} style={spyMarkGlyphStyle(size * spyMarkGlyphShare)}/>
+	</Container>
+);
 
 // Роль на кружке: шпион в красном кольце, сопротивление в зелёном. Кольцо видно
 // не всегда — только тому, кому эту роль положено знать (см. formatPlayer).
@@ -302,13 +353,16 @@ const teamRingColor = 0xF2F4F7;
 // Насколько кольца шире самого кружка.
 const roleRingShare = 1.04;
 const teamRingShare = 1.16;
-// Корона лидера сидит над кружком, наполовину заходя на него.
-const leaderEmoji = '\u{1F451}';
-const leaderIconShare = 0.42;
-// Пометка сдвинута с макушки вбок и чуть вниз — по краю «яйца», а не по прямой:
-// на самом верху сидит корона.
-const markIconSide = 0.36;
+const teamRingThickness = (bodyWidth: number) => Math.max(bodyWidth * 0.05, 3);
+// Пунктир кольца на миссии: штрихов по кругу и оборотов в секунду.
+const teamRingDashes = 16;
+const teamRingDashSpeed = 0.22;
+// Пометка чуть опущена с самой макушки: кружок — «яйцо», и по прямой она висела
+// бы в воздухе над ним.
 const markIconDrop = 0.1;
+const markIconShare = 0.3;
+// Насколько ник опущен ниже середины кружка, в долях его высоты.
+const nicknameDrop = 0.08;
 // Жетоны вскрытых голосов рисует стол, а не бейдж: у дальних мест всё, что ниже
 // середины кружка, срезает столешница — она нарисована поверх них (см. Room).
 
@@ -322,8 +376,7 @@ const PlayerBadge = ({
 		isDoor,
 		isYou,
 		isConnected,
-		isLeader,
-		isOnTeam,
+		teamRing,
 		isSpy,
 		style,
 		onLongPress = null,
@@ -388,13 +441,25 @@ const PlayerBadge = ({
 						/>
 					)}
 					{/* Кольцо команды — снаружи ролевого и толще: состав обсуждают
-					    прямо сейчас, и он должен читаться первым. */}
-					{isOnTeam && (
+					    прямо сейчас, и он должен читаться первым. На самой миссии оно
+					    рассыпается в пунктир, и у того, чьей карты ещё ждут, пунктир
+					    бежит — то же «идёт, ждём», что и у кружка миссии на треке. */}
+					{teamRing === ETeamRing.solid && (
 						<Ring
 							rx={bodyWidth * teamRingShare / 2}
 							ry={style.height * teamRingShare / 2}
-							thickness={Math.max(bodyWidth * 0.05, 3)}
+							thickness={teamRingThickness(bodyWidth)}
 							color={teamRingColor}
+						/>
+					)}
+					{(teamRing === ETeamRing.mission || teamRing === ETeamRing.waiting) && (
+						<DashedRing
+							rx={bodyWidth * teamRingShare / 2}
+							ry={style.height * teamRingShare / 2}
+							thickness={teamRingThickness(bodyWidth)}
+							color={teamRingColor}
+							dashes={teamRingDashes}
+							speed={teamRing === ETeamRing.waiting ? teamRingDashSpeed : 0}
 						/>
 					)}
 					{/* Ник — на подложке у всех: под ним теперь лицо игрока (а у кого-то
@@ -402,33 +467,29 @@ const PlayerBadge = ({
 					    Ровного кружка, по которому они читались сами по себе, больше нет.
 					    Свой при этом жирный и золотой: за абсолютным столом себя надо
 					    находить взглядом. */}
-					<PlatedNickname text={nick} style={isYou ? youNicknameStyle : nicknameStyle}/>
+					{/* Подпись опущена ниже середины: лицо теперь стоит в кружке выше, а
+					    у дальних мест столешница срезает кружок сразу под серединой —
+					    глубже ник ушёл бы под стол. */}
+					<Container y={style.height * nicknameDrop}>
+						<PlatedNickname text={nick} style={isYou ? youNicknameStyle : nicknameStyle}/>
+					</Container>
 					{/* Своя пометка сидит на макушке кружка и наполовину торчит за него:
 					    внутри её не отличить от рисунка на бейдже, да и разглядывать
 					    чужие пометки приходится по всему столу разом — по верхнему краю
 					    они читаются одним взглядом. */}
-					{/* Пометка уходит вбок: макушку занимает корона лидера, а пометить
-					    можно и лидера — иначе они сели бы друг на друга. */}
 					{(mark && mark !== EPlayerMark.none) && (
-						<Sprite
-							texture={getMarkTexture(mark)}
-							anchor={0.5}
-							x={-style.width * markIconSide}
-							y={-style.height / 2 + style.height * markIconDrop}
-							width={style.width * 0.3}
-							height={style.width * 0.3}
-						/>
-					)}
-					{/* Корона лидера — ровно на макушке кружка, по его оси: это главное,
-					    что стол говорит об игроке в этом раунде. */}
-					{isLeader && (
-						<Sprite
-							texture={emojiTexture(leaderEmoji)}
-							anchor={0.5}
-							y={-style.height / 2}
-							width={style.width * leaderIconShare}
-							height={style.width * leaderIconShare}
-						/>
+						<Container y={-style.height / 2 + style.height * markIconDrop}>
+							{mark === EPlayerMark.spy ? (
+								<SpyMark size={style.width * markIconShare}/>
+							) : (
+								<Sprite
+									texture={getMarkTexture(mark)}
+									anchor={0.5}
+									width={style.width * markIconShare}
+									height={style.width * markIconShare}
+								/>
+							)}
+						</Container>
 					)}
 				</React.Fragment>
 			)}

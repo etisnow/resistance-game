@@ -1,7 +1,7 @@
 import {EServerEventType} from 'shared/enum/enumServerEvents';
 import {Player} from 'server/models/Player';
 import {Game} from 'server/models/Game';
-import {find, map, mapValues, filter} from 'lodash';
+import {find, map, mapValues, filter, range} from 'lodash';
 import {GameServer} from 'server/server/GameServer';
 import INotificationAction from 'shared/interfaces/notification';
 import {EPlayerState} from 'shared/enum/player';
@@ -42,7 +42,7 @@ const formatUpdatePlayerPayload = ({ game, viewer }: {game: Game, viewer: Player
 /**
  * Состояние партии для стола. Тайное сюда не попадает: пока голосуют, наружу
  * уходит только «кто уже ответил» (FR-5), а карты миссии — только числом
- * провалов в последней сыгранной (FR-9).
+ * провалов в каждой сыгранной (FR-9).
  */
 const formatRound = (game: Game) => {
 	const round = game.round;
@@ -59,13 +59,19 @@ const formatRound = (game: Game) => {
 		// Сколько человек нужно этой миссии и сколько провалов её сорвёт: считать
 		// это на клиенте значило бы держать вторую копию таблиц правил.
 		teamSize: isPlayable ? teamSize(playersCount, Math.min(round.missionIndex, MISSIONS_COUNT - 1)) : 0,
+		// Сколько человек идёт на каждую миссию: трек рисует их точками у сыгранных.
+		// Считает сервер по тем же таблицам, что и всё остальное, — вторая их копия
+		// на клиенте рано или поздно разошлась бы с правилами.
+		missionTeamSizes: isPlayable
+			? map(range(MISSIONS_COUNT), (index) => teamSize(playersCount, index))
+			: [],
 		failsNeeded: isPlayable ? failsNeeded(round.missionIndex, playersCount) : 1,
 		// Кто уже ответил в текущей фазе — без содержания ответа.
 		answeredIds: round.phase === EGamePhase.voting
 			? keys(round.votes)
 			: round.phase === EGamePhase.mission ? keys(round.missionCards) : [],
 		revealedVotes: round.revealedVotes,
-		lastFailCount: round.lastFailCount,
+		missionFails: round.missionFails,
 		isRolesRevealed: round.isRolesRevealed,
 	};
 };

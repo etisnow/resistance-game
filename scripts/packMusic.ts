@@ -29,13 +29,12 @@ const SILENCE = 0.0056;
 // в петле.
 const FADE_SEC = 0.005;
 
-// Весь список тем: в игре они идут вперемешку (см. helpers/sounds), и жать их
+// Весь список тем: в игре они идут вперемешку (см. helpers/music), и жать их
 // надо одинаково — иначе на стыке между темами слышно, что одна другой громче
-// или глуше.
+// или глуше. Тема пока одна: «нечтовские» ушли вместе с игрой, для которой их
+// писали.
 const tracks: {from: string; to: string}[] = [
-	{from: 'nechto.mp3', to: 'nechto.mp3'},
-	{from: 'nechto-main.mp3', to: 'nechto-main.mp3'},
-	{from: 'nechto-chill.mp3', to: 'nechto-chill.mp3'},
+	{from: 'resistance-main.mp3', to: 'resistance-main.mp3'},
 ];
 
 for (const {from, to} of tracks) {

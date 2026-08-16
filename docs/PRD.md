@@ -108,7 +108,7 @@
 | --- | --- |
 | `server/models/Game.ts` | Из 660 строк остаётся треть: рассылка, лог, `end`, сид, рассадка. Всё про колоду, руку, обмен, панику, карантин — вон. |
 | `server/formatters/formatOutgoingEvents.ts` | Новый payload обновления. Логику скрытия ролей в `formatPlayer` сохранить — она уже реализует «шпионы видят шпионов». |
-| `shared/enum/playerMarks.ts` | Переименование: `infected/thing` → `suspect/spy`. Механика перебора по клику остаётся. |
+| `shared/enum/playerMarks.ts` | Три пометки: `clear` / `question` / `spy` — галочка, вопрос, крестик. Механика перебора по клику остаётся. |
 | `shared/analytics/contract.ts`, `server/analytics/recorder.ts` | 577 строк про заражения, смерти и карты. Новый контракт: голоса, составы команд, исходы миссий. |
 
 ### Удалить
@@ -140,7 +140,7 @@ interface IResistanceState {
   team: string[];                         // состав текущей команды
   votes: Record<string, boolean>;         // наружу — только после вскрытия
   missionCards: Record<string, boolean>;  // наружу — только числом провалов
-  lastFailCount: number | null;           // чем вскрылась последняя миссия
+  missionFails: (number | null)[];        // чем вскрылась каждая миссия
   isRolesRevealed: boolean;               // партия кончилась, роли открыты
 }
 

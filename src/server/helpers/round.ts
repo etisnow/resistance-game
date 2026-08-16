@@ -7,6 +7,8 @@ import {EGamePhase} from 'shared/enum/phase';
 import {ENotificationAction} from 'shared/enum/notifications';
 import {EGameLogType} from 'shared/enum/gameLogType';
 import {askDecision, decisionTimeout} from 'server/helpers/askDecision';
+import {scheduleBots} from 'server/helpers/bot';
+import {gameServer} from 'server/server/GameServer';
 import {failsNeeded, MAX_REJECTS, MISSIONS_COUNT, MISSIONS_TO_WIN, teamSize} from 'shared/constant/resistance';
 
 /**
@@ -168,6 +170,32 @@ export const onPlayerSelect = (game: Game, player: Player, selectedPlayerId: str
 	game.updateGame();
 };
 
+// Сколько стол смотрит на вскрытое, прежде чем игра идёт дальше. И голоса, и
+// итог миссии успевают не только прочитать, но и обсудить — потому по пять
+// секунд. Полем, а не константами, — как decisionTimeout: движковые тесты ходят
+// синхронно, и пауза, которая нужна живым глазам, им только мешает.
+export const revealPause = {votes: 5, mission: 5};
+
+// Продолжение хода после вскрытия — через паузу. Ноль секунд означает «сразу»:
+// без setTimeout, иначе тесты пришлось бы делать асинхронными.
+const afterReveal = (game: Game, seconds: number, next: () => void): void => {
+	if (seconds <= 0) return next();
+	const timer = setTimeout(() => {
+		// За паузу стол могли и разобрать: партия кончилась, игроки вышли.
+		if (!game.gameInProcess) return;
+		try {
+			next();
+			// Ботов после паузы будит некому: очередь ботов заводится от хода живого
+			// игрока (см. GameServer.playerAction), а он был пять секунд назад.
+			scheduleBots(gameServer, game);
+		} catch (e) {
+			console.error('[round] reveal pause error:', e);
+		}
+	}, seconds * 1000);
+	// Незакрытая пауза не должна держать процесс живым.
+	timer.unref();
+};
+
 // ---------------------------------------------------------------- голосование
 
 const beginVoting = (game: Game): void => {
@@ -175,8 +203,6 @@ const beginVoting = (game: Game): void => {
 	clearTeamTimer(game);
 	round.phase = EGamePhase.voting;
 	round.votes = {};
-	// Прошлое вскрытие со стола убираем: голосуют заново.
-	round.revealedVotes = null;
 	game.addLog(`Голосуем за команду: ${nicknamesOf(game, round.team)}`, EGameLogType.turn);
 	// Голосуют все и одновременно — включая тех, кто идёт на дело сам.
 	// «Против» стоит последним нарочно: сервер жмёт за молчащего последнюю
@@ -207,21 +233,32 @@ const resolveVotes = (game: Game): void => {
 		nicknamesOf(game, filter(keys(round.votes), (id) => round.votes[id] === isApproved)) || '—';
 	game.addLog(`За: ${voted(true)}. Против: ${voted(false)}`, EGameLogType.info);
 
-	// Строгое большинство: ничья — это отклонение (FR-6).
-	if (approvals * 2 > total) {
-		round.rejectCount = 0;
-		beginMission(game);
-		return;
-	}
+	// Показываем вскрытые голоса и держим паузу, прежде чем идти дальше: раньше
+	// последний голос переключал фазу в тот же миг, и как проголосовал последний,
+	// прочитать никто не успевал.
+	game.updateGame();
+	afterReveal(game, revealPause.votes, () => {
+		// Пауза кончилась — жетоны со стола убираем все разом: они были ответом на
+		// один вопрос, и висеть дальше него им незачем. Разойтись они не могут:
+		// следующее обновление уходит из перехода фазы, ниже по этой же функции.
+		round.revealedVotes = null;
 
-	round.rejectCount += 1;
-	if (round.rejectCount >= MAX_REJECTS) {
-		game.addLog(`Стол не смог собрать команду ${MAX_REJECTS} раз подряд`, EGameLogType.system);
-		return endMatch(game, {isSpiesWin: true, message: 'Сопротивление развалилось: шпионы победили'});
-	}
-	game.addLog(`Команда отклонена (${round.rejectCount} из ${MAX_REJECTS})`, EGameLogType.info);
-	passLeader(game);
-	beginTeamBuilding(game);
+		// Строгое большинство: ничья — это отклонение (FR-6).
+		if (approvals * 2 > total) {
+			round.rejectCount = 0;
+			beginMission(game);
+			return;
+		}
+
+		round.rejectCount += 1;
+		if (round.rejectCount >= MAX_REJECTS) {
+			game.addLog(`Стол не смог собрать команду ${MAX_REJECTS} раз подряд`, EGameLogType.system);
+			return endMatch(game, {isSpiesWin: true, message: 'Сопротивление развалилось: шпионы победили'});
+		}
+		game.addLog(`Команда отклонена (${round.rejectCount} из ${MAX_REJECTS})`, EGameLogType.info);
+		passLeader(game);
+		beginTeamBuilding(game);
+	});
 };
 
 // ---------------------------------------------------------------- миссия
@@ -268,7 +305,7 @@ const resolveMission = (game: Game): void => {
 	const isSuccess = fails < needed;
 
 	round.missionResults[round.missionIndex] = isSuccess;
-	round.lastFailCount = fails;
+	round.missionFails[round.missionIndex] = fails;
 	// Вскрываем числом, а не поимённо: кто именно сдал провал — тайна (FR-9).
 	game.addLog(
 		isSuccess
@@ -277,21 +314,27 @@ const resolveMission = (game: Game): void => {
 		EGameLogType.system,
 	);
 
-	// Счётчик отклонений живёт внутри миссии и обнуляется вместе с ней.
-	round.rejectCount = 0;
-	round.missionIndex += 1;
+	// Итог уходит на стол и держится паузу: миссия — кульминация раунда, и её
+	// разбирают вслух. Пока пауза идёт, номер миссии не двигаем — стол по нему и
+	// оглашает исход (см. MissionTrack).
+	game.updateGame();
+	afterReveal(game, revealPause.mission, () => {
+		// Счётчик отклонений живёт внутри миссии и обнуляется вместе с ней.
+		round.rejectCount = 0;
+		round.missionIndex += 1;
 
-	const successes = filter(round.missionResults, (result) => result === true).length;
-	const failures = filter(round.missionResults, (result) => result === false).length;
-	if (successes >= MISSIONS_TO_WIN) {
-		return endMatch(game, {isSpiesWin: false, message: 'Три миссии выполнены: сопротивление победило'});
-	}
-	if (failures >= MISSIONS_TO_WIN) {
-		return endMatch(game, {isSpiesWin: true, message: 'Три миссии сорваны: шпионы победили'});
-	}
+		const successes = filter(round.missionResults, (result) => result === true).length;
+		const failures = filter(round.missionResults, (result) => result === false).length;
+		if (successes >= MISSIONS_TO_WIN) {
+			return endMatch(game, {isSpiesWin: false, message: 'Три миссии выполнены: сопротивление победило'});
+		}
+		if (failures >= MISSIONS_TO_WIN) {
+			return endMatch(game, {isSpiesWin: true, message: 'Три миссии сорваны: шпионы победили'});
+		}
 
-	passLeader(game);
-	beginTeamBuilding(game);
+		passLeader(game);
+		beginTeamBuilding(game);
+	});
 };
 
 // ---------------------------------------------------------------- ответы игроков
@@ -377,12 +420,12 @@ export const createRoundState = (leaderId: string) => ({
 	phase: EGamePhase.teamBuilding,
 	missionIndex: 0,
 	missionResults: new Array(MISSIONS_COUNT).fill(null) as (boolean | null)[],
+	missionFails: new Array(MISSIONS_COUNT).fill(null) as (number | null)[],
 	leaderId,
 	rejectCount: 0,
 	team: [] as string[],
 	votes: {} as Record<string, boolean>,
 	missionCards: {} as Record<string, boolean>,
 	revealedVotes: null,
-	lastFailCount: null,
 	isRolesRevealed: false,
 });

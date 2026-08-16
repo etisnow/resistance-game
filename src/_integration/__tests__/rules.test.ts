@@ -5,7 +5,7 @@ import {buildTeam, createRoundGame, playMission, playRound, seat, voteAll} from 
 import {EGamePhase} from 'shared/enum/phase';
 import {EGameState} from 'shared/enum/common';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {ACTION} from 'server/helpers/round';
+import {ACTION, revealPause} from 'server/helpers/round';
 import {spyCount, teamSize} from 'shared/constant/resistance';
 import {ENotificationAction} from 'shared/enum/notifications';
 
@@ -219,13 +219,57 @@ describe('FR-8: провал доступен только шпиону', () => 
 	});
 });
 
+// Паузы не про правила, а про глаза: без них последний ответ переключал фазу в
+// тот же миг и вскрытое не успевало показаться.
+describe('вскрытое стол успевает прочитать', () => {
+	it('после последнего голоса ход держит паузу', async () => {
+		const [game, players] = createRoundGame();
+		revealPause.votes = 0.05;
+		try {
+			buildTeam(game, [players[0]!, players[1]!]);
+			voteAll(game, 5);
+
+			// Голоса уже вскрыты, а фаза ещё голосование: стол смотрит на них.
+			expect(game.round.revealedVotes).not.toBeNull();
+			expect(game.round.phase).toBe(EGamePhase.voting);
+
+			await new Promise((resolve) => setTimeout(resolve, 200));
+			expect(game.round.phase).toBe(EGamePhase.mission);
+		} finally {
+			revealPause.votes = 0;
+		}
+	});
+
+	it('после последней карты миссия оглашается и только потом идёт дальше', async () => {
+		const [game, players] = createRoundGame();
+		revealPause.mission = 0.05;
+		try {
+			buildTeam(game, [players[0]!, players[1]!]);
+			voteAll(game, 5);
+			playMission(game, 0);
+
+			// Исход уже проставлен, но номер миссии ещё не переехал: по нему стол и
+			// оглашает, чем всё кончилось.
+			expect(game.round.missionResults[0]).toBe(true);
+			expect(game.round.missionIndex).toBe(0);
+			expect(game.round.phase).toBe(EGamePhase.mission);
+
+			await new Promise((resolve) => setTimeout(resolve, 200));
+			expect(game.round.missionIndex).toBe(1);
+			expect(game.round.phase).toBe(EGamePhase.teamBuilding);
+		} finally {
+			revealPause.mission = 0;
+		}
+	});
+});
+
 describe('FR-9: миссия вскрывается числом провалов', () => {
 	it('одного провала хватает, чтобы сорвать обычную миссию', () => {
 		const [game, players] = createRoundGame();
 		players.forEach((player) => { player.isSpy = true; });
 		playRound(game, {team: [players[0]!, players[1]!], fails: 1});
 		expect(game.round.missionResults[0]).toBe(false);
-		expect(game.round.lastFailCount).toBe(1);
+		expect(game.round.missionFails[0]).toBe(1);
 	});
 
 	it('четвёртая миссия при семи игроках требует двух провалов', () => {
@@ -243,7 +287,8 @@ describe('FR-9: миссия вскрывается числом провало�
 		// Один провал четвёртую не срывает.
 		playRound(game, {team: game.seatedPlayers().slice(0, 4), fails: 1});
 		expect(game.round.missionResults[3]).toBe(true);
-		expect(game.round.lastFailCount).toBe(1);
+		// Счёт провалов помнится по всем сыгранным миссиям, а не только по последней.
+		expect(game.round.missionFails.slice(0, 4)).toEqual([0, 1, 0, 1]);
 	});
 
 	it('два провала четвёртую при семи игроках срывают', () => {

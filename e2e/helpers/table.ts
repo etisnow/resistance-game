@@ -130,7 +130,7 @@ export class GameSession {
 		const context = await this.browser.newContext();
 		const page = await context.newPage();
 		await page.goto('/');
-		await expect(page.getByRole('heading', {name: 'Вход'})).toBeVisible();
+		await expect(page.getByPlaceholder('введи ник')).toBeVisible();
 		await page.getByPlaceholder('введи ник').fill(nick);
 		const joinButton = page.getByRole('button', {name: new RegExp(`Игра созданная ${host}`)});
 		await expect(joinButton).toBeVisible();
@@ -218,7 +218,7 @@ export async function newPlayer(browser: Browser, nick: string): Promise<Page> {
 	const context = await browser.newContext();
 	const page = await context.newPage();
 	await page.goto('/');
-	await expect(page.getByRole('heading', {name: 'Вход'})).toBeVisible();
+	await expect(page.getByPlaceholder('введи ник')).toBeVisible();
 	await page.getByPlaceholder('введи ник').fill(nick);
 	return page;
 }

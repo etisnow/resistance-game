@@ -12,7 +12,7 @@ export const LoadingScreen = observer(({progress}: ILoadingScreenProps) => {
 	const percent = Math.min(100, Math.max(0, Math.round(progress * 100)));
 	return (
 		<div className={'loading-screen'}>
-			<h1>Нечто</h1>
+			<h1>Сопротивление</h1>
 			<div className={'loading-bar'}>
 				<div className={'loading-bar-fill'} style={{width: `${percent}%`}}/>
 			</div>

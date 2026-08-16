@@ -6,7 +6,7 @@ test("launcher loads and a host can create a game", async ({ page }) => {
   await page.goto("/");
 
   // App mounted -> launcher screen.
-  await expect(page.getByRole("heading", { name: "Вход" })).toBeVisible();
+  await expect(page.getByPlaceholder("введи ник")).toBeVisible();
 
   await expect(page).toHaveTitle("Сопротивление");
 

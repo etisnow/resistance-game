@@ -18,6 +18,11 @@ h1 {
 		background: #0069a0;
 		box-shadow: 1px 8px 7px -4px #033b79;
 	}
+	// Номер по порядку — приглушённым: он про счёт собравшихся, а не про игрока,
+	// и спорить с ником ему незачем.
+	.player-lobby-number {
+		color: rgba(255, 255, 255, 0.5);
+	}
 	.kick-button {
 		@include buttons.button(buttons.$button-warning-top, buttons.$button-warning-bottom);
 		padding: 3px 10px;

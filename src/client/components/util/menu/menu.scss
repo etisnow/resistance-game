@@ -4,7 +4,7 @@
 // Вровень с шапкой лога (та тоже начинается с top: 2%), справа — под неё в
 // .gameLogHeader зарезервирован padding-right. Правым боком кнопка уходит за
 // край экрана, поэтому скруглены только левые углы — там край и виден.
-.tableMenuButton {
+.gameMenuButton {
 	@include buttons.button($radius: 8px 0 0 8px);
 	position: fixed;
 	top: 2%;
@@ -14,7 +14,7 @@
 	font-size: 14px;
 }
 
-.tableMenuOverlay {
+.gameMenuOverlay {
 	position: fixed;
 	top: 0;
 	left: 0;
@@ -27,14 +27,14 @@
 	background: rgba(0, 0, 0, 0.72);
 }
 
-.tableMenu {
+.gameMenu {
 	display: flex;
 	flex-direction: column;
 	width: 100%;
 	max-width: 260px;
 	padding: 0 20px;
 
-	.tableMenuTitle {
+	.gameMenuTitle {
 		color: white;
 		font-size: 16px;
 		text-align: center;
@@ -43,7 +43,7 @@
 }
 
 // Кнопка меню — не только в самом меню: тем же выглядит «Назад» в справочнике.
-.tableMenuItem {
+.gameMenuItem {
 	@include buttons.button;
 	width: 100%;
 	padding: 9px;
@@ -82,14 +82,14 @@
 // Ширина фиксированная, хотя подписи разной длины: ползунков в меню два подряд,
 // и от подписи по месту их дорожки начинались бы на разном отступе — соседние
 // строки одного вида, разъехавшиеся на десяток пикселей, видно сразу.
-.tableMenuSliderLabel {
+.gameMenuSliderLabel {
 	flex-shrink: 0;
 	width: 52px;
 }
 
 // Число справа: ширина фиксированная, иначе ползунок дёргается при переходе
 // через 9, 99 и обратно.
-.tableMenuSliderValue {
+.gameMenuSliderValue {
 	flex-shrink: 0;
 	width: 26px;
 	text-align: right;
@@ -99,7 +99,7 @@
 
 // Дорожка и бегунок рисуются вручную: у нативного ползунка вид свой в каждом
 // браузере, и рядом с кнопками меню он выглядит деталью из чужого интерфейса.
-.tableMenuSliderInput {
+.gameMenuSliderInput {
 	flex-grow: 1;
 	min-width: 0;
 	height: 18px;
@@ -153,7 +153,7 @@
 	}
 }
 
-.tableMenuToggle {
+.gameMenuToggle {
 	position: relative;
 	flex-shrink: 0;
 	width: 34px;

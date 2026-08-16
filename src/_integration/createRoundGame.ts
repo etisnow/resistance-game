@@ -3,7 +3,7 @@ import {createMockSocket, createMockSocketServer} from '_integration/mockSocket'
 import {Game} from 'server/models/Game';
 import {Player} from 'server/models/Player';
 import {EPlayerActionType} from 'shared/enum/playerActions';
-import {ACTION} from 'server/helpers/round';
+import {ACTION, revealPause} from 'server/helpers/round';
 
 // Стол на нужное число игроков для сценариев движка. Места здесь не тасуются
 // (мок-режим), поэтому порядок игроков — тот же, в котором они садились, а
@@ -11,6 +11,10 @@ import {ACTION} from 'server/helpers/round';
 export const createRoundGame = ({playersCount = 5, seed = 1}: {playersCount?: number, seed?: number} = {}): [Game, Player[]] => {
 	gameServer.isMock = true;
 	gameServer.ignoreChecks = true;
+	// Паузы на вскрытых голосах и на итоге миссии — для живых глаз; спеки ходят
+	// синхронно и ждать их на каждом раунде не должны.
+	revealPause.votes = 0;
+	revealPause.mission = 0;
 	gameServer.initialize(createMockSocketServer());
 	gameServer.games = {};
 

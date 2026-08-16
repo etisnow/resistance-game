@@ -11,7 +11,7 @@ import type Player from 'client/models/Player';
 export type IPlayersMap = { [key: string]: Player | null };
 
 // Состояние партии, как его видит этот игрок. Тайного здесь нет: голоса приходят
-// только вскрытыми, карты миссии — только числом провалов (см. formatRound).
+// только вскрытыми, карты миссии — только числом провалов в каждой (см. formatRound).
 export interface IRoundPayload {
 	phase: EGamePhase;
 	missionIndex: number;
@@ -21,11 +21,14 @@ export interface IRoundPayload {
 	maxRejects: number;
 	team: string[];
 	teamSize: number;
+	/** Размер команды каждой из пяти миссий — по правилам, а не по факту набора. */
+	missionTeamSizes: number[];
 	failsNeeded: number;
 	/** Кто уже ответил в текущей фазе — без содержания ответа. */
 	answeredIds: string[];
 	revealedVotes: Record<string, boolean> | null;
-	lastFailCount: number | null;
+	/** Сколько провалов вскрыла каждая миссия; null — ещё не сыграна. */
+	missionFails: (number | null)[];
 	isRolesRevealed: boolean;
 }
 

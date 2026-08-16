@@ -19,12 +19,15 @@ import avatar7 from "client/resources/images/avatars/7.jpg";
 import avatar8 from "client/resources/images/avatars/8.jpg";
 
 /* PLAYER STATUSES */
-// Личные пометки на соседях. Картинки пока «нечтовские» — свой набор («свой»,
-// «под вопросом», «шпион») придёт вместе с визуальным стилем в фазе 3.
+// Личные пометки на соседях: «свой» и «под вопросом». Третья, «шпион», —
+// рисованный крестик (см. PlayerBadge): картинки для него в наборе нет.
 import playerStatusQuestion from 'client/resources/images/playerStatuses/question.png';
-import playerStatusThing from 'client/resources/images/playerStatuses/thing.png';
-import playerStatusInfected from 'client/resources/images/playerStatuses/infected.png';
 import playerStatusClear from 'client/resources/images/playerStatuses/clear.png';
+
+/* VOTES */
+// Жетоны вскрытых голосов: неоновые пальцы вверх и вниз.
+import voteApprove from 'client/resources/images/votes/thumbUp.png';
+import voteReject from 'client/resources/images/votes/thumbDown.png';
 
 const resources = {
 	playerbadgeGlow,
@@ -32,9 +35,10 @@ const resources = {
 	tableTop,
 
 	playerStatusQuestion,
-	playerStatusThing,
-	playerStatusInfected,
 	playerStatusClear,
+
+	voteApprove,
+	voteReject,
 
 	playerBadges: {
 		'door': barricadeBadge,

@@ -32,7 +32,7 @@ test.describe.serial('Сессия игрока: одна игра на чело
 		await expect(roomButton).toContainText('1 игрок');
 
 		// Старое подключение выкинуто в лаунчер — играет только новое.
-		await expect(alice.getByRole('heading', {name: 'Вход'})).toBeVisible();
+		await expect(alice.getByPlaceholder('введи ник')).toBeVisible();
 
 		for (const page of [alice, alice2, watcher]) await page.context().close();
 	});
@@ -57,7 +57,7 @@ test.describe.serial('Сессия игрока: одна игра на чело
 
 		// Старая вкладка Bob вернулась в лаунчер, а для остальных Bob всё это
 		// время онлайн — «залипшего» офлайна после замещения быть не должно.
-		await expect(oldBob.getByRole('heading', {name: 'Вход'})).toBeVisible();
+		await expect(oldBob.getByPlaceholder('введи ник')).toBeVisible();
 		await session.waitFor('Alice', (s) => s.players[bobId]?.isConnected === true);
 
 		await newBob.context().close();
