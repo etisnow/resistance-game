@@ -1,66 +1,58 @@
-@use '../../../styles/buttons';
-
+// Пульсирует само свечение букв: у надписи нет ни рамки, ни плашки, которой
+// можно было бы мигать.
 @keyframes interaction-badge-pulse {
 	0%, 100% {
-		box-shadow: 0 4px 7px black;
-		filter: brightness(1);
+		text-shadow: 0 2px 8px black, 0 0 10px #5ed7ff44;
 	}
 	50% {
-		box-shadow: 0 4px 7px black, 0 0 16px 2px #5ed7ff99;
-		filter: brightness(1.25);
+		text-shadow: 0 2px 8px black, 0 0 22px #5ed7ffcc;
 	}
 }
 
+// Вопрос и ответ на него — одним столбиком внизу экрана, там, где в «Нечто»
+// лежала рука. Надпись висела в верхней трети, над самым столом, и читать её
+// приходилось отдельным взглядом — вверх и обратно вниз к кнопкам, которыми на
+// неё же и отвечают. Ни затемнения, ни слоя во весь экран: спрашивают как раз о
+// том, что на столе (состав команды, трек миссий), и закрывать его на время
+// ответа нельзя. Сквозь пустое место столбика стол остаётся кликабельным —
+// ловят нажатия только сами кнопки.
 .interaction-badge-wrapper {
 	position: fixed;
-	width:100%;
-	height:0%;
+	left: 0;
+	bottom: 4vh;
+	width: 100%;
 	display: flex;
-	justify-content: center;
+	flex-direction: column;
+	align-items: center;
 	z-index: 20;
-	// Бейдж — не кнопка (его не жмут), но выглядит он так же, как кнопки: то же
-	// скругление, градиент и тень. Цвет свой, ярче синего: это не действие, а
-	// требование действия.
+	pointer-events: none;
+	// Это не кнопка и не действие, а сказанное столу вслух: «команда идёт на
+	// миссию?», «выбери ещё двоих». Кнопкой оно и выглядело — тот же градиент,
+	// скругление и тень, — и его пытались нажимать. Теперь это просто надпись:
+	// светлые буквы с тенью, а под ними мягкое тёмное пятно без краёв — иначе
+	// фраза теряется в неоне города за столом.
 	.interaction-badge {
-		@include buttons.button(buttons.$button-lime-top, buttons.$button-lime-bottom, 8px);
-		position: fixed;
-		z-index: 2;
-		top: 22%;
-		// Не во всю ширину: на узком экране бейдж упирался бы в края, и скруглять
-		// было бы нечего.
+		// Не во всю ширину: на узком экране надпись упиралась бы в края.
 		width: calc(100% - 20px);
-		font-size: 14px;
+		max-width: 500px;
+		font-size: 20px;
+		font-weight: bold;
 		display: flex;
 		justify-content: center;
-		padding: 2px 20px;
-		transition: font-size 0.2s ease, padding 0.2s ease, top 0.2s ease;
-		max-width: 500px;
+		text-align: center;
+		padding: 10px 20px;
+		color: #EAF6FF;
+		letter-spacing: 0.4px;
+		background: radial-gradient(ellipse at center, rgba(4, 8, 14, 0.75) 0%, rgba(4, 8, 14, 0.55) 45%, rgba(4, 8, 14, 0) 78%);
 		cursor: default;
-
-		// Свёрнутый лог: бейдж — единственный индикатор действия, поэтому крупнее и пульсирует.
-		&.big {
-			top: 9%;
-			font-size: 20px;
-			font-weight: bold;
-			padding: 8px 20px;
-			text-align: center;
-			animation: interaction-badge-pulse 1.6s ease-in-out infinite;
-		}
+		// Светится: это единственное место, где написано, чего от игрока ждут, —
+		// всё остальное на экране говорит, что уже случилось.
+		animation: interaction-badge-pulse 1.6s ease-in-out infinite;
 	}
-	// Кнопки игрового действия стоят внизу — там, где в «Нечто» лежала рука.
-	// Ни затемнения, ни слоя во весь экран: спрашивают как раз о том, что на
-	// столе (состав команды, трек миссий), и закрывать его на время ответа
-	// нельзя. Сквозь пустое место кнопок стол остаётся кликабельным — ловят
-	// нажатия только они сами.
 	.menu-wrapper {
-		position: fixed;
-		left: 0;
-		bottom: 4vh;
-		z-index: 1;
 		width: 100%;
 		display: flex;
 		justify-content: center;
-		pointer-events: none;
 
 		.okayNotificationButton {
 			pointer-events: auto;

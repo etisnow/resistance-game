@@ -2,12 +2,11 @@ import React from 'react';
 import './style.scss';
 import {observer} from 'mobx-react-lite';
 import GameController from 'client/controllers/gameController';
-import GameLog from 'client/components/gameLog/GameLog';
+import ActionStack from 'client/components/actionStack/ActionStack';
 import Room from 'client/components/table/Room/Room';
 import Notifier from 'client/components/table/notifier/notifier';
 import {Helmet} from "react-helmet";
 import ActionInteracter from 'client/components/table/ActionInteracter/ActionInteracter';
-import ActionTimer from 'client/components/table/ActionTimer/ActionTimer';
 import TableMenu from 'client/components/table/TableMenu/TableMenu';
 import MissionTrack from 'client/components/table/MissionTrack/MissionTrack';
 import {StageBoundary} from 'client/components/table/StageBoundary';
@@ -25,10 +24,12 @@ const Table = observer(({controller} : ITableProps) => {
 
 		return (
 			<div className={"gameTable"}>
-				<GameLog controller={controller}/>
+				<ActionStack controller={controller}/>
 				<TableMenu controller={controller}/>
+				{/* Время идёт на прицеле ходящего (см. Reticle), а не полоской сверху
+				    экрана: полоса висела над столом отдельной шкалой и не говорила,
+				    кого именно ждут. */}
 				<ActionInteracter controller={controller}/>
-				<ActionTimer controller={controller}/>
 				<StageBoundary>
 					<TableStage>
 						{/* Стол рисуется слоями по глубине: сначала дальняя половина

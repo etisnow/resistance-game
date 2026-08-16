@@ -61,7 +61,7 @@ const armTeamTimer = (game: Game): void => {
 			const missing = currentTeamSize(game) - game.round.team.length;
 			const candidates = filter(seatedIds(game), (id) => !includes(game.round.team, id));
 			game.round.team.push(...shuffle(candidates, game.rng).slice(0, missing));
-			game.addLog(`${leaderOf(game).nickname} молчит — команду добрали за него`, EGameLogType.system);
+			game.addLog(`${leaderOf(game).nickname} молчит — команду добрали за него`, EGameLogType.team);
 			leaderOf(game).currentAction = null;
 			beginVoting(game);
 		} catch (e) {
@@ -99,7 +99,7 @@ export const beginTeamBuilding = (game: Game): void => {
 	game.turnPlayerId = round.leaderId;
 	game.addLog(
 		`Миссия ${round.missionIndex + 1}: ${leaderOf(game).nickname} набирает ${currentTeamSize(game)} чел.`,
-		EGameLogType.turn,
+		EGameLogType.team,
 	);
 	askTeamMember(game);
 	game.updateGame();
@@ -160,7 +160,7 @@ export const onPlayerSelect = (game: Game, player: Player, selectedPlayerId: str
 
 	round.team.push(selectedPlayerId);
 	player.currentAction = null;
-	game.addLog(`${player.nickname} берёт в команду ${game.players[selectedPlayerId]?.nickname}`, EGameLogType.info);
+	game.addLog(`${player.nickname} берёт в команду ${game.players[selectedPlayerId]?.nickname}`, EGameLogType.team);
 
 	if (round.team.length < currentTeamSize(game)) {
 		askTeamMember(game);
@@ -203,7 +203,7 @@ const beginVoting = (game: Game): void => {
 	clearTeamTimer(game);
 	round.phase = EGamePhase.voting;
 	round.votes = {};
-	game.addLog(`Голосуем за команду: ${nicknamesOf(game, round.team)}`, EGameLogType.turn);
+	game.addLog(`Голосуем за команду: ${nicknamesOf(game, round.team)}`, EGameLogType.vote);
 	// Голосуют все и одновременно — включая тех, кто идёт на дело сам.
 	// «Против» стоит последним нарочно: сервер жмёт за молчащего последнюю
 	// кнопку, и отсутствующий игрок не должен молча пропускать команду.
@@ -231,7 +231,7 @@ const resolveVotes = (game: Game): void => {
 	round.revealedVotes = {...round.votes};
 	const voted = (isApproved: boolean) =>
 		nicknamesOf(game, filter(keys(round.votes), (id) => round.votes[id] === isApproved)) || '—';
-	game.addLog(`За: ${voted(true)}. Против: ${voted(false)}`, EGameLogType.info);
+	game.addLog(`За: ${voted(true)}. Против: ${voted(false)}`, EGameLogType.vote);
 
 	// Показываем вскрытые голоса и держим паузу, прежде чем идти дальше: раньше
 	// последний голос переключал фазу в тот же миг, и как проголосовал последний,
@@ -255,7 +255,7 @@ const resolveVotes = (game: Game): void => {
 			game.addLog(`Стол не смог собрать команду ${MAX_REJECTS} раз подряд`, EGameLogType.system);
 			return endMatch(game, {isSpiesWin: true, message: 'Сопротивление развалилось: шпионы победили'});
 		}
-		game.addLog(`Команда отклонена (${round.rejectCount} из ${MAX_REJECTS})`, EGameLogType.info);
+		game.addLog(`Команда отклонена (${round.rejectCount} из ${MAX_REJECTS})`, EGameLogType.reject);
 		passLeader(game);
 		beginTeamBuilding(game);
 	});
@@ -267,7 +267,7 @@ const beginMission = (game: Game): void => {
 	const round = game.round;
 	round.phase = EGamePhase.mission;
 	round.missionCards = {};
-	game.addLog(`Команда ${nicknamesOf(game, round.team)} ушла на миссию`, EGameLogType.turn);
+	game.addLog(`Команда ${nicknamesOf(game, round.team)} ушла на миссию`, EGameLogType.mission);
 
 	round.team.forEach((playerId) => {
 		const player = game.players[playerId];
@@ -311,7 +311,7 @@ const resolveMission = (game: Game): void => {
 		isSuccess
 			? `Миссия ${round.missionIndex + 1} выполнена (провалов: ${fails})`
 			: `Миссия ${round.missionIndex + 1} сорвана (провалов: ${fails})`,
-		EGameLogType.system,
+		isSuccess ? EGameLogType.success : EGameLogType.fail,
 	);
 
 	// Итог уходит на стол и держится паузу: миссия — кульминация раунда, и её
@@ -351,7 +351,7 @@ export const onDecision = (game: Game, player: Player, action: string): void => 
 			if (action === ACTION.resetTeam) {
 				player.currentAction = null;
 				round.team = [];
-				game.addLog(`${player.nickname} набирает команду заново`, EGameLogType.info);
+				game.addLog(`${player.nickname} набирает команду заново`, EGameLogType.team);
 				askTeamMember(game);
 				game.updateGame();
 				return;

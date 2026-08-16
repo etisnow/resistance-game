@@ -13,6 +13,7 @@ import {EGamePhase} from 'shared/enum/phase';
 import {getPixiTexture} from 'client/components/table/pixiInjected';
 import {resources} from 'client/resources/resources';
 import {deckCardWidth, tableCardPoint} from 'client/helpers/roomHelpers';
+import type {IPoint} from 'client/helpers/arrowPath';
 import {tableCenterX, tableCenterY} from 'client/helpers/window';
 
 // Трек миссий лежит там же, где в «Нечто» лежала колода, — посреди столешницы.
@@ -28,7 +29,7 @@ const failColor = 0xDD6A5D;
 const idleColor = 0x4A4F57;
 const currentColor = 0xF2F4F7;
 
-const rejectIconTexture = getPixiTexture(resources.voteReject);
+export const rejectIconTexture = getPixiTexture(resources.voteReject);
 
 // Размеры — в долях ширины карты, которая лежала бы на этом столе: так трек
 // растёт и сжимается вместе со столом, а не живёт в своих пикселях.
@@ -39,6 +40,8 @@ const nodeGapShare = 0.44;
 const rejectIconShare = 0.15;
 const rejectStepShare = 0.19;
 const rejectLastShare = 1.3;
+// Насколько ряд опущен под кружки миссий, в радиусах кружка.
+const rejectRowLift = 2.2;
 // Ряд точек под знаком сыгранной миссии: точка на каждого, кто на неё ходил,
 // красные — по числу сданных провалов. Размеры в долях радиуса кружка; ряд не
 // шире failDotRowShare, иначе на команде из пяти человек он выйдет за «яйцо».
@@ -55,6 +58,25 @@ const nodeDashSpeed = 0.22;
 // (см. rimGlowTexture).
 const announceGlowShare = 4;
 const announceGlowAlpha = 0.9;
+
+/**
+ * Где на столе лежит деление счётчика отклонений и какого оно размера — в
+ * координатах от середины стола. Наружу, потому что в это деление прилетают
+ * пальцы отклонивших (см. Room, RejectFlight): считать его место второй раз в
+ * другом файле значило бы завести вторую копию раскладки трека.
+ */
+export const rejectSlotPoint = (playersCount: number, index: number, maxRejects: number): IPoint => {
+	const unit = deckCardWidth(playersCount);
+	const step = unit * rejectStepShare;
+	const point = tableCardPoint(playersCount);
+	return {
+		x: point.x + index * step - (step * (maxRejects - 1)) / 2,
+		y: point.y + unit * nodeRadiusShare * rejectRowLift,
+	};
+};
+
+export const rejectSlotSize = (playersCount: number, isLast: boolean): number =>
+	deckCardWidth(playersCount) * rejectIconShare * (isLast ? rejectLastShare : 1);
 
 const captionStyle = (size: number, color = 0xC8CDD4) => new PIXI.TextStyle({
 	fontFamily: 'Arial',
@@ -110,6 +132,7 @@ const MissionTrack = observer(({controller}: IMissionTrackProps) => {
 	const playersCount = controller.playersList.length;
 	if (!playersCount) return null;
 
+	const flight = controller.rejectFlight;
 	const unit = deckCardWidth(playersCount);
 	const nodeRadius = unit * nodeRadiusShare;
 	const gap = unit * nodeGapShare;
@@ -253,12 +276,15 @@ const MissionTrack = observer(({controller}: IMissionTrackProps) => {
 			    (см. Room): отклонение и есть «против», и значок у них должен быть
 			    один. Последний крупнее остальных: на нём партия кончается, а красным
 			    он выделиться уже не может — он и так красный. */}
-			<Container y={nodeRadius * 2.2}>
+			<Container y={nodeRadius * rejectRowLift}>
 				{map(range(round.maxRejects), (index) => {
 					const isLast = index === round.maxRejects - 1;
-					const isOn = index < round.rejectCount;
+					// Пока пальцы отклонивших летят в это деление, оно ещё не горит:
+					// загорается оно ровно тогда, когда они долетают (см. RejectFlight).
+					const isFlyingIn = !!flight && flight.slot === index;
+					const isOn = index < round.rejectCount && !isFlyingIn;
 					const step = unit * rejectStepShare;
-					const size = unit * rejectIconShare * (isLast ? rejectLastShare : 1);
+					const size = rejectSlotSize(playersCount, isLast);
 					return (
 						<Sprite
 							key={index}

@@ -7,7 +7,7 @@ import {EAppState, EGameState} from 'shared/enum/common';
 import {EClientEventType} from 'shared/enum/enumClientEvents';
 import {EPlayerActionType} from 'shared/enum/playerActions';
 import fscreen from 'fscreen';
-import {each, filter, findIndex, merge} from "lodash";
+import {each, filter, findIndex, keys, merge} from "lodash";
 import {EAsyncState} from 'shared/enum/async';
 import type {IGameUpdatePayload, IPlayersMap, IRoundPayload} from 'client/controllers/socketTypes';
 import {ENotificationAction} from 'shared/enum/notifications';
@@ -19,6 +19,22 @@ import type {IGameLogEntry} from 'shared/interfaces/gameLog';
 // синхронно, в первом же кадре стола, иначе он успевает нарисоваться в одном
 // виде и перескочить в другой.
 const firstPersonTableKey = 'isFirstPersonTable';
+
+// Сколько летит один жетон, на сколько отстаёт каждый следующий и сколько живёт
+// весь полёт. Время здесь, а не в самом столе: полёт заводит и гасит контроллер,
+// а рисует его Room (см. RejectFlight) — сроки должны быть одни на двоих.
+export const rejectFlightMs = 620;
+export const rejectFlightStaggerMs = 90;
+export const rejectFlightMaxStagger = 4;
+export const rejectFlightTotalMs = rejectFlightMs + rejectFlightStaggerMs * rejectFlightMaxStagger;
+
+/** Отклонённый состав в полёте: чьи пальцы летят и в какое деление счётчика. */
+export interface IRejectFlight {
+	voterIds: string[];
+	slot: number;
+	// Меняется на каждый новый полёт: по нему стол пересобирает летящие жетоны.
+	key: number;
+}
 
 const loadFirstPersonTable = (): boolean => {
 	try {
@@ -51,9 +67,6 @@ export default class GameController {
 	@observable turnPlayerId: string | null = null;
 	@observable isClockwise: boolean = true;
 	@observable gameLog: IGameLogEntry[] = [];
-	// Лог свёрнут по умолчанию: он перекрывает стол, а самое важное (текущее
-	// действие) дублируется крупным индикатором.
-	@observable isGameLogOpen: boolean = false;
 	@observable notifications: INotificationAction[] = [];
 	@observable playersToSelect: string[] = [];
 	// Стол развёрнут так, что ты сидишь внизу. По умолчанию выключено: стол
@@ -73,6 +86,10 @@ export default class GameController {
 	// Живёт дольше самого уведомления о конце игры: игрок может его скрыть и
 	// остаться дочитывать лог, но выход ему всё равно нужен — см. TableMenu.
 	@observable isGameOver: boolean = false;
+	// Летящие в счётчик отклонения: кто голосовал против и в какое деление они
+	// летят. null — сейчас ничего не летит (см. syncRejectFlight).
+	@observable rejectFlight: IRejectFlight | null = null;
+	rejectFlightTimer: ReturnType<typeof setTimeout> | null = null;
 
 	constructor(root: RootController) {
 		this.root = root;
@@ -238,6 +255,7 @@ export default class GameController {
 		this.currentPlayerId = currentPlayer.id;
 		this.currentAction = currentAction;
 		this.syncRoundSounds(round);
+		this.syncRejectFlight(round);
 		this.round = round;
 		// Вопрос закрыт (ответили сами или за нас) — отсчитывать больше нечего, и
 		// висеть ему в очереди тоже.
@@ -272,8 +290,36 @@ export default class GameController {
 		}
 	};
 
-	toggleGameLog = () => {
-		this.isGameLogOpen = !this.isGameLogOpen;
+	/**
+	 * Отклонённый состав: пальцы тех, кто голосовал против, летят со своих мест в
+	 * деление счётчика, и оно загорается, когда они долетают.
+	 *
+	 * Замечаем это по обновлению, а не по событию: счётчик растёт на сервере в
+	 * конце паузы вскрытия, и тем же обновлением голоса со стола убираются — то
+	 * есть в этот самый миг жетоны с кружков и исчезают. Кто голосовал против,
+	 * помним из ПРЕДЫДУЩЕГО состояния: в новом голосов уже нет.
+	 */
+	syncRejectFlight = (round: IRoundPayload) => {
+		const previous = this.round;
+		if (!previous || round.rejectCount <= previous.rejectCount) return;
+		const votes = previous.revealedVotes ?? {};
+		const voterIds = filter(keys(votes), (id) => votes[id] === false);
+		if (!voterIds.length) return;
+		this.startRejectFlight(voterIds, round.rejectCount - 1);
+	};
+
+	@action startRejectFlight = (voterIds: string[], slot: number) => {
+		if (this.rejectFlightTimer) clearTimeout(this.rejectFlightTimer);
+		// key — чтобы стол пересобрал летящие жетоны, даже если предыдущий полёт
+		// ещё не догорел: пружины заводятся один раз, при появлении.
+		this.rejectFlight = {voterIds, slot, key: (this.rejectFlight?.key ?? 0) + 1};
+		this.rejectFlightTimer = setTimeout(() => this.endRejectFlight(), rejectFlightTotalMs);
+	};
+
+	@action endRejectFlight = () => {
+		if (this.rejectFlightTimer) clearTimeout(this.rejectFlightTimer);
+		this.rejectFlightTimer = null;
+		this.rejectFlight = null;
 	};
 
 	backToLauncher = () => {

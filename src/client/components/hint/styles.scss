@@ -1,0 +1,45 @@
+// Якорь подсказки — ровно то, что в неё завернули: карточка стека, слово, бейдж.
+.hoverHint {
+    display: inline;
+    cursor: help;
+}
+
+.hoverHintPopup {
+    position: fixed;
+    z-index: 1000;
+    display: flex;
+    // Подсказка по наведению не ловит курсор: иначе она сама уводила бы
+    // указатель со слова и мигала. Прикреплённой курсор нужен — там крестик.
+    pointer-events: none;
+
+    &.isPinned {
+        pointer-events: auto;
+    }
+}
+
+// Полупрозрачная «стена» под прикреплённой подсказкой: тап мимо закрывает её.
+.hoverHintBackdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999;
+    background: #00000040;
+}
+
+.hoverHintClose {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid #ffffff59;
+    background: #000000d9;
+    color: white;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+}

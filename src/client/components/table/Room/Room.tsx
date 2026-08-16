@@ -14,7 +14,8 @@ import {
 	tableRadii,
 	tableThickness,
 } from 'client/helpers/roomHelpers';
-import GameController from 'client/controllers/gameController';
+import GameController, {rejectFlightMaxStagger, rejectFlightMs, rejectFlightStaggerMs} from 'client/controllers/gameController';
+import {rejectSlotPoint, rejectSlotSize} from 'client/components/table/MissionTrack/MissionTrack';
 import PlayerBadge, {badgeBodyWidth, ETeamRing, PlayerShadow} from 'client/components/table/PlayerBadge/PlayerBadge';
 import TableSurface from 'client/components/table/Room/TableSurface';
 import {EPlayerState} from 'shared/enum/player';
@@ -88,6 +89,7 @@ const reticleBreathScale = 1.07;
 const reticleBreathMs = 1300;
 
 interface ITurnReticleProps {
+	controller: GameController;
 	// Место цели: пока прицел до неё едет, она может и уехать сама.
 	x: number;
 	y: number;
@@ -96,7 +98,13 @@ interface ITurnReticleProps {
 	playerId: string;
 }
 
-const TurnReticle = ({x, y, badgeRadius, playerId}: ITurnReticleProps) => {
+const TurnReticle = observer(({controller, x, y, badgeRadius, playerId}: ITurnReticleProps) => {
+	// Часы хода — на самом прицеле; полоски таймера сверху экрана больше нет.
+	// Отсчёт свой у каждого ожидания (набор команды, голосование, миссия), и
+	// заводит его сервер своим уведомлением, поэтому берём отметку у таймера, а
+	// не считаем её от смены лидера: круг тянулся бы минутами и стрелка стояла
+	// бы красной всё это время, ничего уже не говоря.
+	const {isActive, startedAt} = controller.root.timerController;
 	// Переезд к новой цели: своей пружиной, поэтому прицел догоняет и того, кто
 	// сам переехал, а не только смену хода. Поля названы не x/y: react-spring
 	// считает такие пружины svg-атрибутами и типизирует их не числами, а долями
@@ -139,12 +147,13 @@ const TurnReticle = ({x, y, badgeRadius, playerId}: ITurnReticleProps) => {
 						cornerRadius={spread * reticleArmShare * reticleCornerShare}
 						thickness={clamp(badgeRadius * reticleThicknessShare, reticleMinThickness, reticleMaxThickness)}
 						color={reticleColor}
+						startedAt={isActive ? startedAt : 0}
 					/>
 				</AnimatedPixi.Container>
 			</AnimatedPixi.Container>
 		</AnimatedPixi.Container>
 	);
-};
+});
 
 // Стрелки от лидера к команде — белые, в цвет кольца команды на кружках: это
 // одно и то же высказывание стола, «вот кого он отправляет».
@@ -169,6 +178,46 @@ const voteTokenSide = 0.62;
 // спорили бы — этот про голос, тот про догадку.
 const voteApproveTexture = getPixiTexture(resources.voteApprove);
 const voteRejectTexture = getPixiTexture(resources.voteReject);
+
+// Отклонённый состав улетает в счётчик: пальцы тех, кто голосовал против,
+// снимаются со своих мест и слетаются в деление, которое от этого и загорается
+// (см. syncRejectFlight и MissionTrack). Без этого счётчик просто прибавлял
+// единицу где-то сбоку, и связи между «стол сказал нет» и делением не было.
+//
+// Летят по дуге, а не по прямой: прямая через полстола читается перечёркиванием,
+// а горка — броском.
+const rejectFlightArc = 0.22;
+// Жетон в полёте уменьшается до размера деления, в которое летит.
+const rejectFlightFadeShare = 0.12;
+
+const FlyingReject = ({from, to, size, endScale, delay}: {
+	from: IPoint,
+	to: IPoint,
+	size: number,
+	endScale: number,
+	delay: number,
+}) => {
+	// Пружина заводится один раз, при появлении жетона: он и живёт ровно свой
+	// полёт — Room пересобирает их на каждый новый отказ (см. key полёта).
+	const fly = useSpring<{flyAt: number}>({
+		flyAt: 1,
+		from: {flyAt: 0},
+		config: {duration: rejectFlightMs},
+		delay,
+	});
+	const span = Math.hypot(to.x - from.x, to.y - from.y);
+	const at = fly.flyAt as unknown as {interpolate: (fn: (value: number) => number) => number};
+	return (
+		<AnimatedPixi.Container
+			x={at.interpolate((value) => from.x + (to.x - from.x) * value)}
+			y={at.interpolate((value) => from.y + (to.y - from.y) * value - Math.sin(Math.PI * value) * span * rejectFlightArc)}
+			scale={at.interpolate((value) => 1 + (endScale - 1) * value)}
+			alpha={at.interpolate((value) => Math.min(1, (1 - value) / rejectFlightFadeShare))}
+		>
+			<Sprite texture={voteRejectTexture} anchor={0.5} width={size} height={size}/>
+		</AnimatedPixi.Container>
+	);
+};
 
 // Соседи ли по кругу: между ними никто не сидит. Только таких стрелка может
 // обходить дугой — под не соседями промежуток занят третьим игроком.
@@ -302,6 +351,31 @@ const Room = observer(({controller, children}: IRoomProps) => {
 		});
 	};
 
+	// Отклонённый состав: пальцы снимаются с кружков и летят в деление счётчика.
+	// Стартуют они ровно оттуда, где висели жетоны голосов, — полёт продолжает их,
+	// а не появляется ниоткуда.
+	const rejectFlight = () => {
+		const flight = controller.rejectFlight;
+		if (!flight) return null;
+		const isLast = flight.slot === (round ? round.maxRejects - 1 : 0);
+		const target = rejectSlotPoint(playersCount, flight.slot, round ? round.maxRejects : 0);
+		const size = badgeWidth * voteTokenShare;
+		const endScale = rejectSlotSize(playersCount, isLast) / size;
+		return map(seats, (seat, index) => {
+			if (!flight.voterIds.includes(seat.playerId)) return null;
+			return (
+				<FlyingReject
+					key={`${flight.key}-${seat.playerId}`}
+					from={tokenPoint(seat)}
+					to={target}
+					size={size}
+					endScale={endScale}
+					delay={Math.min(index, rejectFlightMaxStagger) * rejectFlightStaggerMs}
+				/>
+			);
+		});
+	};
+
 	// Вскрытые голоса — жетонами у кружков. Живут они одну паузу вскрытия (см.
 	// revealPause на сервере), так что со спиннерами ожидания за место не спорят:
 	// когда стол смотрит на голоса, ждать уже некого.
@@ -403,6 +477,7 @@ const Room = observer(({controller, children}: IRoomProps) => {
 				    уже кончилась), наводить его не на кого. */}
 				{turnPlayerId && players[turnPlayerId] && (
 					<TurnReticle
+						controller={controller}
 						{...positionOf(turnPlayerId)}
 						badgeRadius={badgeRadius}
 						playerId={turnPlayerId}
@@ -421,6 +496,9 @@ const Room = observer(({controller, children}: IRoomProps) => {
 				{map(nearSeats, renderBadge)}
 				{voteTokens()}
 				{pendingTokens()}
+				{/* Летящие отказы — поверх всего: они пересекают полстола и должны быть
+				    видны над кружками, иначе бросок теряется за ближним рядом. */}
+				{rejectFlight()}
 			</Container>
 		</Container>
 	)
