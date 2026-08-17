@@ -343,6 +343,9 @@ describe('FR-10: три миссии решают партию', () => {
 		expect(game.round.phase).toBe(EGamePhase.over);
 		expect(game.round.missionResults.slice(0, 3)).toEqual([true, true, true]);
 		expect(game.round.isRolesRevealed).toBe(true);
+		// Стол на развязке говорит только о ролях: последний состав с него убран,
+		// иначе кольца команды спорили бы с ролевыми (см. endMatch).
+		expect(game.round.team).toEqual([]);
 		expect(game.gameLog.map((entry) => entry.text).join(' ')).toContain('сопротивление победило');
 	});
 

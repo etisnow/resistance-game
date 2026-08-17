@@ -424,7 +424,7 @@ const Room = observer(({controller, children}: IRoomProps) => {
 				isDoor={state === EPlayerState.door}
 				teamRing={teamRingOf(player.id)}
 				isSpy={player.isSpy}
-				roleMark={roleMarkOf(player)}
+				roleMark={roleMarkOf(player, !!round && round.isRolesRevealed)}
 				isAimed={!!round && round.assassinAimId === player.id}
 				isShot={!!round && round.assassinTargetId === player.id}
 				onSelect={controller.selectPlayer}

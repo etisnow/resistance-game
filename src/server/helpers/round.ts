@@ -578,6 +578,11 @@ const endMatch = (game: Game, {isSpiesWin, message}: {isSpiesWin: boolean, messa
 	game.round.phase = EGamePhase.over;
 	// Роли открываются всем: партия кончилась, и разбор без них невозможен.
 	game.round.isRolesRevealed = true;
+	// Последний состав со стола убираем — по той же причине, по какой его убирает
+	// выстрел Убийцы (см. beginAssassination): белые кольца команды толще и ярче
+	// ролевых, и на развязке они спорили бы с единственным, что сейчас важно, —
+	// кто кем был. Кто ходил на миссию, осталось в стеке действий и в логе.
+	game.round.team = [];
 	game.end(message, {isSpiesWin});
 };
 
