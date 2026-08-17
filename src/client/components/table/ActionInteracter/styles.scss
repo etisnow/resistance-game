@@ -56,6 +56,26 @@
 
 		.okayNotificationButton {
 			pointer-events: auto;
+			transition: filter 0.12s ease-out, transform 0.12s ease-out, box-shadow 0.12s ease-out;
+		}
+
+		// Отклик на наведение: кнопка приподнимается и светлеет. Обе кнопки
+		// выглядят одинаково и стоят вплотную, а ответ здесь необратим — по
+		// подсветке видно, на какую именно сейчас нажмётся. Только там, где
+		// курсор настоящий: на тапе ховер залипает и остаётся после ответа.
+		@media (hover: hover) {
+			.okayNotificationButton:hover {
+				filter: brightness(1.25);
+				transform: translateY(-2px);
+				box-shadow: 0 6px 12px black;
+			}
+		}
+
+		// Нажатие — обратное движение: кнопка уходит под палец.
+		.okayNotificationButton:active {
+			filter: brightness(1.1);
+			transform: translateY(1px);
+			box-shadow: 0 2px 5px black;
 		}
 
 		// Кнопка по умолчанию: полоса под подписью утекает справа налево, а справа
