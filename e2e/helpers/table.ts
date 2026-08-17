@@ -19,6 +19,15 @@ export interface GcPlayer {
 	isYou: boolean;
 	turnState: string;
 	state: string;
+	// Роль, если смотрящему её положено знать. null — не положено.
+	isSpy: boolean | null;
+	// Особые роли. null — смотрящему их знать не положено.
+	isMerlin: boolean | null;
+	isAssassin: boolean | null;
+	isPercival: boolean | null;
+	isMorgana: boolean | null;
+	// Так этот игрок выглядит для Персиваля: Мерлин и Моргана — одинаково.
+	looksLikeMerlin: boolean | null;
 }
 
 export interface GcNotification {
@@ -39,6 +48,8 @@ export interface GcRound {
 	teamSize: number;
 	answeredIds: string[];
 	revealedVotes: Record<string, boolean> | null;
+	assassinAimId: string | null;
+	assassinTargetId: string | null;
 	isRolesRevealed: boolean;
 }
 
@@ -229,7 +240,12 @@ export async function newPlayer(browser: Browser, nick: string): Promise<Page> {
 // When `seed` is given, it is set on the server (via the gated e2eSeed hook)
 // BEFORE the deal, so all in-game randomness is fully reproducible — the only
 // injected input to an otherwise untouched real game.
-export async function startGame(browser: Browser, nicks: string[], seed?: number): Promise<GameSession> {
+export async function startGame(
+	browser: Browser,
+	nicks: string[],
+	seed?: number,
+	{withMerlin = false, withPercival = false}: {withMerlin?: boolean, withPercival?: boolean} = {},
+): Promise<GameSession> {
 	if (nicks.length < 5) throw new Error('Нужно минимум 5 игроков для старта');
 	const host = nicks[0]!;
 	const pages: Record<string, Page> = {};
@@ -237,6 +253,22 @@ export async function startGame(browser: Browser, nicks: string[], seed?: number
 	pages[host] = await newPlayer(browser, host);
 	await pages[host].getByRole('button', {name: 'Создай игру'}).click();
 	await expect(pages[host].getByRole('heading', {name: 'Лобби игры'})).toBeVisible();
+	// Настройку партии ставит хост и только в лобби — той же галочкой, что и живой
+	// игрок, а не подкруткой состояния.
+	// Клик и ожидание, а не check(): галочка — не состояние вкладки, а настройка
+	// партии, и обратно она приезжает обновлением с сервера. check() успевает
+	// решить, что клик не сработал, и щёлкает второй раз — то есть выключает.
+	if (withMerlin || withPercival) {
+		const option = pages[host].getByRole('checkbox', {name: /Мерлином и Убийцей/});
+		await option.click();
+		await expect(option).toBeChecked();
+	}
+	// Вложенная галочка: до первой она не нажимается вовсе.
+	if (withPercival) {
+		const option = pages[host].getByRole('checkbox', {name: /Персивалем/});
+		await option.click();
+		await expect(option).toBeChecked();
+	}
 
 	for (const nick of nicks.slice(1)) {
 		const page = await newPlayer(browser, nick);

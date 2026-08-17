@@ -29,6 +29,10 @@ export interface IRoundPayload {
 	revealedVotes: Record<string, boolean> | null;
 	/** Сколько провалов вскрыла каждая миссия; null — ещё не сыграна. */
 	missionFails: (number | null)[];
+	/** Кого Убийца взял на прицел, но ещё не выстрелил. Видит это весь стол. */
+	assassinAimId: string | null;
+	/** В кого выстрелил Убийца; null — выстрела ещё не было (FR-15). */
+	assassinTargetId: string | null;
 	isRolesRevealed: boolean;
 }
 
@@ -42,6 +46,10 @@ export interface IGameUpdatePayload {
 	currentPlayer: Player;
 	hostPlayerId: string;
 	isClockwise: boolean;
+	/** Играем ли с Мерлином и Убийцей — настройка партии, ставится в лобби. */
+	withMerlin: boolean;
+	/** И с Персивалем с Морганой — вложенная в предыдущую (FR-16). */
+	withPercival: boolean;
 	round: IRoundPayload;
 }
 

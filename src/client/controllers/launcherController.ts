@@ -58,11 +58,15 @@ export default class LauncherController {
 	// top of the deck; `&hand=CARD1-CARD2-CARD3-CARD4` rigs your own hand;
 	// `&botCount=5` задаёт число ботов (по умолчанию 5, сервер зажимает 3..11 —
 	// вместе с человеком это допустимые 4..12 игроков).
-	private botGameParams = (): {withBots?: boolean; seed?: number; firstPanic?: string; hand?: string[]; botCount?: number} => {
+	//
+	// `&activeRole=merlin|assassin` выдаёт эту роль тебе и заодно включает партию
+	// с Мерлином: обе роли редкие, и ждать нужную от честной раздачи — это
+	// десяток партий. Разбирает значение сервер (см. parseDevRole).
+	private botGameParams = (): {withBots?: boolean; seed?: number; firstPanic?: string; hand?: string[]; botCount?: number; activeRole?: string} => {
 		if (typeof window === 'undefined') return {};
 		const params = new URLSearchParams(window.location.search);
 		if (params.get('withBots') !== 'true') return {};
-		const out: {withBots: boolean; seed?: number; firstPanic?: string; hand?: string[]; botCount?: number} = {withBots: true};
+		const out: {withBots: boolean; seed?: number; firstPanic?: string; hand?: string[]; botCount?: number; activeRole?: string} = {withBots: true};
 		const seed = params.get('seed');
 		if (seed !== null && seed.trim() !== '' && !Number.isNaN(Number(seed))) out.seed = Number(seed);
 		const firstPanic = params.get('firstPanic');
@@ -71,6 +75,8 @@ export default class LauncherController {
 		if (hand) out.hand = hand.split('-').filter((c) => c.trim() !== '');
 		const botCount = params.get('botCount');
 		if (botCount !== null && botCount.trim() !== '' && !Number.isNaN(Number(botCount))) out.botCount = Number(botCount);
+		const activeRole = params.get('activeRole');
+		if (activeRole) out.activeRole = activeRole;
 		return out;
 	}
 

@@ -28,6 +28,7 @@ export const registerHandlers = (gameServer: GameServer, socket: IGameSocket) =>
 			firstPanic?: unknown;
 			hand?: unknown;
 			botCount?: unknown;
+			activeRole?: unknown;
 		};
 		const nickname = asString(data.nickname);
 		if (!nickname) return;
@@ -38,6 +39,7 @@ export const registerHandlers = (gameServer: GameServer, socket: IGameSocket) =>
 				firstPanic: asString(data.firstPanic),
 				hand: Array.isArray(data.hand) ? data.hand.filter((c): c is string => typeof c === 'string') : undefined,
 				botCount: typeof data.botCount === 'number' ? data.botCount : undefined,
+				activeRole: asString(data.activeRole),
 			}
 			: undefined;
 		gameServer.createGame({nickname, socket, bots});
@@ -67,6 +69,16 @@ export const registerHandlers = (gameServer: GameServer, socket: IGameSocket) =>
 		const player = gameServer.getPlayerBySocket(socket);
 		if (!player) return;
 		gameServer.startGame({player});
+	}));
+
+	socket.on(EClientEventType.setGameOptions, (payload: unknown) => safe('setGameOptions', () => {
+		const data = (payload ?? {}) as {withMerlin?: unknown, withPercival?: unknown};
+		const withMerlin = typeof data.withMerlin === 'boolean' ? data.withMerlin : undefined;
+		const withPercival = typeof data.withPercival === 'boolean' ? data.withPercival : undefined;
+		if (withMerlin === undefined && withPercival === undefined) return;
+		const player = gameServer.getPlayerBySocket(socket);
+		if (!player) return;
+		gameServer.setGameOptions({player, withMerlin, withPercival});
 	}));
 
 	socket.on(EClientEventType.toggleReadyGame, () => safe('toggleReadyGame', () => {

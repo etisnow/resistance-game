@@ -28,6 +28,49 @@
     background: #00000040;
 }
 
+// Подсказка жетона роли. Цвет приходит со стилем, тот же, каким жетон залит на
+// кружке (см. helpers/roleMark); значение здесь — только на случай, если он не
+// доехал.
+.roleHintPopup .roleHint {
+	--role-color: #E8C33F;
+	display: block;
+	max-width: min(320px, 88vw);
+	padding: 8px 10px;
+	border-radius: 8px;
+	border: 1px solid var(--role-color);
+	background: #070a0ef2;
+	box-shadow: 0 6px 18px #000000cc, 0 0 12px #00000080;
+	color: white;
+	font-size: 14px;
+	text-align: left;
+	line-height: 1.35;
+
+}
+
+.roleHintHead {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	margin-bottom: 4px;
+	color: var(--role-color);
+	font-weight: bold;
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+}
+
+// «Это ты» — приглушённо: главное в шапке всё-таки название роли.
+.roleHintYou {
+	color: #ffffff8c;
+	font-weight: normal;
+	letter-spacing: 0;
+	text-transform: none;
+}
+
+.roleHintText {
+	display: block;
+}
+
 .hoverHintClose {
     position: absolute;
     top: -12px;

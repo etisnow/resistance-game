@@ -1,8 +1,12 @@
 import React from 'react';
 import './style.scss';
+import cn from 'classnames';
 import {observer} from 'mobx-react-lite';
+import {EGamePhase} from 'shared/enum/phase';
+import {ENotificationAction} from 'shared/enum/notifications';
 import GameController from 'client/controllers/gameController';
 import ActionStack from 'client/components/actionStack/ActionStack';
+import RoleHintOverlay from 'client/components/hint/RoleHint';
 import Room from 'client/components/table/Room/Room';
 import Notifier from 'client/components/table/notifier/notifier';
 import {Helmet} from "react-helmet";
@@ -21,10 +25,18 @@ interface ITableProps {
 const Table = observer(({controller} : ITableProps) => {
 		const {currentPlayer: player} = controller;
 		if (!player) return null;
+		// Убийца выбирает цель — курсор над столом становится прицелом. Стрелка
+		// «указать и нажать» здесь неверна: нажатие наводит оружие, а не открывает
+		// что-то (см. FR-15).
+		const isAiming = controller.round?.phase === EGamePhase.assassination
+			&& controller.currentAction?.type === ENotificationAction.playerSelect;
 
 		return (
-			<div className={"gameTable"}>
+			<div className={cn('gameTable', {isAiming})}>
 				<ActionStack controller={controller}/>
+				{/* Подсказка жетона роли: живёт в DOM поверх канваса, а открывает её
+				    сам жетон на кружке (см. roleHintStore). */}
+				<RoleHintOverlay/>
 				<TableMenu controller={controller}/>
 				{/* Время идёт на прицеле ходящего (см. Reticle), а не полоской сверху
 				    экрана: полоса висела над столом отдельной шкалой и не говорила,

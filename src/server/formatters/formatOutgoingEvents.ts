@@ -33,6 +33,10 @@ const formatUpdatePlayerPayload = ({ game, viewer }: {game: Game, viewer: Player
 		turnPlayerId: game.turnPlayerId,
 		playersList: game.playersList,
 		isClockwise: game.isClockwise,
+		// Настройки партии: их ставит хост в лобби, а знать про них должен весь
+		// стол — с этими ролями игра идёт иначе.
+		withMerlin: game.withMerlin,
+		withPercival: game.withPercival,
 		gameLog: game.gameLog,
 		currentAction: viewer.currentAction,
 		round: formatRound(game),
@@ -72,6 +76,8 @@ const formatRound = (game: Game) => {
 			: round.phase === EGamePhase.mission ? keys(round.missionCards) : [],
 		revealedVotes: round.revealedVotes,
 		missionFails: round.missionFails,
+		assassinAimId: round.assassinAimId,
+		assassinTargetId: round.assassinTargetId,
 		isRolesRevealed: round.isRolesRevealed,
 	};
 };
@@ -79,10 +85,26 @@ const formatRound = (game: Game) => {
 // Что один игрок знает о другом.
 const formatPlayer = (game: Game, viewer: Player) => (player: Player) => {
 	if (!player) return null;
-	// Шпионы знают друг друга, сопротивление не знает никого (FR-2). На развязке
-	// роли открываются всем (FR-10). null — «не твоё дело», и это не то же самое,
-	// что false: по «точно не шпион» игра читалась бы с первого обновления.
-	const isRoleVisible = game.round.isRolesRevealed || viewer.isSpy || player === viewer;
+	const isRevealed = game.round.isRolesRevealed;
+	// Шпионы знают друг друга, сопротивление не знает никого (FR-2) — и Мерлин
+	// видит стороны всех, в этом его роль (FR-14). На развязке роли открываются
+	// всем (FR-10). null — «не твоё дело», и это не то же самое, что false: по
+	// «точно не шпион» игра читалась бы с первого обновления.
+	const isRoleVisible = isRevealed || viewer.isSpy || viewer.isMerlin || player === viewer;
+	// Мерлина не знает никто, включая шпионов: они его и ищут выстрелом.
+	const isMerlinVisible = isRevealed || player === viewer;
+	// Убийцу знают свои — стреляет он один, но решают шпионы вместе. Мерлину его
+	// не видно: иначе он читал бы половину развязки заранее. Моргану свои знают на
+	// тех же правах.
+	const isSpyRoleVisible = isRevealed || player === viewer || (viewer.isSpy && player.isSpy);
+	// Персиваля не знает никто, кроме него самого: знай его шпионы, они бы через
+	// него вышли на Мерлина.
+	const isPercivalVisible = isRevealed || player === viewer;
+	// Что видит Персиваль: Мерлина и Моргану — обоих одинаково и не различая
+	// (FR-16). В этом вся роль Морганы, и в этом же вся неуверенность Персиваля.
+	const looksLikeMerlin = !isRevealed && viewer.isPercival
+		? player.isMerlin || player.isMorgana
+		: null;
 
 	return {
 		id: player.id,
@@ -96,6 +118,11 @@ const formatPlayer = (game: Game, viewer: Player) => (player: Player) => {
 		isReady: player.isReady,
 		isConnected: player.isConnected,
 		isSpy: isRoleVisible ? player.isSpy : null,
+		isMerlin: isMerlinVisible ? player.isMerlin : null,
+		isAssassin: isSpyRoleVisible ? player.isAssassin : null,
+		isMorgana: isSpyRoleVisible ? player.isMorgana : null,
+		isPercival: isPercivalVisible ? player.isPercival : null,
+		looksLikeMerlin,
 		// Метки — личные заметки смотрящего, чужие ему не показываем.
 		marks: player === viewer ? player.marks : null,
 	}

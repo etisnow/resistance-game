@@ -1,7 +1,15 @@
 import {describe, expect, it} from 'bun:test';
 import {gameServer} from 'server/server/GameServer';
 import {getSpyCalls, createMockSocket} from '_integration/mockSocket';
-import {buildTeam, createRoundGame, voteAll} from '_integration/createRoundGame';
+import {
+	assassinOf,
+	buildTeam,
+	createRoundGame,
+	merlinOf,
+	morganaOf,
+	percivalOf,
+	voteAll,
+} from '_integration/createRoundGame';
 import {Player} from 'server/models/Player';
 import {EServerEventType} from 'shared/enum/enumServerEvents';
 import {EGamePhase} from 'shared/enum/phase';
@@ -12,8 +20,17 @@ import {ACTION, revealPause} from 'server/helpers/round';
 // Что уезжает игроку в обновлении стола. Тайна партии держится здесь: если она
 // протечёт в payload, никакой интерфейс её уже не спрячет.
 
+interface IPlayerView {
+	isSpy: boolean | null;
+	isMerlin: boolean | null;
+	isAssassin: boolean | null;
+	isPercival: boolean | null;
+	isMorgana: boolean | null;
+	looksLikeMerlin: boolean | null;
+}
+
 interface IUpdate {
-	players: Record<string, {isSpy: boolean | null} | null>;
+	players: Record<string, IPlayerView | null>;
 	round: {
 		phase: EGamePhase;
 		answeredIds: string[];
@@ -71,6 +88,97 @@ describe('FR-2: роли видно только своим', () => {
 		}
 		expect(game.round.phase).toBe(EGamePhase.over);
 		expect(seenRoles(clean, game)).toEqual(players.map((p) => p.isSpy));
+	});
+});
+
+describe('FR-14: кто кого видит в партии с Мерлином', () => {
+	it('Мерлин знает стороны всех, но не знает, кто из шпионов стреляет', () => {
+		const [game, players] = createRoundGame({seed: 8, withMerlin: true});
+		const merlin = merlinOf(game);
+		game.updateGame();
+
+		// Стороны — все: в этом и есть роль Мерлина.
+		expect(seenRoles(merlin, game)).toEqual(players.map((p) => p.isSpy));
+		// А вот Убийца ему не виден: иначе половина развязки читалась бы заранее.
+		const merlinView = lastUpdate(merlin).players;
+		players.filter((p) => p !== merlin).forEach((other) => {
+			expect(merlinView[other.id]?.isAssassin).toBeNull();
+		});
+	});
+
+	it('Мерлина до развязки не знает никто, включая шпионов', () => {
+		const [game, players] = createRoundGame({seed: 8, withMerlin: true});
+		const merlin = merlinOf(game);
+		const assassin = assassinOf(game);
+		game.updateGame();
+
+		players.filter((p) => p !== merlin).forEach((viewer) => {
+			expect(lastUpdate(viewer).players[merlin.id]?.isMerlin).toBeNull();
+		});
+		// Сам Мерлин про себя знает — иначе играть за него нечем.
+		expect(lastUpdate(merlin).players[merlin.id]?.isMerlin).toBe(true);
+		// Шпионы знают, кто из них Убийца: стреляет один, а решают вместе.
+		expect(lastUpdate(assassin).players[assassin.id]?.isAssassin).toBe(true);
+		const otherSpy = players.find((p) => p.isSpy && p !== assassin)!;
+		expect(lastUpdate(otherSpy).players[assassin.id]?.isAssassin).toBe(true);
+	});
+
+	it('Персиваль видит двоих одинаково и не знает, кто из них Мерлин', () => {
+		const [game, players] = createRoundGame({seed: 9, withPercival: true});
+		const percival = percivalOf(game);
+		const merlin = merlinOf(game);
+		const morgana = morganaOf(game);
+		game.updateGame();
+		const view = lastUpdate(percival).players;
+
+		// Мерлин и Моргана — на одно лицо: в этом вся роль Морганы.
+		expect(view[merlin.id]?.looksLikeMerlin).toBe(true);
+		expect(view[morgana.id]?.looksLikeMerlin).toBe(true);
+		// И ни настоящих ролей, ни сторон Персивалю не видно — он обычный
+		// сопротивленец, просто с догадкой.
+		expect(view[merlin.id]?.isMerlin).toBeNull();
+		expect(view[morgana.id]?.isMorgana).toBeNull();
+		expect(view[morgana.id]?.isSpy).toBeNull();
+		// Остальные для него — просто остальные.
+		players.filter((p) => p !== merlin && p !== morgana).forEach((other) => {
+			expect(view[other.id]?.looksLikeMerlin).toBe(false);
+		});
+	});
+
+	it('Персиваля не видит никто, а Моргану — только свои', () => {
+		const [game, players] = createRoundGame({seed: 9, withPercival: true});
+		const percival = percivalOf(game);
+		const morgana = morganaOf(game);
+		const assassin = assassinOf(game);
+		const merlin = merlinOf(game);
+		game.updateGame();
+
+		// Знай шпионы Персиваля, они бы через него вышли на Мерлина.
+		players.filter((p) => p !== percival).forEach((viewer) => {
+			expect(lastUpdate(viewer).players[percival.id]?.isPercival).toBeNull();
+		});
+		expect(lastUpdate(percival).players[percival.id]?.isPercival).toBe(true);
+		// Свои Моргану знают, Мерлин — нет: ему видно только сторону.
+		expect(lastUpdate(assassin).players[morgana.id]?.isMorgana).toBe(true);
+		expect(lastUpdate(merlin).players[morgana.id]?.isMorgana).toBeNull();
+		expect(lastUpdate(merlin).players[morgana.id]?.isSpy).toBe(true);
+		// А догадка Персиваля — только его: остальным она не приходит вовсе.
+		expect(lastUpdate(assassin).players[merlin.id]?.looksLikeMerlin).toBeNull();
+	});
+
+	it('на развязке открывается и Мерлин, и Убийца', () => {
+		const [game, players] = createRoundGame({seed: 8, withMerlin: true});
+		const merlin = merlinOf(game);
+		const assassin = assassinOf(game);
+		const clean = players.find((p) => !p.isSpy && p !== merlin)!;
+		// Пять отклонений подряд — партия кончается, роли открываются.
+		for (let i = 0; i < 5; i++) {
+			buildTeam(game, [players[0]!, players[1]!]);
+			voteAll(game, 0);
+		}
+		expect(game.round.phase).toBe(EGamePhase.over);
+		expect(lastUpdate(clean).players[merlin.id]?.isMerlin).toBe(true);
+		expect(lastUpdate(clean).players[assassin.id]?.isAssassin).toBe(true);
 	});
 });
 

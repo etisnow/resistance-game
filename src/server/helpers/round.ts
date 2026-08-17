@@ -28,6 +28,8 @@ export const ACTION = {
 	fail: 'fail',
 	confirmTeam: 'confirmTeam',
 	resetTeam: 'resetTeam',
+	shoot: 'shoot',
+	resetAim: 'resetAim',
 } as const;
 
 // Сколько лидер думает над составом. Больше, чем над голосом: набрать пятерых —
@@ -151,6 +153,23 @@ const askTeamConfirm = (game: Game): void => {
 
 export const onPlayerSelect = (game: Game, player: Player, selectedPlayerId: string): void => {
 	const round = game.round;
+	// Выстрел Убийцы — тот же выбор игрока за столом, что и набор команды, только
+	// цель у него одна и последняя.
+	if (round.phase === EGamePhase.assassination) {
+		if (!player.isAssassin) return;
+		if (round.assassinTargetId) return;
+		// Стрелять можно только по сопротивлению: своих Убийца знает, а событие в
+		// сокет можно отправить и мимо предложенного списка.
+		if (!includes(assassinTargets(game), selectedPlayerId)) return;
+		const target = game.players[selectedPlayerId];
+		if (!target) return;
+		// Прицел наведён — стол это видит. Сам выстрел ждёт кнопки.
+		round.assassinAimId = selectedPlayerId;
+		player.currentAction = null;
+		askAssassinShot(game, target);
+		game.updateGame();
+		return;
+	}
 	if (round.phase !== EGamePhase.teamBuilding) return;
 	// Команду набирает лидер, и только он: без этой проверки состав мог бы
 	// править любой, отправив событие в сокет.
@@ -174,7 +193,7 @@ export const onPlayerSelect = (game: Game, player: Player, selectedPlayerId: str
 // итог миссии успевают не только прочитать, но и обсудить — потому по пять
 // секунд. Полем, а не константами, — как decisionTimeout: движковые тесты ходят
 // синхронно, и пауза, которая нужна живым глазам, им только мешает.
-export const revealPause = {votes: 5, mission: 5};
+export const revealPause = {votes: 5, mission: 5, assassin: 5};
 
 // Продолжение хода после вскрытия — через паузу. Ноль секунд означает «сразу»:
 // без setTimeout, иначе тесты пришлось бы делать асинхронными.
@@ -326,6 +345,9 @@ const resolveMission = (game: Game): void => {
 		const successes = filter(round.missionResults, (result) => result === true).length;
 		const failures = filter(round.missionResults, (result) => result === false).length;
 		if (successes >= MISSIONS_TO_WIN) {
+			// Три миссии в партии с Мерлином партию ещё не заканчивают: у шпионов
+			// остаётся выстрел (FR-15).
+			if (game.withMerlin) return beginAssassination(game);
 			return endMatch(game, {isSpiesWin: false, message: 'Три миссии выполнены: сопротивление победило'});
 		}
 		if (failures >= MISSIONS_TO_WIN) {
@@ -334,6 +356,133 @@ const resolveMission = (game: Game): void => {
 
 		passLeader(game);
 		beginTeamBuilding(game);
+	});
+};
+
+// ---------------------------------------------------------------- выстрел Убийцы
+
+// Сколько Убийца думает над выстрелом. Дольше голосования: это последнее решение
+// партии, и принимают его шпионы вместе, вслух.
+const ASSASSIN_DECISION_SECONDS = 60;
+const ASSASSIN_TIMEOUT_MS = ASSASSIN_DECISION_SECONDS * 1000;
+
+const assassinTimers = new WeakMap<Game, ReturnType<typeof setTimeout>>();
+
+const clearAssassinTimer = (game: Game): void => {
+	const timer = assassinTimers.get(game);
+	if (!timer) return;
+	clearTimeout(timer);
+	assassinTimers.delete(game);
+};
+
+const assassinOf = (game: Game): Player | undefined =>
+	game.seatedPlayers().find((player) => player.isAssassin);
+
+/** В кого Убийце можно стрелять: своих он знает, и стрелять в них незачем. */
+const assassinTargets = (game: Game): string[] =>
+	game.seatedPlayers().filter((player) => !player.isSpy).map((player) => player.id);
+
+/**
+ * Сопротивление взяло три миссии — но партия не кончена: Убийца называет того,
+ * кого считает Мерлином (FR-15). Попал — партия уходит шпионам.
+ */
+const beginAssassination = (game: Game): void => {
+	const assassin = assassinOf(game);
+	// Убийцы за столом может не оказаться только если партию начали без Мерлина,
+	// а сюда попали по ошибке: тогда честнее закончить её обычной победой.
+	if (!assassin) return endMatch(game, {isSpiesWin: false, message: 'Три миссии выполнены: сопротивление победило'});
+
+	game.round.phase = EGamePhase.assassination;
+	// Последняя команда со стола убирается: миссии кончились, и её кольца со
+	// стрелками спорили бы с единственным, что сейчас важно, — кого назовёт
+	// Убийца (см. teamRingOf).
+	game.round.team = [];
+	game.round.assassinAimId = null;
+	// Прицел стола — на Убийце: ход теперь его, и стол должен видеть, кого ждёт.
+	game.turnPlayerId = assassin.id;
+	game.addLog('Три миссии выполнены. Слово за Убийцей: он ищет Мерлина', EGameLogType.mission);
+	askAssassinAim(game);
+	game.updateGame();
+};
+
+// Убийца наводит прицел. Выстрел от наводки отделён нарочно: это последнее
+// решение партии и отменить его нельзя, а один случайный клик по кружку решал бы
+// всё разом. Сначала цель — потом кнопка (тот же порядок, что у лидера с
+// составом команды).
+const askAssassinAim = (game: Game): void => {
+	const assassin = assassinOf(game);
+	if (!assassin) return;
+	game.notifyPlayer({
+		player: assassin,
+		notification: {
+			type: ENotificationAction.playerSelect,
+			text: 'Кто из них Мерлин? Выстрел один.',
+			playersToSelect: assassinTargets(game),
+		},
+	});
+	awaitPlayers(game, [assassin], 'Убийца ищет Мерлина', ASSASSIN_DECISION_SECONDS);
+	armAssassinTimer(game);
+};
+
+// Цель на прицеле — остаётся нажать. Кнопка по умолчанию (а сервер жмёт
+// последнюю) — «Выстрелить»: наведённый прицел и есть ответ, и молчание Убийцы
+// не должно его отменять.
+const askAssassinShot = (game: Game, target: Player): void => {
+	const assassin = assassinOf(game);
+	if (!assassin) return;
+	clearAssassinTimer(game);
+	askDecision({
+		asker: assassin,
+		decider: assassin,
+		text: `${target.nickname} — Мерлин?`,
+		menu: [
+			{text: 'Выбрать другого', action: ACTION.resetAim},
+			{text: 'Выстрелить', action: ACTION.shoot},
+		],
+		seconds: ASSASSIN_DECISION_SECONDS,
+	});
+};
+
+// Убийца молчит — стреляем за него наугад по сопротивлению. Молчание тоже ход:
+// стол не должен висеть на ушедшем игроке (FR-11).
+const armAssassinTimer = (game: Game): void => {
+	clearAssassinTimer(game);
+	const timer = setTimeout(() => {
+		assassinTimers.delete(game);
+		if (!game.gameInProcess) return;
+		if (game.round.phase !== EGamePhase.assassination) return;
+		try {
+			const targetId = shuffle(assassinTargets(game), game.rng)[0];
+			if (!targetId) return;
+			game.addLog('Убийца молчит — выстрел ушёл наугад', EGameLogType.system);
+			resolveAssassination(game, targetId);
+		} catch (e) {
+			console.error('[round] assassin timeout error:', e);
+		}
+	}, ASSASSIN_TIMEOUT_MS);
+	timer.unref();
+	assassinTimers.set(game, timer);
+};
+
+const resolveAssassination = (game: Game, targetId: string): void => {
+	const target = game.players[targetId];
+	if (!target) return;
+	clearAssassinTimer(game);
+	const assassin = assassinOf(game);
+	if (assassin) assassin.currentAction = null;
+	game.round.assassinTargetId = targetId;
+	game.addLog(`Убийца стреляет в ${target.nickname}`, EGameLogType.mission);
+
+	// Выстрел показываем столу и держим паузу: назвать имя и тут же увидеть счёт
+	// партии — значит не увидеть самого выстрела.
+	game.updateGame();
+	afterReveal(game, revealPause.assassin, () => {
+		if (target.isMerlin) {
+			game.addLog(`${target.nickname} — Мерлин`, EGameLogType.fail);
+			return endMatch(game, {isSpiesWin: true, message: `Убийца нашёл Мерлина: ${target.nickname}. Шпионы победили`});
+		}
+		game.addLog(`${target.nickname} — не Мерлин`, EGameLogType.success);
+		return endMatch(game, {isSpiesWin: false, message: 'Убийца промахнулся: сопротивление победило'});
 	});
 };
 
@@ -379,6 +528,22 @@ export const onDecision = (game: Game, player: Player, action: string): void => 
 			}
 			return;
 		}
+		case EGamePhase.assassination: {
+			if (!player.isAssassin) return;
+			if (round.assassinTargetId) return;
+			const aimId = round.assassinAimId;
+			if (!aimId) return;
+			if (action === ACTION.resetAim) {
+				player.currentAction = null;
+				round.assassinAimId = null;
+				askAssassinAim(game);
+				game.updateGame();
+				return;
+			}
+			if (action !== ACTION.shoot) return;
+			resolveAssassination(game, aimId);
+			return;
+		}
 		case EGamePhase.mission: {
 			if (!includes(round.team, player.id)) return;
 			if (player.id in round.missionCards) return;
@@ -409,6 +574,7 @@ const passLeader = (game: Game): void => {
 
 const endMatch = (game: Game, {isSpiesWin, message}: {isSpiesWin: boolean, message: string}): void => {
 	clearTeamTimer(game);
+	clearAssassinTimer(game);
 	game.round.phase = EGamePhase.over;
 	// Роли открываются всем: партия кончилась, и разбор без них невозможен.
 	game.round.isRolesRevealed = true;
@@ -427,5 +593,7 @@ export const createRoundState = (leaderId: string) => ({
 	votes: {} as Record<string, boolean>,
 	missionCards: {} as Record<string, boolean>,
 	revealedVotes: null,
+	assassinAimId: null,
+	assassinTargetId: null,
 	isRolesRevealed: false,
 });

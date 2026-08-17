@@ -3,6 +3,7 @@ import bellAudio from 'client/resources/sound/beep.mp3';
 import paperAudio from 'client/resources/sound/paper.mp3';
 import missionSuccessAudio from 'client/resources/sound/missionSuccess.mp3';
 import missionFailAudio from 'client/resources/sound/missionFail.mp3';
+import gunshotAudio from 'client/resources/sound/gunshot.mp3';
 import spiesWinAudio from 'client/resources/sound/thingWin.mp3';
 import spiesLoseAudio from 'client/resources/sound/thingLose.mp3';
 import {setMusicVolume, startMusic as igniteMusic, stopMusic} from 'client/helpers/music';
@@ -108,6 +109,17 @@ export const playPaper = createSound(paperAudio, 1, 120);
  */
 export const playMissionSuccess = createSound(missionSuccessAudio, 0.65, 200);
 export const playMissionFail = createSound(missionFailAudio, 0.45, 200);
+
+/**
+ * Выстрел Убийцы (FR-15). Самый громкий момент партии и последний её звук —
+ * дальше только развязка. Запись плотная, как и провал миссии (RMS −14.7 дБ, и
+ * пик у неё вовсе за нулём), поэтому доля примерно та же: на столе выходит
+ * около −21 дБ — громче итога миссии, но не в уши.
+ *
+ * Тишина в начале записи срезана (см. scripts/cutGunshotSound): выстрел обязан
+ * совпасть с нажатием, а не отстать от него на треть секунды.
+ */
+export const playGunshot = createSound(gunshotAudio, 0.5, 400);
 
 /**
  * Развязка партии. Своим элементом, а не через uifx: нужно знать, когда звук

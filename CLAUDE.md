@@ -33,7 +33,9 @@
 | `./run typecheck` | `tsc --noEmit` |
 | `./run e2e` | Сборка клиента + Playwright |
 
-Дев-режим с ботами — `?withBots=true&botCount=N` в адресе клиента.
+Дев-режим с ботами — `?withBots=true&botCount=N` в адресе клиента. Там же
+`&seed=777` закрепляет раздачу, а `&activeRole=merlin|assassin|percival|morgana`
+выдаёт тебе эту роль и заодно заводит партию с нужным дополнением.
 
 ## Устройство
 

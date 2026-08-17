@@ -16,6 +16,7 @@ import clc from 'cli-color';
 import {EGameState} from 'shared/enum/common';
 import type {IServerEvent} from 'shared/interfaces/socket';
 import {EGameLogType} from 'shared/enum/gameLogType';
+import type {ESpecialRole} from 'shared/enum/role';
 import type {IGameLogEntry} from 'shared/interfaces/gameLog';
 import type {IResistanceState} from 'shared/interfaces/resistanceState';
 import {beginTeamBuilding, createRoundState} from 'server/helpers/round';
@@ -36,6 +37,18 @@ export class Game {
   // движение по нему — в server/helpers/round.ts. До старта партии оно пустое:
   // лидера ещё нет.
   round: IResistanceState = createRoundState('');
+  // Играем ли с Мерлином и Убийцей. Настройка партии, а не правило: базовая игра
+  // остаётся базовой, а дополнение хост включает в лобби осознанно. Меняется
+  // только до старта — после раздачи менять роли уже нечем.
+  withMerlin: boolean = false;
+  // Играем ли ещё и с Персивалем с Морганой. Без Мерлина этой пары не бывает:
+  // Персиваль ищет глазами именно его, а Моргана только затем и нужна, чтобы он
+  // ошибся (FR-16). Поэтому настройка вложена в предыдущую и без неё не берётся.
+  withPercival: boolean = false;
+  // Дев-режим: какую роль выдать живому игроку в партии с ботами (см. ESpecialRole).
+  // В обычной партии всегда null — просьбу ставит только `?activeRole=` при
+  // создании игры с ботами.
+  devForcedRole: ESpecialRole | null = null;
   // Every game runs on its own seeded RNG so the whole game is reproducible from
   // this one number (logged as the first game-log line). A bug report's log is
   // enough to replay the exact deal. Override before start() via reseed().

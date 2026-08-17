@@ -11,7 +11,7 @@ import {each, filter, findIndex, keys, merge} from "lodash";
 import {EAsyncState} from 'shared/enum/async';
 import type {IGameUpdatePayload, IPlayersMap, IRoundPayload} from 'client/controllers/socketTypes';
 import {ENotificationAction} from 'shared/enum/notifications';
-import {playGameEnd, playMissionFail, playMissionSuccess, playPaper, startMusic, stopMusic} from 'client/helpers/sounds';
+import {playGameEnd, playGunshot, playMissionFail, playMissionSuccess, playPaper, startMusic, stopMusic} from 'client/helpers/sounds';
 import type {IGameLogEntry} from 'shared/interfaces/gameLog';
 
 // Вид стола — настройка игрока, а не игры: её спрашивают один раз и помнят.
@@ -82,6 +82,10 @@ export default class GameController {
 	@observable decisionSecondsLeft: number | null = null;
 	decisionTimer: ReturnType<typeof setInterval> | null = null;
 	@observable hostPlayerId: string = '';
+	// Настройки партии: с Мерлином и Убийцей, и вложенная в неё — с Персивалем и
+	// Морганой. Ставит их хост в лобби, видит весь стол.
+	@observable withMerlin: boolean = false;
+	@observable withPercival: boolean = false;
 	@observable isMenuOpen: boolean = false;
 	// Живёт дольше самого уведомления о конце игры: игрок может его скрыть и
 	// остаться дочитывать лог, но выход ему всё равно нужен — см. TableMenu.
@@ -120,6 +124,16 @@ export default class GameController {
 
 	toggleReady = () => {
 		this.socket.sendToServer(EClientEventType.toggleReadyGame, {})
+	};
+
+	// Своё состояние не трогаем — ответ придёт обновлением от сервера: настройку
+	// держит партия, а не вкладка, и остальным она должна прийти тем же путём.
+	setWithMerlin = (withMerlin: boolean) => {
+		this.socket.sendToServer(EClientEventType.setGameOptions, {withMerlin})
+	};
+
+	setWithPercival = (withPercival: boolean) => {
+		this.socket.sendToServer(EClientEventType.setGameOptions, {withPercival})
 	};
 
 	activatePlayerSelectMode = (notification: INotificationAction) => {
@@ -246,9 +260,11 @@ export default class GameController {
 
 	// Одним действием: без него mobx отдаёт реакциям каждое присваивание по
 	// отдельности, и компонент успевает отрисоваться наполовину обновлённым.
-	@action updateGame = ({players, playersList, turnPlayerId, gameLog, currentAction, state, currentPlayer, hostPlayerId, isClockwise, round}: IGameUpdatePayload) => {
+	@action updateGame = ({players, playersList, turnPlayerId, gameLog, currentAction, state, currentPlayer, hostPlayerId, isClockwise, withMerlin, withPercival, round}: IGameUpdatePayload) => {
 		this.updatePlayers(players);
 		this.hostPlayerId = hostPlayerId;
+		this.withMerlin = withMerlin;
+		this.withPercival = withPercival;
 		this.playersList = playersList;
 		this.isClockwise = isClockwise;
 		this.turnPlayerId = turnPlayerId;
@@ -288,6 +304,9 @@ export default class GameController {
 			if (round.missionResults[played]) playMissionSuccess();
 			else playMissionFail();
 		}
+		// Выстрел Убийцы — по появлению названного, тем же способом: развязка
+		// приходит обновлением, а не отдельным событием.
+		if (!previous.assassinTargetId && round.assassinTargetId) playGunshot();
 	};
 
 	/**

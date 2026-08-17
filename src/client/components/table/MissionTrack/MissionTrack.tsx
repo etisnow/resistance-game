@@ -162,7 +162,11 @@ const MissionTrack = observer(({controller}: IMissionTrackProps) => {
 	// Подпись под треком говорит одно: что со столом происходит прямо сейчас.
 	// Обычно это состояние миссии, а на паузе вскрытия — её итог, ровно на том же
 	// месте: туда и смотрят, когда команда возвращается.
-	const caption = round.phase === EGamePhase.over
+	// Выстрел Убийцы стоит после трека и мимо него: миссии кончились, и подпись
+	// говорит уже не про них (FR-15).
+	const caption = round.phase === EGamePhase.assassination
+		? (round.assassinTargetId ? 'УБИЙЦА ВЫСТРЕЛИЛ' : 'УБИЙЦА ИЩЕТ МЕРЛИНА')
+		: round.phase === EGamePhase.over
 		? 'ПАРТИЯ ОКОНЧЕНА'
 		: shownResult !== null
 			? `МИССИЯ ${round.missionIndex + 1} ${shownResult ? 'ВЫПОЛНЕНА' : 'СОРВАНА'} · ${shownFails === 0 ? 'ПРОВАЛОВ НЕТ' : `ПРОВАЛОВ: ${shownFails}`}`
@@ -183,7 +187,10 @@ const MissionTrack = observer(({controller}: IMissionTrackProps) => {
 				alpha={trackPlateAlpha}
 			/>
 			{map(round.missionResults, (result, index) => {
-				const isCurrent = index === round.missionIndex && round.phase !== EGamePhase.over;
+				// На выстреле Убийцы миссии уже кончились: подсвечивать «текущую»
+				// нечего — её нет, а номер миссии успел уехать за последнюю сыгранную.
+				const isTrackLive = round.phase !== EGamePhase.over && round.phase !== EGamePhase.assassination;
+				const isCurrent = index === round.missionIndex && isTrackLive;
 				// Команда на деле: её кружок на треке отмечен так же, как и сами
 				// ушедшие, — бегущим пунктиром.
 				// Пока её исход не вскрыт: на паузе оглашения кружок уже носит свой

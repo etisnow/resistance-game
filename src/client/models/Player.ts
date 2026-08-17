@@ -20,6 +20,15 @@ export default class Player {
 	@observable isYou: boolean = false;
 	// Роль. null — «не твоё дело»: сопротивление чужих ролей не видит до развязки.
 	@observable isSpy: boolean | null = null;
+	// Особые роли — только в партии с ними (см. GameController.withMerlin).
+	// Мерлина и Персиваля до развязки не знает никто, кроме них самих; Убийцу и
+	// Моргану знают свои.
+	@observable isMerlin: boolean | null = null;
+	@observable isAssassin: boolean | null = null;
+	@observable isPercival: boolean | null = null;
+	@observable isMorgana: boolean | null = null;
+	// Так этот игрок выглядит для Персиваля: Мерлин и Моргана — одинаково (FR-16).
+	@observable looksLikeMerlin: boolean | null = null;
 	@observable isReady: boolean = false;
 	@observable isConnected: boolean = true;
 	@observable marks: {[key:string]: EPlayerMark} = {};

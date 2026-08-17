@@ -29,6 +29,7 @@ import Reticle from 'client/components/pixiPrimitives/Reticle';
 import Spinner from 'client/components/pixiPrimitives/Spinner';
 import Arrow from 'client/components/pixiPrimitives/Arrow';
 import {arrowPath} from 'client/helpers/arrowPath';
+import {roleMarkOf} from 'client/helpers/roleMark';
 import {tableCenterX, tableCenterY} from 'client/helpers/window';
 import type {IPlayersMap} from 'client/controllers/socketTypes';
 import type Player from 'client/models/Player';
@@ -325,7 +326,11 @@ const Room = observer(({controller, children}: IRoomProps) => {
 	// бежит пунктир только у того, чьей карты ещё ждут: сам ответ — тайна (FR-9),
 	// а вот кого ждут, знать можно и нужно.
 	const teamRingOf = (playerId: string): ETeamRing => {
-		if (!round || !round.team.includes(playerId)) return ETeamRing.none;
+		if (!round) return ETeamRing.none;
+		// Выстрел Убийцы обводит названного — и остаётся на нём до последнего кадра
+		// стола: партия на этом кончается, и кого назвали, должно быть видно.
+		if (round.assassinTargetId === playerId) return ETeamRing.target;
+		if (!round.team.includes(playerId)) return ETeamRing.none;
 		if (round.phase !== EGamePhase.mission) return ETeamRing.solid;
 		return round.answeredIds.includes(playerId) ? ETeamRing.mission : ETeamRing.waiting;
 	};
@@ -419,6 +424,9 @@ const Room = observer(({controller, children}: IRoomProps) => {
 				isDoor={state === EPlayerState.door}
 				teamRing={teamRingOf(player.id)}
 				isSpy={player.isSpy}
+				roleMark={roleMarkOf(player)}
+				isAimed={!!round && round.assassinAimId === player.id}
+				isShot={!!round && round.assassinTargetId === player.id}
 				onSelect={controller.selectPlayer}
 				onLongPress={controller.changePlayerMark}
 				mark={marks[player.id]}

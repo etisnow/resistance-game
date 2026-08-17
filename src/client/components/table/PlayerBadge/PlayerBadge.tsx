@@ -11,7 +11,12 @@ import {resources} from 'client/resources/resources';
 import {getPixiTexture} from 'client/components/table/pixiInjected';
 import Ring from 'client/components/pixiPrimitives/Ring';
 import DashedRing from 'client/components/pixiPrimitives/DashedRing';
+import Crosshair from 'client/components/pixiPrimitives/Crosshair';
+import BulletWound from 'client/components/pixiPrimitives/BulletWound';
 import {EPlayerMark} from 'shared/enum/playerMarks';
+import {ROLE_MARK_LOOK, type TRoleMark} from 'client/helpers/roleMark';
+import {displayObjectAnchor} from 'client/components/hint/canvasHint';
+import {roleHintStore} from 'client/components/hint/roleHintStore';
 import {cardAspectRatio} from 'shared/constant/layout';
 
 // Золото своего ника. Тот же цвет, что и у «своего» действия на столе: по тёмной
@@ -28,6 +33,8 @@ export enum ETeamRing {
 	mission = 'mission',
 	// Команда на деле, и ждут именно его.
 	waiting = 'waiting',
+	// В него выстрелил Убийца (FR-15).
+	target = 'target',
 }
 
 interface IPlayerBadgeProps {
@@ -46,6 +53,12 @@ interface IPlayerBadgeProps {
 	teamRing: ETeamRing;
 	// Его роль, если смотрящему её положено знать. null — не положено.
 	isSpy: boolean | null;
+	// Жетон особой роли, если смотрящему его положено видеть (см. roleMarkOf).
+	roleMark: TRoleMark | null;
+	// Убийца взял его на прицел (перекрестие поверх лица) и выстрелил (пробоина,
+	// трещины и кровь). Видит это весь стол — см. FR-15.
+	isAimed: boolean;
+	isShot: boolean;
 	mark: EPlayerMark | undefined;
 	style: {
 		width:number;
@@ -344,12 +357,74 @@ const SpyMark = ({size}: {size: number}) => (
 	</Container>
 );
 
+// Особые роли — жетоном на кружке, буквой: ролевого кольца им мало, оно говорит
+// только сторону, а Мерлин со стороны неотличим от любого другого сопротивленца.
+// Тем же жетоном, что и пометка-крестик: за столом уже есть один такой знак, и
+// второму незачем выглядеть иначе. Какая буква и какого цвета — см. roleMark.
+//
+// Жетон стоит на макушке слева: по центру макушки сидит личная пометка игрока, а
+// низ кружка у дальних мест срезает столешница.
+const roleMarkShift = 0.36;
+const roleMarkShare = 0.26;
+// Две буквы («МГ», «М?») в тот же кружок влезают только уже: жетон один на все
+// роли, и раздувать его ради двух из них незачем.
+const roleMarkWideGlyphShare = 0.44;
+
+const RoleMark = ({size, mark}: {size: number, mark: TRoleMark}) => {
+	const {text, fill, glyph} = ROLE_MARK_LOOK[mark];
+	const glyphShare = text.length > 1 ? roleMarkWideGlyphShare : spyMarkGlyphShare;
+	return (
+		<Container>
+			<Ring
+				rx={size / 2}
+				ry={size / 2}
+				thickness={size * spyMarkEdgeShare}
+				color={spyMarkEdge}
+				fillColor={fill}
+				fillAlpha={1}
+			/>
+			<Text text={text} anchor={0.5} style={roleMarkGlyphStyle(size * glyphShare, glyph)}/>
+		</Container>
+	);
+};
+
+const roleMarkGlyphStyle = (size: number, fill: number) => new PIXI.TextStyle({
+	fontFamily: 'Arial',
+	fontSize: size,
+	fontWeight: 'bold',
+	fill,
+});
+
+// Наведение показывает подсказку, нажатие — прикалывает её (на тач-экранах
+// наведения нет вовсе). Нажатие до кружка под жетоном не доходит: там по клику
+// перебираются пометки на соседе, а жетон — не сосед.
+const showRoleHint = (mark: TRoleMark, isYou: boolean, isPinned: boolean) =>
+	(event: PIXI.interaction.InteractionEvent) => {
+		const anchor = displayObjectAnchor(event.currentTarget);
+		if (!isPinned) {
+			// Уже приколотую подсказку наведение не перебивает: иначе она теряла бы
+			// крестик под курсором.
+			if (roleHintStore.isPinned) return;
+			roleHintStore.show(mark, isYou, anchor, false);
+			return;
+		}
+		event.stopPropagation();
+		roleHintStore.toggle(mark, isYou, anchor);
+	};
+
 // Роль на кружке: шпион в красном кольце, сопротивление в зелёном. Кольцо видно
 // не всегда — только тому, кому эту роль положено знать (см. formatPlayer).
 const spyRingColor = 0xDD6A5D;
 const cleanRingColor = 0x5CA98D;
 // Кольцо команды: этих лидер отправляет на дело прямо сейчас.
 const teamRingColor = 0xF2F4F7;
+// Тем же кольцом, но красным, обведён названный Убийцей: это последнее, что стол
+// видит в партии, и белым оно читалось бы как обычный состав.
+const targetRingColor = 0xE24B3B;
+// Перекрестие прицела: чуть уже самого лица, чтобы кольцо оптики читалось на нём,
+// а не по его краю.
+const aimShare = 0.78;
+const aimColor = 0xFF4433;
 // Насколько кольца шире самого кружка.
 const roleRingShare = 1.04;
 const teamRingShare = 1.16;
@@ -378,6 +453,9 @@ const PlayerBadge = ({
 		isConnected,
 		teamRing,
 		isSpy,
+		roleMark,
+		isAimed,
+		isShot,
 		style,
 		onLongPress = null,
 		mark,
@@ -430,6 +508,12 @@ const PlayerBadge = ({
 			{!isDoor && (
 				<React.Fragment>
 					<BadgeShade badgeWidth={bodyWidth} badgeHeight={style.height}/>
+					{/* След выстрела — сразу на лице, под кольцами и ником: пробили
+					    самого игрока, а не его обводку. Растёт он сам, от появления
+					    (см. BulletWound). */}
+					{isShot && (
+						<BulletWound rx={bodyWidth / 2} ry={style.height / 2} seed={id}/>
+					)}
 					{/* Роль — тонким кольцом по краю кружка. Видно её не всем: сопротивление
 					    чужих ролей не знает, и кольца у него нет ни у кого, кроме себя. */}
 					{isSpy !== null && (
@@ -444,12 +528,12 @@ const PlayerBadge = ({
 					    прямо сейчас, и он должен читаться первым. На самой миссии оно
 					    рассыпается в пунктир, и у того, чьей карты ещё ждут, пунктир
 					    бежит — то же «идёт, ждём», что и у кружка миссии на треке. */}
-					{teamRing === ETeamRing.solid && (
+					{(teamRing === ETeamRing.solid || teamRing === ETeamRing.target) && (
 						<Ring
 							rx={bodyWidth * teamRingShare / 2}
 							ry={style.height * teamRingShare / 2}
 							thickness={teamRingThickness(bodyWidth)}
-							color={teamRingColor}
+							color={teamRing === ETeamRing.target ? targetRingColor : teamRingColor}
 						/>
 					)}
 					{(teamRing === ETeamRing.mission || teamRing === ETeamRing.waiting) && (
@@ -477,6 +561,36 @@ const PlayerBadge = ({
 					    внутри её не отличить от рисунка на бейдже, да и разглядывать
 					    чужие пометки приходится по всему столу разом — по верхнему краю
 					    они читаются одним взглядом. */}
+					{/* Взят на прицел: перекрестие поверх лица, пока Убийца не нажал.
+					    Поверх колец — это не свойство кружка, а наведённое на него
+					    оружие. */}
+					{isAimed && !isShot && (
+						<Crosshair
+							rx={bodyWidth * aimShare / 2}
+							ry={style.height * aimShare / 2}
+							thickness={Math.max(bodyWidth * 0.028, 1.5)}
+							color={aimColor}
+						/>
+					)}
+					{/* Мерлин и Убийца — своим жетоном рядом с пометкой. Видно их не
+					    всем: Мерлина до развязки знает только он сам, Убийцу — свои.
+					    Что роль делает, рассказывает подсказка по самому жетону: буква
+					    на кружке сама по себе не говорит ничего, а объяснить её один раз
+					    на старте мало — партия идёт полчаса, и вкладку за это время
+					    успевают перезагрузить. */}
+					{roleMark && (
+						<Container
+							x={-style.width * roleMarkShift}
+							y={-style.height / 2 + style.height * markIconDrop}
+							interactive={true}
+							buttonMode={true}
+							pointerover={showRoleHint(roleMark, isYou, false)}
+							pointerout={roleHintStore.leave}
+							pointertap={showRoleHint(roleMark, isYou, true)}
+						>
+							<RoleMark size={style.width * roleMarkShare} mark={roleMark}/>
+						</Container>
+					)}
 					{(mark && mark !== EPlayerMark.none) && (
 						<Container y={-style.height / 2 + style.height * markIconDrop}>
 							{mark === EPlayerMark.spy ? (

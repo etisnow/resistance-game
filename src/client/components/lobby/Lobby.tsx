@@ -50,6 +50,46 @@ export class Lobby extends React.Component<ILobbyProps> {
 		})
 	};
 
+	// Дополнения: ставит их хост, читает весь стол. Не кнопкой, а строкой с
+	// галочкой — это не действие, а условие партии, в которую садятся, и видно оно
+	// должно быть всем, включая тех, кто его не меняет.
+	renderOption = (
+		{isOn, isEnabled, onChange, title, hint, isNested}:
+		{isOn: boolean, isEnabled: boolean, onChange: (value: boolean) => void, title: string, hint: string, isNested?: boolean},
+	) => (
+		<label className={cx('lobby-option', {isOn, isReadonly: !isEnabled, isNested})}>
+			<input type={'checkbox'} checked={isOn} disabled={!isEnabled} onChange={(e) => onChange(e.target.checked)}/>
+			<span>
+				<span className={'lobby-option-title'}>{title}</span>
+				<span className={'lobby-option-hint'}>{hint}</span>
+			</span>
+		</label>
+	);
+
+	renderRoleOptions = () => {
+		const {controller} = this.props;
+		const isHost = !!controller.currentPlayer?.isHost;
+		return <React.Fragment>
+			{this.renderOption({
+				isOn: controller.withMerlin,
+				isEnabled: isHost,
+				onChange: controller.setWithMerlin,
+				title: 'С Мерлином и Убийцей',
+				hint: 'Мерлин видит шпионов, а шпионы в конце стреляют в того, кого считают Мерлином',
+			})}
+			{/* Вложенная: Персиваль ищет глазами Мерлина, а Моргана нужна затем,
+			    чтобы он ошибся, — без Мерлина этой пары не бывает (FR-16). */}
+			{this.renderOption({
+				isOn: controller.withPercival,
+				isEnabled: isHost && controller.withMerlin,
+				onChange: controller.setWithPercival,
+				title: 'И с Персивалем с Морганой',
+				hint: 'Персивалю показывают Мерлина — вместе с Морганой и не говоря, кто из них кто',
+				isNested: true,
+			})}
+		</React.Fragment>;
+	};
+
 	override render() {
 		const currentPlayer = this.props.controller.currentPlayer;
 		if (!currentPlayer) return null;
@@ -64,6 +104,7 @@ export class Lobby extends React.Component<ILobbyProps> {
 				<button className={'launcher-button'} onClick={this.toggleReadyGame}>
 					{currentPlayer.isReady ? 'Я пока не готов' : 'Я готов к игре!'}
 				</button>
+				{this.renderRoleOptions()}
 				{this.renderPlayersTable()}
 
 			</div>

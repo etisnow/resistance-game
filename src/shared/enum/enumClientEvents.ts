@@ -6,6 +6,7 @@ export enum EClientEventType {
   kickPlayer = "kickPlayer",
   disconnect = "disconnect",
   startGame = "startGame",
+  setGameOptions = "setGameOptions",
   playerAction = "playerAction",
   actionDecision = "actionDecision",
   markPlayer = "markPlayer",

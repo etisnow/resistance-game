@@ -10,11 +10,15 @@ import {gameHasBots, scheduleBots} from 'server/helpers/bot';
 import {onDecision, onPlayerSelect} from 'server/helpers/round';
 import {EGameLogType} from 'shared/enum/gameLogType';
 import {isPlayableCount, MAX_PLAYERS, MIN_PLAYERS} from 'shared/constant/resistance';
+import {isPercivalPairRole, parseDevRole} from 'shared/enum/role';
 
 export interface IBotGameOptions {
   withBots?: boolean;
   seed?: number;
   botCount?: number;
+  // Какую роль выдать живому игроку: ?activeRole=merlin|assassin. Строкой, а не
+  // ESpecialRole: значение приходит из адресной строки и разбирается ниже.
+  activeRole?: string;
 }
 
 // Сколько ботов сажать за стол в дев-режиме, если ?botCount= не задан.
@@ -144,6 +148,16 @@ class GameServer {
   // Число ботов — ?botCount= (по умолчанию DEFAULT_BOT_COUNT).
   private setupBotGame({ game, options }: { game: Game; options: IBotGameOptions }) {
     if (typeof options.seed === 'number') game.reseed(options.seed);
+    // ?activeRole= — просьба выдать себе Мерлина или Убийцу. Она же включает и
+    // саму партию с ними: без дополнения этих ролей за столом нет (см. FR-14).
+    const activeRole = parseDevRole(options.activeRole);
+    if (activeRole) {
+      game.withMerlin = true;
+      // Персиваля с Морганой просить можно так же — просьба включает и их
+      // настройку: без неё этих ролей за столом нет (см. FR-16).
+      game.withPercival = isPercivalPairRole(activeRole);
+      game.devForcedRole = activeRole;
+    }
 
     const botCount = botGameBotCount(options.botCount);
     for (let i = 1; i <= botCount; i++) {
@@ -272,6 +286,21 @@ class GameServer {
 
   toggleReady({player}: { player: Player}) {
     player.toggleReady();
+  }
+
+  // Настройки партии ставит хост и только в лобби: после раздачи менять роли уже
+  // нечем, а сам переключатель виден всем — стол должен знать, во что садится.
+  setGameOptions({player, withMerlin, withPercival}: {player: Player, withMerlin?: boolean, withPercival?: boolean}) {
+    const game = player.game;
+    if (!game || game.state !== EGameState.lobby) return;
+    if (game.hostPlayerId !== player.id) return;
+    if (typeof withMerlin === 'boolean') game.withMerlin = withMerlin;
+    if (typeof withPercival === 'boolean') game.withPercival = withPercival;
+    // Персиваль ищет глазами Мерлина, а Моргана нужна затем, чтобы он ошибся:
+    // без Мерлина эта пара не берётся (FR-16). Снимаем её здесь, а не полагаемся
+    // на клиент: галочку можно снять и после того, как вложенная была поставлена.
+    if (!game.withMerlin) game.withPercival = false;
+    game.updateGame();
   }
 
   // «Сопротивление» играется впятером-вдесятером (FR-1): вне этих рамок таблиц

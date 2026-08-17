@@ -4,5 +4,9 @@ export enum EGamePhase {
 	teamBuilding = 'teamBuilding',
 	voting = 'voting',
 	mission = 'mission',
+	// Выстрел Убийцы: сопротивление выполнило три миссии, но партия ещё не
+	// кончилась — сначала Убийца называет того, кого считает Мерлином. Бывает
+	// только в партии с Мерлином (см. Game.withMerlin).
+	assassination = 'assassination',
 	over = 'over',
 }
