@@ -21,17 +21,16 @@
  */
 import {getAudioContext, resumeAudio} from 'client/helpers/audioContext';
 import mainTrack from 'client/resources/sound/resistance-main.mp3';
+import mainTrack2 from 'client/resources/sound/resistance-main-2.mp3';
 
 /**
  * Ротация тем. Скачивается и распаковывается всегда ровно одна: тема — это
  * под мегабайт сжатой и десятки распакованной, и держать их все разом незачем,
  * до второй партии доходит не каждый.
  *
- * Сейчас тема одна, и ротации нечего выбирать: «нечтовские» ушли вместе с игрой,
- * для которой их писали, а свои появляются по одной. Механику оставили — новую
- * тему добавляют сюда одной строкой (и в scripts/packMusic.ts).
+ * Новую тему добавляют сюда одной строкой (и в scripts/packMusic.ts).
  */
-const tracks = [mainTrack];
+const tracks = [mainTrack, mainTrack2];
 // Что играло в прошлый раз. −1 — ещё ничего: первую тему выбираем из всех.
 let trackIndex = -1;
 

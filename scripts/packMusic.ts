@@ -31,10 +31,10 @@ const FADE_SEC = 0.005;
 
 // Весь список тем: в игре они идут вперемешку (см. helpers/music), и жать их
 // надо одинаково — иначе на стыке между темами слышно, что одна другой громче
-// или глуше. Тема пока одна: «нечтовские» ушли вместе с игрой, для которой их
-// писали.
+// или глуше.
 const tracks: {from: string; to: string}[] = [
 	{from: 'resistance-main.mp3', to: 'resistance-main.mp3'},
+	{from: 'resistance-main-2.mp3', to: 'resistance-main-2.mp3'},
 ];
 
 for (const {from, to} of tracks) {
