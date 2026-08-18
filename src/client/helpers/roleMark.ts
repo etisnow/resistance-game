@@ -4,17 +4,16 @@ import type Player from 'client/models/Player';
 /**
  * Жетон роли на кружке: буква в цветном кружке рядом с личной пометкой.
  *
+ * Жетоны есть только у особых ролей. Простой шпион и простой сопротивленец
+ * обходятся без буквы — даже на развязке: сторону там называет кольцо по краю
+ * кружка, и повторять его буквой значит писать на столе то, что уже написано.
+ *
  * Жетонов на один больше, чем ролей: Персиваль видит Мерлина и Моргану одним и
  * тем же знаком — «М?». Он и правда не знает, кто из этих двоих кто, и стол
  * обязан показывать ему ровно то, что он знает, а не то, как есть на самом деле.
  */
 export const MERLIN_LIKE = 'merlinLike';
-// Сторона без особой роли: обычный шпион и обычный сопротивленец. Эти два жетона
-// зажигаются только на развязке (FR-10) — там роли открыты всем, и стол должен
-// называть их вслух, а не одним лишь кольцом по краю кружка.
-export const SPY_SIDE = 'spy';
-export const RESISTANCE_SIDE = 'resistance';
-export type TRoleMark = ESpecialRole | typeof MERLIN_LIKE | typeof SPY_SIDE | typeof RESISTANCE_SIDE;
+export type TRoleMark = ESpecialRole | typeof MERLIN_LIKE;
 
 interface IRoleMarkLook {
 	// Буква на жетоне. Две — тоже буква: «МГ» у Морганы, чтобы не спорить с «М»
@@ -38,10 +37,6 @@ export const ROLE_MARK_LOOK: {[key in TRoleMark]: IRoleMarkLook} = {
 	[ESpecialRole.percival]: {text: 'П', fill: guessSteel, glyph: darkGlyph},
 	[ESpecialRole.morgana]: {text: 'МГ', fill: spyBlood, glyph: lightGlyph},
 	[MERLIN_LIKE]: {text: 'М?', fill: guessSteel, glyph: darkGlyph},
-	// Своего цвета этим двоим не нужно: цвет здесь и есть сторона, а больше о них
-	// сказать нечего — тем они от особых ролей и отличаются.
-	[SPY_SIDE]: {text: 'Ш', fill: spyBlood, glyph: lightGlyph},
-	[RESISTANCE_SIDE]: {text: 'С', fill: merlinGold, glyph: darkGlyph},
 };
 
 /**
@@ -50,20 +45,13 @@ export const ROLE_MARK_LOOK: {[key in TRoleMark]: IRoleMarkLook} = {
  * что здесь достаточно перебрать то, что пришло.
  *
  * Порядок важен: на развязке у Морганы приходит и настоящая роль, и «похожа на
- * Мерлина» — показать надо настоящую. Простая сторона идёт последней: особая роль
- * и так говорит, за кого он играл.
- *
- * isRevealed — партия кончена и роли открыты (round.isRolesRevealed). До этого
- * простую сторону жетоном не показываем: пока идёт игра, знают её единицы —
- * шпионы про своих да Мерлин про всех, — и буква на кружке говорила бы им то, что
- * они и так знают, зато на развязке перестала бы читаться как новость.
+ * Мерлина» — показать надо настоящую.
  */
-export const roleMarkOf = (player: Player, isRevealed: boolean): TRoleMark | null => {
+export const roleMarkOf = (player: Player): TRoleMark | null => {
 	if (player.isMerlin) return ESpecialRole.merlin;
 	if (player.isMorgana) return ESpecialRole.morgana;
 	if (player.isAssassin) return ESpecialRole.assassin;
 	if (player.isPercival) return ESpecialRole.percival;
 	if (player.looksLikeMerlin) return MERLIN_LIKE;
-	if (isRevealed && player.isSpy !== null) return player.isSpy ? SPY_SIDE : RESISTANCE_SIDE;
 	return null;
 };

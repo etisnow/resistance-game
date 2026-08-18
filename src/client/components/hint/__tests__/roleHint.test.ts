@@ -1,6 +1,6 @@
 import {describe, expect, test} from 'bun:test';
 import {ESpecialRole} from 'shared/enum/role';
-import {MERLIN_LIKE, RESISTANCE_SIDE, ROLE_MARK_LOOK, SPY_SIDE, type TRoleMark} from 'client/helpers/roleMark';
+import {MERLIN_LIKE, ROLE_MARK_LOOK, type TRoleMark} from 'client/helpers/roleMark';
 import {roleHintText} from 'client/components/hint/RoleHint';
 
 // Жетон роли на кружке — буква, и объясняет её только подсказка. Видят её разные
@@ -13,8 +13,6 @@ const ALL_MARKS: TRoleMark[] = [
 	ESpecialRole.percival,
 	ESpecialRole.morgana,
 	MERLIN_LIKE,
-	SPY_SIDE,
-	RESISTANCE_SIDE,
 ];
 
 describe('жетоны ролей', () => {
@@ -26,10 +24,6 @@ describe('жетоны ролей', () => {
 	test('сторона читается цветом: у шпионов свой, у сопротивления свой', () => {
 		expect(ROLE_MARK_LOOK[ESpecialRole.morgana].fill).toBe(ROLE_MARK_LOOK[ESpecialRole.assassin].fill);
 		expect(ROLE_MARK_LOOK[ESpecialRole.merlin].fill).not.toBe(ROLE_MARK_LOOK[ESpecialRole.assassin].fill);
-		// Жетоны развязки — той же двух красок: цвет здесь и есть сторона, и
-		// заводить простому шпиону третью значило бы сказать ею что-то ещё.
-		expect(ROLE_MARK_LOOK[SPY_SIDE].fill).toBe(ROLE_MARK_LOOK[ESpecialRole.assassin].fill);
-		expect(ROLE_MARK_LOOK[RESISTANCE_SIDE].fill).toBe(ROLE_MARK_LOOK[ESpecialRole.merlin].fill);
 	});
 
 	test('догадка Персиваля выглядит как догадка, а не как Мерлин', () => {

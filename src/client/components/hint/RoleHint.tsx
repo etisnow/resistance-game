@@ -1,7 +1,7 @@
 import React from 'react';
 import {observer} from 'mobx-react-lite';
 import {ESpecialRole} from 'shared/enum/role';
-import {MERLIN_LIKE, RESISTANCE_SIDE, ROLE_MARK_LOOK, SPY_SIDE, type TRoleMark} from 'client/helpers/roleMark';
+import {MERLIN_LIKE, ROLE_MARK_LOOK, type TRoleMark} from 'client/helpers/roleMark';
 import {HintPopup} from 'client/components/hint/HoverHint';
 import {roleHintStore} from 'client/components/hint/roleHintStore';
 import './styles.scss';
@@ -21,9 +21,6 @@ const ROLE_TITLE: {[key in TRoleMark]: string} = {
 	// У этого жетона нет роли — в том и дело: Персиваль видит двоих и не знает,
 	// кто из них кто.
 	[MERLIN_LIKE]: 'Мерлин или Моргана',
-	// Сторона без особой роли — только на развязке (см. roleMarkOf).
-	[SPY_SIDE]: 'Шпион',
-	[RESISTANCE_SIDE]: 'Сопротивление',
 };
 
 // Чужой жетон Мерлина и Персиваля виден только на развязке — оттого и прошедшее
@@ -49,16 +46,6 @@ const ROLE_TEXT: {[key in TRoleMark]: {you: string, other: string}} = {
 	[MERLIN_LIKE]: {
 		you: 'Один из этих двоих — Мерлин, второй — Моргана. Кто именно, тебе не сказали.',
 		other: 'Один из этих двоих — Мерлин, второй — Моргана. Кто именно, тебе не сказали.',
-	},
-	// Эти два жетона зажигаются на развязке, и говорить им уже не о чем, кроме
-	// того, как эта партия игралась, — оттого и прошедшее время у обоих.
-	[SPY_SIDE]: {
-		you: 'Ты играл за шпионов: знал своих с первой минуты и мог сдать «Провал» на любой миссии, куда попадал.',
-		other: 'Шпион. Знал своих с первой минуты и мог сдать «Провал» на любой миссии, куда попадал.',
-	},
-	[RESISTANCE_SIDE]: {
-		you: 'Ты играл за сопротивление: чужих ролей не знал, а «Провала» у тебя не было вовсе — с миссии от тебя всегда шёл «Успех».',
-		other: 'Сопротивленец. Чужих ролей не знал, а «Провала» у него не было вовсе — с миссии от него всегда шёл «Успех».',
 	},
 };
 
